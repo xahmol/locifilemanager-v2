@@ -53,3 +53,9 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Build outputs
+build/
+
+# Local deployment / environment config
+.env
