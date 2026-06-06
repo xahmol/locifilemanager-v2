@@ -1583,3 +1583,108 @@ return (fd >= 0) ? &s_dir : 0;
 if (fd < 0) return 0;
 return &s_dir;
 ```
+
+---
+
+## Oric Atmos Project Library API (`include/charwin.h/c`)
+
+Project-specific bare-metal character window library for the Oric Atmos.
+Screen RAM at $BB80, 40×28, serial attributes. `OricCharWin` is the window struct.
+Call `charwin_init()` once before any `cwin_*` function.
+
+### Init / clear
+
+```c
+void charwin_init(void);                                 // build row table
+void cwin_init(OricCharWin *w, sx, sy, wx, wy, ink, paper);
+void cwin_clear(OricCharWin *w);                         // fill spaces + attrs, cx=cy=0
+```
+
+### Positional write/read (no cursor update)
+
+```c
+void cwin_putat_char(w, x, y, ch);
+void cwin_putat_string(w, x, y, s);
+void cwin_putat_printf(w, x, y, fmt, ...);
+void cwin_putat_chars(w, x, y, chars, num);              // write N chars, clip at right edge
+void cwin_putat_dblhi_string(w, x, y, s);               // double-height (rows y and y+1)
+uint8_t cwin_getat_char(w, x, y);
+void cwin_getat_chars(w, x, y, chars, num);              // read N chars (no NUL)
+```
+
+### Rectangle copy (chars only — no separate colour RAM on Oric)
+
+```c
+void cwin_get_rect(w, x, y, bw, bh, chars);  // copy bw×bh chars to flat buffer
+void cwin_put_rect(w, x, y, bw, bh, chars);  // write flat buffer into bw×bh region
+```
+Buffer layout: row-major, `bw` bytes per row. Size = `bw * bh` bytes.
+
+### Cursor-advancing write
+
+```c
+void cwin_put_char(w, ch);
+void cwin_put_string(w, s);
+void cwin_put_attr(w, attr);                             // for A_FWBLACK (NUL)
+void cwin_put_chars(w, chars, num);                      // write exactly N chars
+void cwin_printf(w, fmt, ...);
+```
+
+### Console mode (handles `\n`, wraps, scrolls)
+
+```c
+void cwin_console_put_char(w, ch);
+void cwin_console_put_string(w, s);
+void cwin_printwrap(w, str);                             // word-wrap into window
+void cwin_printline(w, s);                               // put_string then newline
+```
+
+### Cursor movement
+
+```c
+void cwin_cursor_move(w, cx, cy);       // direct jump
+bool cwin_cursor_left/right/up/down(w); // returns false at edge
+bool cwin_cursor_forward(w);            // advance; wrap to (0, cy+1) at right edge
+bool cwin_cursor_backward(w);           // retreat; wrap to (wx-1, cy-1) at left edge
+bool cwin_cursor_newline(w);            // cx=0, cy++; returns false at last row (no scroll)
+void cwin_cursor_show(w, on);           // inverse-video toggle
+```
+
+### Fill / scroll
+
+```c
+void cwin_fill_rect(w, x, y, bw, bh, ch);
+void cwin_scroll_up(w);                 // shift content up 1 row, clear bottom
+void cwin_scroll_down(w);               // shift content down 1 row, clear top
+void cwin_scroll_left(w, by);           // shift all rows left `by` cols, clear right
+void cwin_scroll_right(w, by);          // shift all rows right `by` cols, clear left
+void cwin_insert_char(w);               // insert space at cursor, shift row right
+void cwin_delete_char(w);               // delete char at cursor, shift row left
+```
+
+### Viewport (scrollable view into flat char buffer)
+
+```c
+void cwin_viewport_init(vp, sourcebase, sourcewidth, sourceheight, win);
+void cwin_viewport_blit(vp);
+void cwin_viewport_scroll(vp, KEY_UP/DOWN/LEFT/RIGHT);
+```
+
+### Key input / text widget
+
+```c
+uint8_t cwin_getch(void);
+signed int cwin_textinput(w, x, y, vwidth, str, maxlen, validation);
+// validation flags: VINPUT_ALL=0, VINPUT_NUMS=1, VINPUT_ALPHA=2, VINPUT_WILD=4
+```
+
+### Overlay RAM (LOCI required — not in Oricutron)
+
+```c
+void cwin_push(w);  // save window rows to overlay RAM (LIFO, max 8 levels)
+void cwin_pop(w);   // restore from overlay RAM
+```
+
+### Printf format support
+
+`%d` (int16), `%u` (uint16), `%x` (uint16 hex), `%s`, `%c`, `%%`, width+zero-fill (e.g. `%02u`). No floats (`-dNOFLOAT`). Max 79 formatted chars. Implemented via internal `_cwin_vformat` without `va_list` (Oscar64 native-mode `va_arg` is broken — see gotcha above).

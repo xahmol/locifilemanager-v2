@@ -170,6 +170,75 @@ void cwin_viewport_blit(OricViewport *vp);
 void cwin_viewport_scroll(OricViewport *vp, uint8_t dir);
 
 // -------------------------------------------------------------------------
+// Cursor — extended movement
+// -------------------------------------------------------------------------
+
+// Move cursor to window-relative (cx, cy) directly.
+void cwin_cursor_move(OricCharWin *w, uint8_t cx, uint8_t cy);
+
+// Advance cursor forward one position; wraps to cx=0, cy++ at right edge.
+// Returns false if already at last cell (bottom-right).
+bool cwin_cursor_forward(OricCharWin *w);
+
+// Retreat cursor one position; wraps to cx=wx-1, cy-- at left edge.
+// Returns false if already at first cell (top-left).
+bool cwin_cursor_backward(OricCharWin *w);
+
+// Move cursor to start of next line (cx=0, cy++). Does NOT scroll.
+// Returns false if already on last row.
+bool cwin_cursor_newline(OricCharWin *w);
+
+// -------------------------------------------------------------------------
+// Multi-character bulk I/O
+// -------------------------------------------------------------------------
+
+// Write exactly num chars at cursor, advancing cursor. No wrap/scroll.
+void cwin_put_chars(OricCharWin *w, const char *chars, uint8_t num);
+
+// Write exactly num chars at window-relative (x, y). Clips at right edge.
+void cwin_putat_chars(OricCharWin *w, uint8_t x, uint8_t y, const char *chars, uint8_t num);
+
+// Read exactly num chars from window-relative (x, y) into buffer.
+// Clips at right edge; buffer is NOT null-terminated.
+void cwin_getat_chars(OricCharWin *w, uint8_t x, uint8_t y, char *chars, uint8_t num);
+
+// -------------------------------------------------------------------------
+// Rectangle copy (no colour RAM — chars only)
+// -------------------------------------------------------------------------
+
+// Copy a bw×bh rectangle of characters from the window at (x,y) into
+// a flat row-major buffer (bw bytes per row, bh rows).
+// Buffer must be at least bw * bh bytes.
+void cwin_get_rect(OricCharWin *w, uint8_t x, uint8_t y,
+                   uint8_t bw, uint8_t bh, char *chars);
+
+// Write a flat row-major buffer of characters into the window at (x,y).
+// bw bytes per row, bh rows. Does not touch attribute bytes.
+void cwin_put_rect(OricCharWin *w, uint8_t x, uint8_t y,
+                   uint8_t bw, uint8_t bh, const char *chars);
+
+// -------------------------------------------------------------------------
+// Word-wrap print
+// -------------------------------------------------------------------------
+
+// Print str into the window with word-wrap. Spaces are used as word
+// delimiters. Words longer than wx are split across lines.
+// Uses console mode (scrolls at bottom). Does not add a trailing newline.
+void cwin_printwrap(OricCharWin *w, const char *str);
+
+// -------------------------------------------------------------------------
+// Horizontal scroll
+// -------------------------------------------------------------------------
+
+// Shift all window rows LEFT by `by` columns. Right edge fills with spaces.
+// Attribute bytes (cols 0-1) are not touched.
+void cwin_scroll_left(OricCharWin *w, uint8_t by);
+
+// Shift all window rows RIGHT by `by` columns. Left edge fills with spaces.
+// Attribute bytes (cols 0-1) are not touched.
+void cwin_scroll_right(OricCharWin *w, uint8_t by);
+
+// -------------------------------------------------------------------------
 // Overlay RAM save/restore — REQUIRES LOCI device (not testable in Oricutron)
 // -------------------------------------------------------------------------
 

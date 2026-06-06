@@ -102,4 +102,32 @@
 // ── Completion ────────────────────────────────────────────────────────────────
 #define MSG_DEMO_DONE           "TEST PHASE 2 TERMINE. ARRETE."
 
+// ── Section M: cursor_move / forward / backward / newline / put_chars / getat_chars ──
+#define MSG_DEMO_SECTION_M      "M: cursor_move, avance/recule, chars"
+#define MSG_DEMO_M_MOVE         "cursor_move(10,2) + put_char:"
+#define MSG_DEMO_M_FWD          "cursor_forward (change ligne):"
+#define MSG_DEMO_M_BWD          "cursor_backward (change ligne):"
+#define MSG_DEMO_M_PUT_CHARS    "put_chars 5 car. au curseur:"
+#define MSG_DEMO_M_GETAT        "getat_chars relecture:"
+#define MSG_DEMO_M_VERIFY       "getat verif: "
+#define MSG_DEMO_M_PASS         "OK"
+#define MSG_DEMO_M_FAIL         "ECHEC"
+
+// ── Section N: get_rect / put_rect ────────────────────────────────────────────
+#define MSG_DEMO_SECTION_N      "N: get_rect / put_rect sauvegarde+restore"
+#define MSG_DEMO_N_ORIGINAL     "Contenu original dessine."
+#define MSG_DEMO_N_SAVED        "Rect sauvegarde. Ecrasement ### ..."
+#define MSG_DEMO_N_RESTORED     "Rect restaure depuis le tampon."
+
+// ── Section O: printwrap ──────────────────────────────────────────────────────
+#define MSG_DEMO_SECTION_O      "O: cwin_printwrap retour a la ligne"
+#define MSG_DEMO_O_LABEL        "Habillage fenetre 20 col:"
+#define MSG_DEMO_O_TEXT         "Ceci est une longue phrase qui sera habilee dans une fenetre etroite pour montrer la fonction cwin printwrap."
+
+// ── Section P: scroll_left / scroll_right ─────────────────────────────────────
+#define MSG_DEMO_SECTION_P      "P: cwin_scroll_left / cwin_scroll_right"
+#define MSG_DEMO_P_FILLED       "Lignes remplies. Defilement gauche x3..."
+#define MSG_DEMO_P_LEFT_DONE    "Gauche OK. Defilement droite x3..."
+#define MSG_DEMO_P_RIGHT_DONE   "Droite OK."
+
 #endif

@@ -79,10 +79,20 @@ Complete bare-metal Oric character window library. All functions are implemented
 | `cwin_putat_dblhi_string(w,x,y,s)` | Double-height: writes A_STD2H+s+A_STD on row y AND y+1 from one call |
 | `cwin_console_put_char/string/printf(w,...)` | Console mode: handles `\n`, wraps, scrolls |
 | `cwin_fill_rect(w,x,y,bw,bh,ch)` | Fill rectangle with character |
-| `cwin_scroll_up(w)` | Scroll window content up 1 row |
+| `cwin_scroll_up(w)` / `cwin_scroll_down(w)` | Scroll window content up/down 1 row |
+| `cwin_scroll_left(w,by)` / `cwin_scroll_right(w,by)` | Shift all rows left/right by `by` cols; vacated cols → space |
+| `cwin_insert_char(w)` / `cwin_delete_char(w)` | Insert space / delete char at cursor within row |
 | `cwin_cursor_show(w,on)` | Toggle cursor via inverse-video |
+| `cwin_cursor_move(w,cx,cy)` | Direct cursor jump |
 | `cwin_cursor_left/right/up/down(w)` | Move cursor; returns false at edge |
+| `cwin_cursor_forward/backward(w)` | Advance/retreat wrapping across line boundary |
+| `cwin_cursor_newline(w)` | cx=0, cy++; returns false at last row (no scroll) |
 | `cwin_getat_char(w,x,y)` | Read character from screen RAM |
+| `cwin_put_chars(w,chars,num)` / `cwin_putat_chars(w,x,y,chars,num)` | Write exactly N chars (cursor / positional) |
+| `cwin_getat_chars(w,x,y,chars,num)` | Read N chars from position (no NUL terminator) |
+| `cwin_get_rect(w,x,y,bw,bh,chars)` | Copy bw×bh char rectangle to flat buffer |
+| `cwin_put_rect(w,x,y,bw,bh,chars)` | Write flat buffer into bw×bh rectangle |
+| `cwin_printwrap(w,str)` | Word-wrap print; spaces as delimiters; scrolls at bottom |
 | `cwin_getch()` | Blocking key read |
 | `cwin_textinput(w,x,y,vwidth,str,maxlen,validation)` | Text-input widget with viewport scroll |
 | `cwin_push(w)` / `cwin_pop(w)` | Save/restore rows to overlay RAM — **LOCI required** |

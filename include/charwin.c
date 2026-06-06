@@ -452,6 +452,201 @@ bool cwin_cursor_down(OricCharWin *w)
 }
 
 // -------------------------------------------------------------------------
+// Cursor — extended movement
+// -------------------------------------------------------------------------
+
+void cwin_cursor_move(OricCharWin *w, uint8_t cx, uint8_t cy)
+{
+    w->cx = cx;
+    w->cy = cy;
+}
+
+bool cwin_cursor_forward(OricCharWin *w)
+{
+    if (w->cx + 1 < w->wx) { w->cx++; return true; }
+    if (w->cy + 1 < w->wy) { w->cx = 0; w->cy++; return true; }
+    return false;
+}
+
+bool cwin_cursor_backward(OricCharWin *w)
+{
+    if (w->cx > 0) { w->cx--; return true; }
+    if (w->cy > 0) { w->cx = w->wx - 1; w->cy--; return true; }
+    return false;
+}
+
+bool cwin_cursor_newline(OricCharWin *w)
+{
+    w->cx = 0;
+    if (w->cy + 1 < w->wy) { w->cy++; return true; }
+    return false;
+}
+
+// -------------------------------------------------------------------------
+// Multi-character bulk I/O
+// -------------------------------------------------------------------------
+
+void cwin_put_chars(OricCharWin *w, const char *chars, uint8_t num)
+{
+    for (uint8_t i = 0; i < num; i++)
+        cwin_put_char(w, (uint8_t)chars[i]);
+}
+
+void cwin_putat_chars(OricCharWin *w, uint8_t x, uint8_t y,
+                      const char *chars, uint8_t num)
+{
+    uint8_t *base = (uint8_t *)row_base[w->sy + y] + w->sx + x;
+    uint8_t rem = (uint8_t)(w->wx - x);
+    uint8_t n = (num < rem) ? num : rem;
+    for (uint8_t i = 0; i < n; i++)
+        base[i] = (uint8_t)chars[i];
+}
+
+void cwin_getat_chars(OricCharWin *w, uint8_t x, uint8_t y,
+                      char *chars, uint8_t num)
+{
+    uint8_t *base = (uint8_t *)row_base[w->sy + y] + w->sx + x;
+    uint8_t rem = (uint8_t)(w->wx - x);
+    uint8_t n = (num < rem) ? num : rem;
+    for (uint8_t i = 0; i < n; i++)
+        chars[i] = (char)base[i];
+}
+
+// -------------------------------------------------------------------------
+// Rectangle copy (character bytes only — no separate colour RAM on Oric)
+// -------------------------------------------------------------------------
+
+void cwin_get_rect(OricCharWin *w, uint8_t x, uint8_t y,
+                   uint8_t bw, uint8_t bh, char *chars)
+{
+    for (uint8_t row = 0; row < bh && (y + row) < w->wy; row++)
+    {
+        uint8_t *base = (uint8_t *)row_base[w->sy + y + row] + w->sx + x;
+        uint8_t rem = (uint8_t)(w->wx - x);
+        uint8_t n = (bw < rem) ? bw : rem;
+        for (uint8_t col = 0; col < n; col++)
+            chars[col] = (char)base[col];
+        chars += bw;
+    }
+}
+
+void cwin_put_rect(OricCharWin *w, uint8_t x, uint8_t y,
+                   uint8_t bw, uint8_t bh, const char *chars)
+{
+    for (uint8_t row = 0; row < bh && (y + row) < w->wy; row++)
+    {
+        uint8_t *base = (uint8_t *)row_base[w->sy + y + row] + w->sx + x;
+        uint8_t rem = (uint8_t)(w->wx - x);
+        uint8_t n = (bw < rem) ? bw : rem;
+        for (uint8_t col = 0; col < n; col++)
+            base[col] = (uint8_t)chars[col];
+        chars += bw;
+    }
+}
+
+// -------------------------------------------------------------------------
+// Word-wrap print
+//
+// Adapted from vdcwin_printwrap by Xander Mol (Oscar64Test/include/vdc_win.c),
+// originally from C3L by Steven P. Goldsmith:
+// https://github.com/sgjava/c3l/blob/main/src/conww.c
+// Adapted: Oric charwin API; no strlen/strcpy (bare-metal, no string.h).
+// -------------------------------------------------------------------------
+
+void cwin_printwrap(OricCharWin *w, const char *str)
+{
+    char    wrapbuffer[42];   // max wx=38 + space + NUL with margin
+    uint8_t i = 0, buf = 0;
+    uint8_t len = 0;
+    while (str[len]) len++;
+    int8_t  wordStart = -1, wordEnd = -1;
+    uint8_t maxLine = w->wx;
+    uint8_t maxBuf  = (uint8_t)(sizeof(wrapbuffer) - 1);
+
+    while (i < len && buf < maxBuf)
+    {
+        while (i < len && wordEnd < 0 && buf < maxBuf)
+        {
+            if (str[i] != ' ')
+            {
+                if (wordStart < 0) wordStart = (int8_t)i;
+                wrapbuffer[buf++] = str[i];
+            }
+            else
+            {
+                if (wordEnd < 0)
+                {
+                    wrapbuffer[buf++] = str[i];
+                    wordEnd = (int8_t)i;
+                }
+            }
+            i++;
+        }
+
+        if (buf > 0)
+        {
+            wrapbuffer[buf] = '\0';
+            uint8_t wordLen = 0;
+            while (wrapbuffer[wordLen]) wordLen++;
+
+            // Split words that exceed the window width
+            while (wordLen > w->wx)
+            {
+                cwin_console_put_char(w, '\n');
+                cwin_put_chars(w, wrapbuffer, w->wx);
+                // Shift remaining content to start of buffer
+                uint8_t k, shift = w->wx;
+                for (k = 0; wrapbuffer[shift + k]; k++)
+                    wrapbuffer[k] = wrapbuffer[shift + k];
+                wrapbuffer[k] = '\0';
+                wordLen = k;
+            }
+
+            if ((uint8_t)(w->cx + wordLen) > maxLine)
+                cwin_console_put_char(w, '\n');
+            cwin_console_put_string(w, wrapbuffer);
+            wordStart = -1;
+            wordEnd   = -1;
+            buf       = 0;
+        }
+    }
+}
+
+// -------------------------------------------------------------------------
+// Horizontal scroll
+// -------------------------------------------------------------------------
+
+void cwin_scroll_left(OricCharWin *w, uint8_t by)
+{
+    if (by == 0) return;
+    if (by >= w->wx) by = w->wx;
+    uint8_t keep = (uint8_t)(w->wx - by);
+    for (uint8_t y = 0; y < w->wy; y++)
+    {
+        uint8_t *row = (uint8_t *)row_base[w->sy + y] + w->sx;
+        for (uint8_t x = 0; x < keep; x++)
+            row[x] = row[x + by];
+        for (uint8_t x = keep; x < w->wx; x++)
+            row[x] = 0x20;
+    }
+}
+
+void cwin_scroll_right(OricCharWin *w, uint8_t by)
+{
+    if (by == 0) return;
+    if (by >= w->wx) by = w->wx;
+    for (uint8_t y = 0; y < w->wy; y++)
+    {
+        uint8_t *row = (uint8_t *)row_base[w->sy + y] + w->sx;
+        // Iterate right-to-left to avoid overwriting source data
+        for (uint8_t x = w->wx - 1; x >= by; x--)
+            row[x] = row[x - by];
+        for (uint8_t x = 0; x < by; x++)
+            row[x] = 0x20;
+    }
+}
+
+// -------------------------------------------------------------------------
 // Overlay RAM save/restore — REQUIRES LOCI device (not available in Oricutron)
 // SEI/CLI brackets the overlay-RAM window; ROM is invisible during that time.
 // -------------------------------------------------------------------------

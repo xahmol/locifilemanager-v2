@@ -770,6 +770,147 @@ int main(void)
     cwin_getch();
 
     // ─────────────────────────────────────────────────────────────────────────
+    // M. Cursor move / forward / backward / newline + put_chars / getat_chars
+    // ─────────────────────────────────────────────────────────────────────────
+
+    cwin_clear(&scr);
+    cwin_putat_string(&scr, 0, 0, MSG_DEMO_SECTION_M);
+
+    // Small test window: 30 cols × 10 rows
+    OricCharWin mw;
+    cwin_init(&mw, 2, 2, 30, 10, A_FWCYAN, A_BGBLACK);
+    cwin_clear(&mw);
+
+    // 1. cursor_move then put_char
+    cwin_putat_string(&scr, 0, 13, MSG_DEMO_M_MOVE);
+    cwin_cursor_move(&mw, 10, 2);
+    cwin_put_char(&mw, '*');
+
+    // 2. cursor_forward across line boundary: move to last col of row 0, then forward
+    cwin_cursor_move(&mw, mw.wx - 1, 0);
+    cwin_cursor_forward(&mw);   // should wrap to (0, 1)
+    cwin_put_char(&mw, 'F');    // 'F' at (0,1) proves forward wrapped
+
+    // 3. cursor_backward across line boundary: move to col 0 row 2, then backward
+    cwin_cursor_move(&mw, 0, 2);
+    cwin_cursor_backward(&mw);  // should wrap to (wx-1, 1)
+    cwin_put_char(&mw, 'B');    // 'B' at (wx-1, 1) proves backward wrapped
+
+    // 4. put_chars: write "HELLO" at cursor (2,3)
+    cwin_putat_string(&scr, 0, 14, MSG_DEMO_M_PUT_CHARS);
+    cwin_cursor_move(&mw, 2, 3);
+    const char pc_src[5] = { 'H', 'E', 'L', 'L', 'O' };
+    cwin_put_chars(&mw, pc_src, 5);
+
+    // 5. getat_chars: read back those 5 chars and verify
+    cwin_putat_string(&scr, 0, 15, MSG_DEMO_M_GETAT);
+    char gc_buf[5];
+    cwin_getat_chars(&mw, 2, 3, gc_buf, 5);
+    bool m_pass = (gc_buf[0] == 'H' && gc_buf[1] == 'E' &&
+                   gc_buf[2] == 'L' && gc_buf[3] == 'L' && gc_buf[4] == 'O');
+    cwin_putat_string(&scr, 0, 16, MSG_DEMO_M_VERIFY);
+    cwin_putat_string(&scr, 13, 16, m_pass ? MSG_DEMO_M_PASS : MSG_DEMO_M_FAIL);
+
+    cwin_putat_string(&scr, 0, 18, MSG_DEMO_PRESS_KEY);
+    cwin_getch();
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // N. get_rect / put_rect — screen region save and restore
+    // ─────────────────────────────────────────────────────────────────────────
+
+    cwin_clear(&scr);
+    cwin_putat_string(&scr, 0, 0, MSG_DEMO_SECTION_N);
+
+    OricCharWin nw;
+    cwin_init(&nw, 2, 2, 30, 8, A_FWWHITE, A_BGBLUE);
+    cwin_clear(&nw);
+
+    // Draw recognisable content pattern
+    for (uint8_t r = 0; r < 8; r++)
+    {
+        cwin_cursor_move(&nw, 0, r);
+        for (uint8_t c = 0; c < 30; c++)
+            cwin_put_char(&nw, (uint8_t)('A' + (c + r) % 26));
+    }
+    cwin_putat_string(&scr, 0, 11, MSG_DEMO_N_ORIGINAL);
+    cwin_putat_string(&scr, 0, 12, MSG_DEMO_PRESS_KEY);
+    cwin_getch();
+
+    // Save a 12×3 rectangle at window (5, 2)
+    static char rect_buf[12 * 3];
+    cwin_get_rect(&nw, 5, 2, 12, 3, rect_buf);
+
+    // Overwrite that region with '#'
+    cwin_fill_rect(&nw, 5, 2, 12, 3, '#');
+    cwin_putat_string(&scr, 0, 11, MSG_DEMO_N_SAVED);
+    cwin_putat_string(&scr, 0, 12, MSG_DEMO_PRESS_KEY);
+    cwin_getch();
+
+    // Restore from buffer
+    cwin_put_rect(&nw, 5, 2, 12, 3, rect_buf);
+    cwin_putat_string(&scr, 0, 11, MSG_DEMO_N_RESTORED);
+    cwin_putat_string(&scr, 0, 12, MSG_DEMO_PRESS_KEY);
+    cwin_getch();
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // O. cwin_printwrap — word-wrap print into a narrow window
+    // ─────────────────────────────────────────────────────────────────────────
+
+    cwin_clear(&scr);
+    cwin_putat_string(&scr, 0, 0, MSG_DEMO_SECTION_O);
+    cwin_putat_string(&scr, 0, 2, MSG_DEMO_O_LABEL);
+
+    // Narrow window: 20 cols × 10 rows so wrap is clearly visible
+    OricCharWin ow;
+    cwin_init(&ow, 2, 4, 20, 10, A_FWYELLOW, A_BGBLACK);
+    cwin_clear(&ow);
+    cwin_printwrap(&ow, MSG_DEMO_O_TEXT);
+
+    cwin_putat_string(&scr, 0, 15, MSG_DEMO_PRESS_KEY);
+    cwin_getch();
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // P. cwin_scroll_left / cwin_scroll_right — horizontal scroll
+    // ─────────────────────────────────────────────────────────────────────────
+
+    cwin_clear(&scr);
+    cwin_putat_string(&scr, 0, 0, MSG_DEMO_SECTION_P);
+
+    OricCharWin pw;
+    cwin_init(&pw, 2, 2, 34, 8, A_FWGREEN, A_BGBLACK);
+    cwin_clear(&pw);
+
+    // Fill each row with repeating uppercase letter pattern
+    for (uint8_t r = 0; r < 8; r++)
+    {
+        cwin_cursor_move(&pw, 0, r);
+        for (uint8_t c = 0; c < 34; c++)
+            cwin_put_char(&pw, (uint8_t)('A' + (c + r) % 26));
+    }
+
+    cwin_putat_string(&scr, 0, 11, MSG_DEMO_P_FILLED);
+    cwin_putat_string(&scr, 0, 12, MSG_DEMO_PRESS_KEY);
+    cwin_getch();
+
+    // Scroll left 3× by 3
+    cwin_scroll_left(&pw, 3);
+    cwin_scroll_left(&pw, 3);
+    cwin_scroll_left(&pw, 3);
+
+    cwin_putat_string(&scr, 0, 11, MSG_DEMO_P_LEFT_DONE);
+    cwin_putat_string(&scr, 0, 12, MSG_DEMO_PRESS_KEY);
+    cwin_getch();
+
+    // Scroll right 3× by 3
+    cwin_scroll_right(&pw, 3);
+    cwin_scroll_right(&pw, 3);
+    cwin_scroll_right(&pw, 3);
+
+    cwin_putat_string(&scr, 0, 11, MSG_DEMO_P_RIGHT_DONE);
+    cwin_putat_string(&scr, 0, 12, MSG_DEMO_PRESS_KEY);
+    cwin_getch();
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Done
     // ─────────────────────────────────────────────────────────────────────────
 
