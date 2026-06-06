@@ -177,14 +177,19 @@ bool loci_present(void)
     return *LOCI_SIGNATURE_ADDR == 'L';
 }
 
-// uname: populate LociUname struct via DMA channel 0.
-// LOCI ROM writes uname data to addr0 on MIA_OP_UNAME.
-// Note: DMA vs XSTACK protocol may need verification on real hardware.
+// uname: populate LociUname struct via XSTACK.
+// Firmware pops sizeof(LociUname) == 69 bytes from XSTACK after MIA_OP_UNAME.
+// Based on sysuname.c in sodiumlb/loci-rom (XSTACK loop, not DMA).
 void loci_uname(LociUname *buf)
 {
-    MIA.step0 = 1;
-    MIA.addr0 = (uint16_t)buf;
+    uint8_t  i;
+    uint8_t *p = (uint8_t *)buf;
     mia_call_int(MIA_OP_UNAME);
+    for (i = 0; i < (uint8_t)sizeof(LociUname); i++)
+    {
+        uint8_t ch = MIA.xstack;
+        p[i] = ch;
+    }
 }
 
 void get_locicfg(void)
@@ -518,12 +523,27 @@ LociDirent *loci_readdir(LociDir *dir)
     return &s_dirent;
 }
 
+int16_t loci_mkdir(const char *path)
+{
+    push_path(path);
+    return mia_call_int_errno(MIA_OP_MKDIR);
+}
+
+// getcwd protocol (from initcwd.s in sodiumlb/loci-rom):
+//   ax = max_length (len-1); call MIA_OP_GETCWD; then pop bytes from XSTACK
+//   until '\0' or max reached.
 void loci_getcwd(char *buf, uint8_t len)
 {
-    MIA.step0 = 1;
-    MIA.addr0 = (uint16_t)buf;
-    mia_push_char(len);
+    uint8_t i = 0;
+    mia_set_ax((uint16_t)(len - 1));
     mia_call_int_errno(MIA_OP_GETCWD);
+    while (i < (uint8_t)(len - 1))
+    {
+        uint8_t ch = MIA.xstack;
+        buf[i++] = (char)ch;
+        if (!ch) return;
+    }
+    buf[i] = '\0';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

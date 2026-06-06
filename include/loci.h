@@ -79,9 +79,12 @@ struct __LOCI_TAP
 // MIA operation codes
 // ─────────────────────────────────────────────────────────────────────────────
 
+#define MIA_OP_ZXSTACK           0x00
+#define MIA_OP_XREG              0x01
 #define MIA_OP_PHI2              0x02
 #define MIA_OP_CODEPAGE          0x03
 #define MIA_OP_LRAND             0x04
+#define MIA_OP_STDIN_OPT         0x05
 #define MIA_OP_CLOCK_GETRES      0x10
 #define MIA_OP_CLOCK_GETTIME     0x11
 #define MIA_OP_CLOCK_SETTIME     0x12
@@ -107,6 +110,13 @@ struct __LOCI_TAP
 #define MIA_OP_TAP_HDR           0x94
 #define MIA_OP_UNAME             0x98
 #define MIA_OP_BOOT              0xA0
+#define MIA_OP_TUNE_TMAP         0xA1
+#define MIA_OP_TUNE_TIOR         0xA2
+#define MIA_OP_TUNE_TIOW         0xA3
+#define MIA_OP_TUNE_TIOD         0xA4
+#define MIA_OP_TUNE_TADR         0xA5
+#define MIA_OP_TUNE_SCAN         0xA6
+#define MIA_OP_EXIT              0xFF
 
 // ─────────────────────────────────────────────────────────────────────────────
 // File open flags (O_* values match LOCI ROM expectations)
@@ -179,14 +189,19 @@ typedef struct
     uint8_t patch;
 } LociVersion;
 
-// uname result (simplified — fields sized to what LOCI firmware returns)
+// uname result — must match CC65 struct utsname exactly (69 bytes total).
+// MIA_OP_UNAME pops exactly sizeof(struct utsname) bytes from XSTACK.
+// Field sizes from cc65/include/sys/utsname.h: sysname[17]+nodename[9]+
+//   release[9]+version[9]+machine[25] = 69 bytes.
+// release holds firmware version string e.g. "1.2.3".
 typedef struct
 {
-    char sysname[32];
-    char nodename[64];
-    char release[16];   // version string e.g. "1.2.3"
-    char machine[16];
-} LociUname;
+    char sysname[17];
+    char nodename[9];
+    char release[9];    // firmware version e.g. "1.2.3"
+    char version[9];
+    char machine[25];
+} LociUname;  // 69 bytes
 
 // Storage configuration (populated by get_locicfg)
 #define MAXDEV  9
@@ -285,6 +300,7 @@ int16_t file_copy(const char *dst, const char *src);
 LociDir    *loci_opendir(const char *path);
 void        loci_closedir(LociDir *dir);
 LociDirent *loci_readdir(LociDir *dir);
+int16_t     loci_mkdir(const char *path);
 void        loci_getcwd(char *buf, uint8_t len);
 
 // --- Mount ops ---
