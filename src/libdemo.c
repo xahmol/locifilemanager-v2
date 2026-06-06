@@ -11,6 +11,7 @@
 #include "charwin.h"
 #include "keyboard.h"
 #include "loci.h"
+#include "ijk.h"
 #include "strings_demo.h"
 
 // Hex digit table for key-echo display
@@ -27,7 +28,9 @@ static void hex2(char *buf, uint8_t v)
 // LOCI presence must be confirmed before calling.
 static bool test_overlay_ram(void)
 {
-    uint8_t *oram = (uint8_t *)OVERLAY_BASE;
+    // volatile required: Oscar64 -O2 optimises writes to constant ROM-space
+    // address (0xC000) as no-ops without it; reads would return ROM bytes.
+    volatile uint8_t *oram = (volatile uint8_t *)OVERLAY_BASE;
     bool ok;
 
     __asm { sei }
@@ -76,7 +79,7 @@ int main(void)
     // ─────────────────────────────────────────────────────────────────────────
 
     OricCharWin status;
-    cwin_init(&status, 2, 3, 38, 5, A_FWGREEN, A_BGBLACK);
+    cwin_init(&status, 2, 4, 38, 5, A_FWGREEN, A_BGBLACK);
     cwin_clear(&status);
     cwin_putat_string(&status, 0, 0, MSG_DEMO_STATUS_CRT);
     cwin_putat_string(&status, 0, 1, MSG_DEMO_STATUS_CHARWIN);
@@ -332,6 +335,7 @@ int main(void)
         cwin_putat_char(&walk, 0, (uint8_t)i, '*');
     }
 
+    cwin_clear(&walk);   // defensive: erase any cwin_cursor_show residue
     cwin_putat_string(&scr, 0, 13, MSG_DEMO_PRESS_KEY);
     cwin_getch();
 
@@ -454,6 +458,7 @@ int main(void)
     cwin_putat_char(&ball, px[0], py[0], CH_SPACE);
     cwin_putat_char(&ball, px[1], py[1], CH_SPACE);
     cwin_putat_char(&ball, px[2], py[2], CH_SPACE);
+    cwin_clear(&ball);   // defensive: erase accumulated trail characters
 
     cwin_putat_printf(&scr, 0, 21, MSG_DEMO_FRAMES_DONE, frames);
     cwin_putat_string(&scr, 0, 22, MSG_DEMO_PRESS_KEY);
@@ -487,35 +492,29 @@ int main(void)
 
     cwin_putat_string(&lwin, 0, 0, MSG_DEMO_LOCI_DETECTED);
 
-    // Step 2: firmware version and CPU speed
+    // Step 2: query firmware version and CPU speed before opening dir.
+    // Display is deferred to AFTER the directory listing (rows 16–17) so that
+    // the dir listing cannot overwrite the firmware/CPU lines regardless of
+    // any XSTACK residue from loci_uname.
+    int16_t cpu_khz = phi2();
+    loci_uname(&locicfg.uname);
     {
-        int16_t cpu_khz = phi2();
-        loci_uname(&locicfg.uname);
-        // Parse version from release string
         const char *rel = locicfg.uname.release;
         locicfg.version.major = (uint8_t)(rel[0] - '0');
         locicfg.version.minor = (uint8_t)(rel[2] - '0');
         locicfg.version.patch = (uint8_t)(rel[4] - '0');
-
-        cwin_putat_printf(&lwin, 0, 1, MSG_DEMO_LOCI_FW_VER "%u.%u.%u",
-            (uint16_t)locicfg.version.major,
-            (uint16_t)locicfg.version.minor,
-            (uint16_t)locicfg.version.patch);
-
-        cwin_putat_printf(&lwin, 0, 2, MSG_DEMO_LOCI_CPU_KHZ "%u" MSG_DEMO_LOCI_KHZ_UNIT,
-            (uint16_t)cpu_khz);
     }
 
-    // Step 3: root directory listing (first 10 entries)
+    // Step 3: root directory listing (first 12 entries, rows 3–14)
     {
-        cwin_putat_string(&lwin, 0, 4, MSG_DEMO_LOCI_DIR_HDR);
+        cwin_putat_string(&lwin, 0, 2, MSG_DEMO_LOCI_DIR_HDR);
 
         LociDir    *dir  = loci_opendir("");
         LociDirent *ent;
-        uint8_t     row  = 5;
+        uint8_t     row  = 3;
         uint8_t     devnr = 0;
 
-        while (row < 18)
+        while (row < 15)
         {
             ent = loci_readdir(dir);
             if (!ent || ent->d_name[0] == '\0') break;
@@ -529,21 +528,29 @@ int main(void)
             if (devid && ent->d_name[3] == 'M' && ent->d_name[4] == 'S' && ent->d_name[5] == 'C')
                 devnr++;
 
-            // Show: "[DIR] name" or "[FIL] name"
             cwin_putat_printf(&lwin, 0, row, "%s %s", typ, ent->d_name);
             row++;
         }
         loci_closedir(dir);
 
+        // Step 4: firmware and CPU displayed after dir listing
+        cwin_putat_printf(&lwin, 0, 16, MSG_DEMO_LOCI_FW_VER "%u.%u.%u",
+            (uint16_t)locicfg.version.major,
+            (uint16_t)locicfg.version.minor,
+            (uint16_t)locicfg.version.patch);
+
+        cwin_putat_printf(&lwin, 0, 17, MSG_DEMO_LOCI_CPU_KHZ "%u" MSG_DEMO_LOCI_KHZ_UNIT,
+            (uint16_t)cpu_khz);
+
         cwin_putat_printf(&lwin, 0, 19, MSG_DEMO_LOCI_DEV_COUNT "%u", (uint16_t)devnr);
     }
 
-    // Step 4: IJK joystick detection
+    // Step 5: IJK joystick detection
     ijk_detect();
     cwin_putat_string(&lwin, 0, 21,
         ijk_present ? MSG_DEMO_LOCI_IJK_FOUND : MSG_DEMO_LOCI_IJK_NONE);
 
-    // Step 5: done
+    // Step 6: done
     cwin_putat_string(&lwin, 0, 23, MSG_DEMO_PRESS_KEY);
     cwin_getch();
 

@@ -99,6 +99,10 @@ LOCI_SRCS = \
   include/strings_en.h  \
   include/strings_fr.h
 
+IJK_SRCS = \
+  include/ijk.c         \
+  include/ijk.h
+
 MAIN_SRCS = \
   src/main.c            \
   include/oric_crt.c    \
@@ -119,6 +123,8 @@ DEMO_SRCS = \
   include/charwin.h          \
   include/loci.c             \
   include/loci.h             \
+  include/ijk.c              \
+  include/ijk.h              \
   include/strings_demo.h     \
   include/strings_demo_en.h  \
   include/strings_demo_fr.h

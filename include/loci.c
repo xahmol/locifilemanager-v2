@@ -21,10 +21,6 @@
 uint8_t loci_errno = 0;
 LociCfg locicfg;
 
-uint8_t ijk_present = 0;
-uint8_t ijk_ljoy    = 0;
-uint8_t ijk_rjoy    = 0;
-
 // ─────────────────────────────────────────────────────────────────────────────
 // MIA helper implementations
 //
@@ -488,6 +484,9 @@ LociDir *loci_opendir(const char *path)
 {
     int16_t fd;
     uint8_t i = 0;
+    // Flush any XSTACK residue from prior operations (e.g. loci_uname)
+    // before pushing the path argument so the firmware sees a clean stack.
+    mia_call_int(MIA_OP_ZXSTACK);
     push_path(path);
     fd = mia_call_int_errno(MIA_OP_OPENDIR);
     s_dir.fd  = fd;
@@ -587,78 +586,3 @@ int32_t tap_read_header(LociTapHdr *hdr)
     return mia_call_long_errno(MIA_OP_TAP_HDR);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// IJK Joystick (Raxiss IJK via VIA Port A)
-//
-// Based on: libsrc/ijk-driver.s by raxiss (c) 2021, GPL v3.
-//   https://github.com/iss000/oricOpenLibrary
-// Adapted: C port using Oscar64 VIA struct and __asm SEI/CLI.
-//
-// VIA Port A bit layout (no-handshake access via VIA.pra2 at $030F):
-//   PA0=RIGHT  PA1=LEFT  PA2=FIRE  PA3=DOWN  PA4=UP
-//   PA5=DETECT PA6=LSTICK-select PA7=RSTICK-select
-// Buttons are active-low; code inverts: pressed=1, released=0.
-// VIA Port B bit 4 = printer strobe (low = IJK active).
-// SEI/CLI required: keyboard scanner also uses VIA.pra2 for AY bus access.
-// ─────────────────────────────────────────────────────────────────────────────
-
-void ijk_detect(void)
-{
-    uint8_t saved_ddra, saved_ora;
-
-    __asm { sei }
-
-    saved_ddra = VIA.ddra;
-    saved_ora  = VIA.pra2;
-
-    ijk_present = 0;
-    ijk_ljoy    = 0;
-    ijk_rjoy    = 0;
-
-    // DDRA: PA7+PA6 = out (stick-select), PA5..PA0 = in
-    VIA.ddra = 0xC0;
-    // Strobe low: clear VIA.prb bit 4 (printer strobe)
-    VIA.prb = (uint8_t)(VIA.prb & (uint8_t)~0x10);
-
-    // Select both sticks (PA7=1, PA6=1) and check PA5
-    // PA5 reads 0 if IJK is connected; invert to get present=1
-    VIA.pra2 = 0xC0;
-    ijk_present = (uint8_t)((VIA.pra2 & 0x20) ^ 0x20);
-
-    // Strobe high: restore
-    VIA.prb = (uint8_t)(VIA.prb | 0x10);
-
-    VIA.pra2 = saved_ora;
-    VIA.ddra = saved_ddra;
-
-    __asm { cli }
-}
-
-void ijk_read(void)
-{
-    uint8_t saved_ddra, saved_ora;
-
-    if (!ijk_present) return;
-
-    __asm { sei }
-
-    saved_ddra = VIA.ddra;
-    saved_ora  = VIA.pra2;
-
-    VIA.ddra = 0xC0;
-    VIA.prb  = (uint8_t)(VIA.prb & (uint8_t)~0x10);
-
-    // Left joystick: PA7=0, PA6=1
-    VIA.pra2 = 0x40;
-    ijk_ljoy  = (uint8_t)((VIA.pra2 & 0x1F) ^ 0x1F);
-
-    // Right joystick: PA7=1, PA6=0
-    VIA.pra2 = 0x80;
-    ijk_rjoy  = (uint8_t)((VIA.pra2 & 0x1F) ^ 0x1F);
-
-    VIA.prb  = (uint8_t)(VIA.prb | 0x10);
-    VIA.pra2 = saved_ora;
-    VIA.ddra = saved_ddra;
-
-    __asm { cli }
-}

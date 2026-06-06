@@ -223,9 +223,6 @@ typedef struct
 
 extern uint8_t  loci_errno;
 extern LociCfg  locicfg;
-extern uint8_t  ijk_present;
-extern uint8_t  ijk_ljoy;
-extern uint8_t  ijk_rjoy;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MIA helpers — macros and function prototypes
@@ -311,10 +308,6 @@ int16_t loci_umount(int16_t drive);
 int32_t tap_seek(int32_t pos);
 int32_t tap_tell(void);
 int32_t tap_read_header(LociTapHdr *hdr);
-
-// --- IJK joystick ---
-void ijk_detect(void);
-void ijk_read(void);
 
 // Auto-compile loci.c when this header is included (matches charwin.h pattern)
 #pragma compile("loci.c")

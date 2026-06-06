@@ -45,12 +45,14 @@ Emulator: `/home/xahmol/oricutron/oricutron -ma --serial none --vsynchack off --
 ```
 src/
   main.c          Phase 3+ app entry point (hello-world stub for now)
-  libdemo.c       Phase 2 demo — tests all charwin/keyboard functions
+  libdemo.c       Phase 2 demo — tests all charwin/keyboard/loci/ijk functions
 include/
   oric.h          Hardware constants (VIA, AY, screen, overlay RAM, ASTR_*/CH_*/A_* attrs)
   oric_crt.c      Custom Oscar64 runtime: startup, regions, math stubs
   keyboard.h/c    Direct VIA/AY keyboard scanner — no ROM calls
   charwin.h/c     Character window library (see below)
+  loci.h/c        LOCI mass storage API (MIA/TAP/XRAM/file/dir/mount/tape)
+  ijk.h/c         Raxiss IJK joystick driver (VIA Port A; independent of LOCI)
   strings.h       (Phase 5) Conditionally includes strings_en.h or strings_fr.h
 build/
   locifm.tap      Main app tape image
@@ -175,14 +177,33 @@ struct __LOCI_TAP {
 - **Overlay RAM** (`$C000–$FFFF`) — enabled via `MICRODISCCFG` ($0314) = `$FD`; requires LOCI. `cwin_push`/`cwin_pop` already use this. Functions needed for Phase 3: `enable_overlay_ram`, `disable_overlay_ram`.
 - **Not testable in Oricutron** — all MIA/TAP/overlay features require real LOCI hardware.
 
-### High-Level LOCI Routines (to port from v1 `libsrc/`)
+### High-Level LOCI Routines (implemented in `include/loci.h/c`)
 
 - `get_locicfg()` — populate `locicfg` (device count, firmware version, `uname`)
 - `loci_check_fw(major, minor, patch)` — version gate; exits if firmware too old
 - `get_loci_devname(devid, maxlength)` — returns drive label string
 - File ops: `file_copy`, `file_save`, `file_load`, `file_exists`
-- Directory ops: `opendir`, `readdir`, `closedir`, `seekdir`, `rewinddir`
-- IJK joystick: `ijk_detect`, `ijk_read`, `ijk_present`, `ijk_ljoy`, `ijk_rjoy`
+- Directory ops: `loci_opendir`, `loci_readdir`, `loci_closedir`, `loci_getcwd`
+- `phi2()` — CPU clock in kHz; `loci_uname()` — firmware version via XSTACK
+
+### IJK Joystick (`include/ijk.h/c` — independent of LOCI)
+
+The Raxiss IJK interface uses VIA Port A at $030F and Port B bit 4 (printer strobe). It is **not** part of the LOCI API; include `ijk.h` separately when joystick support is needed.
+
+```c
+#include "ijk.h"   // adds ijk_detect(), ijk_read(), ijk_present, ijk_ljoy, ijk_rjoy
+```
+
+Direction bitmasks in `ijk_ljoy` / `ijk_rjoy` (pressed = 1):
+```c
+#define IJK_JOY_RIGHT   0x01
+#define IJK_JOY_LEFT    0x02
+#define IJK_JOY_FIRE    0x04
+#define IJK_JOY_DOWN    0x08
+#define IJK_JOY_UP      0x10
+```
+
+SEI/CLI brackets all VIA Port A accesses to prevent conflict with keyboard scanner.
 
 ### LOCI Filesystem Types
 
@@ -210,14 +231,7 @@ Menu system: follows `~/.claude/menu_conventions.md` (Oric CC65 section). Key co
 
 **On exit:** boot from active mounts (disk > tape > ROM). This boot preference is the primary output of the application.
 
-**IJK joystick:** Raxiss IJK at fixed I/O. Directions → cursor keys, fire → RETURN.
-```c
-#define IJK_JOY_LEFT  0x02
-#define IJK_JOY_RIGHT 0x01
-#define IJK_JOY_UP    0x10
-#define IJK_JOY_DOWN  0x08
-#define IJK_JOY_FIRE  0x04
-```
+**IJK joystick:** Raxiss IJK at fixed I/O. Include `ijk.h` for directions → cursor keys, fire → RETURN. Direction constants are `IJK_JOY_RIGHT/LEFT/FIRE/DOWN/UP` — see IJK section above.
 
 ## Phase 5 — Localisation (EN/FR)
 
