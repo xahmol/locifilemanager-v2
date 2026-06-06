@@ -74,7 +74,19 @@ EMUFLAG = -ma --serial none --vsynchack off --turbotape on
 # Targets
 # -------------------------------------------------------------------------
 
-.PHONY: all clean run
+DEMO      = libdemo
+DEMONAME  = LIBDEMO
+
+DEMO_SRCS = \
+  src/libdemo.c         \
+  include/oric_crt.c    \
+  include/oric.h        \
+  include/keyboard.c    \
+  include/keyboard.h    \
+  include/charwin.c     \
+  include/charwin.h
+
+.PHONY: all clean run libdemo libdemo-run
 
 all: build/$(MAIN).tap
 
@@ -91,11 +103,37 @@ build/$(MAIN).tap: build/$(MAIN).bin
 	    $(PROGNAME) \
 	    $(LOAD_ADDR)
 
-# Launch in Oricutron (must cd to oricutron dir — it loads ROMs from cwd)
+# Launch locifm in Oricutron (must cd to oricutron dir — it loads ROMs from cwd)
 run: build/$(MAIN).tap
 	cd /home/xahmol/oricutron && \
 	    $(EMUL) $(EMUFLAG) "$(CURDIR)/build/$(MAIN).tap"
 
+# -------------------------------------------------------------------------
+# Demo library targets
+# -------------------------------------------------------------------------
+
+libdemo: build/$(DEMO).tap
+
+# Step 1: compile demo to raw binary
+build/$(DEMO).bin: $(DEMO_SRCS)
+	@$(MKDIR) build 2>$(NULLDEV) ; true
+	$(CC) $(CFLAGS) -o=build/$(DEMO).bin src/libdemo.c
+
+# Step 2: wrap demo binary in Oric tape header
+build/$(DEMO).tap: build/$(DEMO).bin
+	$(PY) tools/mktap.py \
+	    build/$(DEMO).bin \
+	    build/$(DEMO).tap \
+	    $(DEMONAME) \
+	    $(LOAD_ADDR)
+
+# Launch libdemo in Oricutron
+libdemo-run: libdemo
+	cd /home/xahmol/oricutron && \
+	    $(EMUL) $(EMUFLAG) "$(CURDIR)/build/$(DEMO).tap"
+
 clean:
 	$(DEL) build/$(MAIN).bin 2>$(NULLDEV) ; true
 	$(DEL) build/$(MAIN).tap 2>$(NULLDEV) ; true
+	$(DEL) build/$(DEMO).bin 2>$(NULLDEV) ; true
+	$(DEL) build/$(DEMO).tap 2>$(NULLDEV) ; true

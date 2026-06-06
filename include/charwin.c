@@ -118,6 +118,27 @@ void cwin_putat_string(OricCharWin *w, uint8_t x, uint8_t y, const char *s)
         *base++ = (uint8_t)*s++;
 }
 
+void cwin_putat_dblhi_string(OricCharWin *w, uint8_t x, uint8_t y, const char *s)
+{
+    if ((uint8_t)(y + 1) >= w->wy) return;
+    uint8_t col = x;
+    cwin_putat_char(w, col, y,       A_STD2H);
+    cwin_putat_char(w, col, y + 1,   A_STD2H);
+    col++;
+    while (*s && col < w->wx)
+    {
+        cwin_putat_char(w, col, y,     (uint8_t)*s);
+        cwin_putat_char(w, col, y + 1, (uint8_t)*s);
+        col++;
+        s++;
+    }
+    if (col < w->wx)
+    {
+        cwin_putat_char(w, col, y,     A_STD);
+        cwin_putat_char(w, col, y + 1, A_STD);
+    }
+}
+
 void cwin_put_char(OricCharWin *w, uint8_t ch)
 {
     if (w->cx >= w->wx) return;
@@ -129,6 +150,86 @@ void cwin_put_string(OricCharWin *w, const char *s)
 {
     while (*s)
         cwin_put_char(w, (uint8_t)*s++);
+}
+
+void cwin_put_attr(OricCharWin *w, uint8_t attr)
+{
+    cwin_put_char(w, attr);
+}
+
+// -------------------------------------------------------------------------
+// Printf-style formatted output
+// -------------------------------------------------------------------------
+
+// Internal: format into buf (max maxlen bytes including NUL).
+// Handles %d %u %x %s %c %% with optional width/zero-fill (e.g. %02u).
+// fps: pointer to first variadic argument (Oscar64 native vararg convention —
+//      caller passes (int *)&last_named_param + 1; no va_list/va_arg used
+//      because Oscar64 native mode [-1] indexing in va_arg is unsupported).
+static void _cwin_vformat(char *buf, uint8_t maxlen, const char *fmt, int *fps)
+{
+    char *p   = buf;
+    char *end = buf + maxlen - 1;
+
+    while (*fmt && p < end)
+    {
+        if (*fmt != '%') { *p++ = *fmt++; continue; }
+        fmt++;   // skip '%'
+
+        char fill  = ' ';
+        uint8_t width = 0;
+        if (*fmt == '0') { fill = '0'; fmt++; }
+        while (*fmt >= '1' && *fmt <= '9')
+            width = (uint8_t)(width * 10 + (*fmt++ - '0'));
+
+        char spec = *fmt++;
+
+        if (spec == 's')
+        {
+            const char *s = (const char *)*fps++;
+            while (*s && p < end) *p++ = *s++;
+        }
+        else if (spec == 'c')
+        {
+            *p++ = (char)*fps++;
+        }
+        else if (spec == '%')
+        {
+            *p++ = '%';
+        }
+        else if (spec == 'd' || spec == 'u' || spec == 'x')
+        {
+            uint16_t uv = (uint16_t)*fps++;
+            if (spec == 'd' && (int16_t)uv < 0)
+            {
+                if (p < end) *p++ = '-';
+                uv = (uint16_t)(-(int16_t)uv);
+            }
+            uint8_t base   = (spec == 'x') ? 16 : 10;
+            char    tmp[6];
+            uint8_t digits = 0;
+            if (uv == 0) tmp[digits++] = '0';
+            while (uv) { uint8_t d = (uint8_t)(uv % base); tmp[digits++] = (char)(d < 10 ? '0'+d : 'A'+d-10); uv /= base; }
+            uint8_t pad = (width > digits) ? (uint8_t)(width - digits) : 0;
+            while (pad-- && p < end) *p++ = fill;
+            while (digits && p < end) *p++ = tmp[--digits];
+        }
+    }
+    *p = '\0';
+}
+
+void cwin_printf(OricCharWin *w, const char *fmt, ...)
+{
+    static char pbuf[80];
+    _cwin_vformat(pbuf, 80, fmt, (int *)&fmt + 1);
+    cwin_console_put_string(w, pbuf);
+}
+
+void cwin_putat_printf(OricCharWin *w, uint8_t x, uint8_t y, const char *fmt, ...)
+{
+    static char pbuf[80];
+    _cwin_vformat(pbuf, 80, fmt, (int *)&fmt + 1);
+    cwin_putat_string(w, x, y, pbuf);
 }
 
 void cwin_fill_rect(OricCharWin *w,

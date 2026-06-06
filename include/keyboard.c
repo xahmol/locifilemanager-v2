@@ -89,13 +89,18 @@ uint8_t           keyb_modifiers;
 static uint8_t     keyb_capslock;
 static uint8_t     prev_key;        // scan code of key held last poll
 static uint16_t    rep_count;       // repeat countdown
+static uint8_t     release_count;   // required no-key polls before next press accepted
 
 // Calibrated to match Oric ROM defaults: KBDLY=$024E=40, KBRPT=$024F=4 (units ~30ms).
 // keyb_scan takes ~370 cycles at 1 MHz with one key held → ~0.37 ms per poll.
 // REP_DELAY=3000 → ~1110 ms (ROM KBDLY=40×30ms=1200ms).
 // REP_RATE=300   → ~110 ms  (ROM KBRPT=4×30ms=120ms).
-#define REP_DELAY  3000    // polls before first repeat (~1100 ms)
-#define REP_RATE    300    // polls between repeats (~110 ms)
+// RELEASE_DEBOUNCE: polls of no-key required after each accepted press before a
+// new key is registered. Eliminates switch bounce (< 5 ms) and cross-section
+// carryover without affecting typing speed (20 × ~0.37 ms ≈ 7 ms << 100 ms/char).
+#define REP_DELAY        3000
+#define REP_RATE          300
+#define RELEASE_DEBOUNCE   20
 
 // -------------------------------------------------------------------------
 // ZP temporaries used by keyb_scan assembly
@@ -272,11 +277,16 @@ uint8_t keyb_poll(void)
 
     if (!ch)
     {
+        if (release_count > 0) release_count--;
         prev_key  = KEY_NONE;
         rep_count = 0;
         keyb_char = KEY_NONE;
         return KEY_NONE;
     }
+
+    // Block new-key detection until release debounce window has elapsed.
+    // release_count only decrements when ch==0, so held-key auto-repeat is unaffected.
+    if (release_count > 0) return KEY_NONE;
 
     if (ch == prev_key)
     {
@@ -295,9 +305,10 @@ uint8_t keyb_poll(void)
     }
     else
     {
-        prev_key  = ch;
-        rep_count = REP_DELAY;
-        keyb_char = ch;
+        prev_key      = ch;
+        rep_count     = REP_DELAY;
+        release_count = RELEASE_DEBOUNCE;
+        keyb_char     = ch;
         return ch;
     }
 }

@@ -92,16 +92,73 @@ typedef volatile struct {
 // Character mode switches (write to screen RAM as attributes)
 #define A_STD           8    // Standard character set
 #define A_ALT           9    // Alternate (mosaic/graphics) character set
-#define A_HIRES         28   // Switch to HIRES mode (do not use in text apps)
+#define A_STD2H        10    // Double-height standard charset
+#define A_ALT2H        11    // Double-height alternate charset
+#define A_BLINKSTD     12    // Blinking standard charset
+#define A_BLINKALT     13    // Blinking alternate charset
+#define A_BLINK2H      14    // Double-height blinking standard charset
+#define A_BLINK2HALT   15    // Double-height blinking alternate charset
+#define A_HIRES        28    // Switch to HIRES mode (do not use in text apps)
 
-// Convenience: ensure bit 6 is set so a byte displays as a character (not attribute)
-// ASCII 'A'=$41 already has bit 6 set; 'a'=$61 has bit 6 set.
-// Space ($20) does NOT have bit 6 set — it is an attribute on Oric.
-// To display a literal space, use $60 (grave accent) which is the "blank" character.
+// -------------------------------------------------------------------------
+// ASTR_* — serial attribute bytes for embedding in string literals.
+//
+// Usage: cwin_putat_string(&w, x, y, ASTR_INK_RED "red text" ASTR_INK_WHITE "white");
+//
+// How it works: cwin_putat_string writes bytes as-is.  The Oric ULA treats
+// any byte with (byte & 0x60) == 0 (i.e. values 0x00–0x1F) as a serial
+// attribute that changes ink/paper/charset for the rest of that raster line.
+// The attribute byte occupies one screen column (displays as a paper-colour box).
+//
+// Constraints:
+//   - ASTR_INK_BLACK (\x00) = NUL, CANNOT appear in a C string literal.
+//     Use cwin_put_attr(&w, A_FWBLACK) instead.
+//   - ASTR_CHARSET_STD2H (\x0A) = '\n', triggers scroll in console-mode
+//     output (cwin_console_put_string). Use cwin_put_attr() there instead.
+//   - All ASTR_* values work correctly with cwin_putat_string (positional).
+// -------------------------------------------------------------------------
+
+// Inline ink color (values 1–7; 0 = black cannot be embedded, see above)
+#define ASTR_INK_RED        "\x01"
+#define ASTR_INK_GREEN      "\x02"
+#define ASTR_INK_YELLOW     "\x03"
+#define ASTR_INK_BLUE       "\x04"
+#define ASTR_INK_MAGENTA    "\x05"
+#define ASTR_INK_CYAN       "\x06"
+#define ASTR_INK_WHITE      "\x07"
+
+// Inline charset mode (8–15; see \x0A console caveat above)
+#define ASTR_CHARSET_STD    "\x08"
+#define ASTR_CHARSET_ALT    "\x09"
+#define ASTR_CHARSET_STD2H  "\x0A"
+#define ASTR_CHARSET_ALT2H  "\x0B"
+#define ASTR_CHARSET_BLKSTD "\x0C"
+#define ASTR_CHARSET_BLKALT "\x0D"
+#define ASTR_CHARSET_BLK2H  "\x0E"
+#define ASTR_CHARSET_BLK2HA "\x0F"
+
+// Inline paper color (16–23)
+#define ASTR_PAPER_BLACK    "\x10"
+#define ASTR_PAPER_RED      "\x11"
+#define ASTR_PAPER_GREEN    "\x12"
+#define ASTR_PAPER_YELLOW   "\x13"
+#define ASTR_PAPER_BLUE     "\x14"
+#define ASTR_PAPER_MAGENTA  "\x15"
+#define ASTR_PAPER_CYAN     "\x16"
+#define ASTR_PAPER_WHITE    "\x17"
+
+// Oric ULA character/attribute detection: (byte & 0x60) == 0 → serial attribute.
+// Attributes are only bytes 0x00–0x1F.  All other byte values are characters.
+// Notable Oric ROM differences from standard ASCII:
+//   0x20 (' ')  → space character (safe for clearing — NOT an attribute)
+//   0x5F ('_')  → £  (avoid in display strings; use CH_POUND if intentional)
+//   0x60 ('`')  → ©  (avoid; was mistakenly called "blank" in earlier comments)
+// Use CH_SPACE (0x20) for clearing/erasing; use CH_INVSPACE for the cursor block.
 #define CH_ORIC(c)      ((uint8_t)((c) | 0x40))
-#define CH_SPACE        0x20    // Space = serial attribute on Oric (sets INK+PAPER state)
-#define CH_INVSPACE     0xA0    // Inverse space (displays as solid ink-color block)
-#define CH_BLANK        0x60    // Oric "blank" character (displays as paper-color space)
+#define CH_SPACE        0x20    // Space — standard blank character, safe for clearing
+#define CH_INVSPACE     0xA0    // Inverse space (solid ink-color block; used for cursor)
+#define CH_POUND        0x5F    // £ sign (Oric ROM maps ASCII underscore position)
+#define CH_COPYRIGHT    0x60    // © sign (Oric ROM maps ASCII backtick/grave position)
 
 // -------------------------------------------------------------------------
 // Overlay RAM at $C000–$FFFF

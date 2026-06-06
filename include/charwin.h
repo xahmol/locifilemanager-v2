@@ -70,11 +70,29 @@ uint8_t cwin_getat_char(OricCharWin *w, uint8_t x, uint8_t y);
 // Write null-terminated string starting at (x, y). Clips at window right edge.
 void cwin_putat_string(OricCharWin *w, uint8_t x, uint8_t y, const char *s);
 
+// Write string in double-height at (x, y).
+// Outputs A_STD2H attr at col x, then s, then A_STD on BOTH row y and row y+1.
+// The two rows produce the top and bottom halves of the double-height characters.
+// Caller only provides the string once. Requires y+1 < w->wy.
+void cwin_putat_dblhi_string(OricCharWin *w, uint8_t x, uint8_t y, const char *s);
+
 // Write ch at cursor, advance cursor. No newline/scroll.
 void cwin_put_char(OricCharWin *w, uint8_t ch);
 
 // Write string at cursor. No wrap/scroll.
 void cwin_put_string(OricCharWin *w, const char *s);
+
+// Write a serial attribute byte at cursor and advance. Use for A_FWBLACK (0x00)
+// which cannot be embedded in a C string literal (NUL terminator).
+void cwin_put_attr(OricCharWin *w, uint8_t attr);
+
+// printf-style formatted write via console output (handles '\n', wraps, scrolls).
+// Supports: %d (int16), %u (uint16), %x (uint16 hex uppercase), %s, %c, %%.
+// No float formatting (matches -dNOFLOAT build). Max 79 formatted chars.
+void cwin_printf(OricCharWin *w, const char *fmt, ...);
+
+// printf-style formatted write at (x, y). Clips at window right edge.
+void cwin_putat_printf(OricCharWin *w, uint8_t x, uint8_t y, const char *fmt, ...);
 
 // Write ch as console output: '\n' advances row (scrolls if needed), other
 // chars wrap at right edge.
