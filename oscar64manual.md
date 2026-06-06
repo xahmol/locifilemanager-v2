@@ -1477,3 +1477,42 @@ Oscar64 prepends the first `-i=` include path to any path given to `#pragma comp
 ```
 
 Screen RAM: $BB80, 40×28, serial attributes at (byte & 0x60)==0. INK attr at col 0, PAPER attr at col 1 of each row. Characters 0x20–0x7F (note: $20 IS a character, not an attribute — unlike bit-6-based checks in older documentation). Overlay RAM $C000–$FFFF via MICRODISCCFG ($0314) = $FD; requires LOCI device; not testable in Oricutron.
+
+### `va_arg` is broken in native mode (`-n`)
+
+Oscar64's `stdarg.h` defines `va_arg` as:
+```c
+#define va_arg(list, mode) ((mode *)(list = (char *)list + sizeof(mode)))[-1]
+```
+The `[-1]` pointer subscript fails in native (`-n`) mode with **error 3016 "Array expected for indexing"**. Do **not** use `va_list` / `va_arg` / `va_start` / `va_end` in native-mode code.
+
+**Correct pattern — mirrors Oscar64's own `stdio.c` `sformat` / `sprintf`:**
+
+```c
+// In the variadic function, get args via pointer arithmetic on last named param:
+void my_printf(const char *fmt, ...)
+{
+    _my_vformat(fmt, (int *)&fmt + 1);  // skip past fmt to reach varargs
+}
+
+// Internal formatter takes int * instead of va_list:
+static void _my_vformat(const char *fmt, int *fps)
+{
+    // consume args:
+    int   ival = *fps++;              // integer arg
+    char *sval = (char *)*fps++;      // string arg
+    char  cval = (char)*fps++;        // char arg
+}
+```
+
+`sizeof(int)` is 2 on 6502, so `fps++` advances 2 bytes per argument — correct for all
+`int`-promoted types. Pointers are also 2 bytes, so `(char *)*fps++` works for string args.
+
+For a function with non-pointer named params before `...` (e.g. `uint8_t x, uint8_t y`),
+still use `(int *)&last_named_param + 1` where the last param is the one immediately before `...`:
+```c
+void cwin_putat_printf(OricCharWin *w, uint8_t x, uint8_t y, const char *fmt, ...)
+{
+    _cwin_vformat(pbuf, 80, fmt, (int *)&fmt + 1);  // fmt is last named param
+}
+```
