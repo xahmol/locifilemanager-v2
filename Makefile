@@ -15,10 +15,12 @@
 ifeq ($(OS),Windows_NT)
   NULLDEV = nul:
   DEL     = -del /f
+  RMDIR   = rmdir /s /q
   MKDIR   = mkdir
 else
   NULLDEV = /dev/null
   DEL     = $(RM)
+  RMDIR   = $(RM) -r
   MKDIR   = mkdir -p
 endif
 
@@ -29,6 +31,16 @@ endif
 CC    = /home/xahmol/oscar64/bin/oscar64
 PY    = python3
 EMUL  = /home/xahmol/oricutron/oricutron
+
+# -------------------------------------------------------------------------
+# Build versioning
+# -------------------------------------------------------------------------
+
+VERSION_MAJOR     = 2
+VERSION_MINOR     = 0
+VERSION_PATCH     = 0
+VERSION_TIMESTAMP = $(shell date "+%Y%m%d-%H%M")
+VERSION           = v$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)-$(VERSION_TIMESTAMP)
 
 # -------------------------------------------------------------------------
 # Localisation
@@ -53,8 +65,10 @@ endif
 
 MAIN      = locifm
 PROGNAME  = LOCIFM
+DEMO      = libdemo
+DEMONAME  = LIBDEMO
 LOAD_ADDR = 0x0500
-VERSION   = 2.0.0
+ZIPNAME   = $(MAIN)-v$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
 
 # -------------------------------------------------------------------------
 # Compiler flags
@@ -107,21 +121,32 @@ DEMO_SRCS = \
   include/strings_demo_fr.h
 
 # -------------------------------------------------------------------------
+# USB stick transfer — variable declarations
+# -------------------------------------------------------------------------
+# Set USBPATH in .env (gitignored) — path to a directory on the mounted USB
+# stick where .tap files should be copied.  See .env.example for a template.
+
+-include .env
+USBPATH ?= NOT_SET
+
+# -------------------------------------------------------------------------
 # Emulator flags
 # -------------------------------------------------------------------------
 
 EMUFLAG = -ma --serial none --vsynchack off --turbotape on
 
-# -------------------------------------------------------------------------
+# =========================================================================
 # Targets
-# -------------------------------------------------------------------------
+# all: must appear first so it is the default goal
+# =========================================================================
 
-DEMO      = libdemo
-DEMONAME  = LIBDEMO
-
-.PHONY: all all-langs clean run libdemo libdemo-run
+.PHONY: all all-langs clean run libdemo libdemo-run docs zip check-usb usb
 
 all: build/$(MAIN)$(LANGSUFFIX).tap
+
+# -------------------------------------------------------------------------
+# Main app
+# -------------------------------------------------------------------------
 
 # Step 1: compile main app to raw binary
 build/$(MAIN)$(LANGSUFFIX).bin: $(MAIN_SRCS)
@@ -142,7 +167,7 @@ run: build/$(MAIN)$(LANGSUFFIX).tap
 	    $(EMUL) $(EMUFLAG) "$(CURDIR)/build/$(MAIN)$(LANGSUFFIX).tap"
 
 # -------------------------------------------------------------------------
-# Demo library targets
+# Demo library
 # -------------------------------------------------------------------------
 
 libdemo: build/$(DEMO)$(LANGSUFFIX).tap
@@ -160,7 +185,7 @@ build/$(DEMO)$(LANGSUFFIX).tap: build/$(DEMO)$(LANGSUFFIX).bin
 	    $(DEMONAME) \
 	    $(LOAD_ADDR)
 
-# Launch libdemo (EN by default) in Oricutron
+# Launch libdemo in Oricutron
 libdemo-run: libdemo
 	cd /home/xahmol/oricutron && \
 	    $(EMUL) $(EMUFLAG) "$(CURDIR)/build/$(DEMO)$(LANGSUFFIX).tap"
@@ -176,6 +201,61 @@ all-langs:
 	$(MAKE) libdemo LANG=FR
 
 # -------------------------------------------------------------------------
+# Documentation — generate PDF from Markdown (requires pandoc)
+# README.pdf and README_fr.pdf are committed to git so they ship in the
+# release ZIP even if the recipient does not have pandoc installed.
+# -------------------------------------------------------------------------
+
+docs: README.pdf README_fr.pdf
+
+README.pdf: README.md
+	@if which pandoc >/dev/null 2>&1; then \
+	    pandoc README.md -o README.pdf; \
+	else \
+	    echo "WARNING: pandoc not found -- README.pdf not updated"; \
+	fi
+
+README_fr.pdf: README_fr.md
+	@if which pandoc >/dev/null 2>&1; then \
+	    pandoc README_fr.md -o README_fr.pdf; \
+	else \
+	    echo "WARNING: pandoc not found -- README_fr.pdf not updated"; \
+	fi
+
+# -------------------------------------------------------------------------
+# Release ZIP — all tap images + documentation
+# -------------------------------------------------------------------------
+
+zip: all-langs docs
+	$(MKDIR) build/$(ZIPNAME) 2>$(NULLDEV) ; true
+	cp build/$(MAIN).tap      build/$(ZIPNAME)/
+	cp build/$(MAIN)_fr.tap   build/$(ZIPNAME)/
+	cp build/$(DEMO).tap      build/$(ZIPNAME)/
+	cp build/$(DEMO)_fr.tap   build/$(ZIPNAME)/
+	cp README.md              build/$(ZIPNAME)/
+	cp README_fr.md           build/$(ZIPNAME)/
+	cp README.pdf             build/$(ZIPNAME)/
+	cp README_fr.pdf          build/$(ZIPNAME)/
+	cd build && zip -r $(ZIPNAME).zip $(ZIPNAME)/
+	$(RMDIR) build/$(ZIPNAME) 2>$(NULLDEV) ; true
+
+# -------------------------------------------------------------------------
+# USB stick transfer — copies all tap images to mounted USB stick
+# -------------------------------------------------------------------------
+
+check-usb:
+	@test "$(USBPATH)" != "NOT_SET" || \
+	    (echo "ERROR: USBPATH not set -- copy .env.example to .env and set USBPATH" && false)
+	@test -d "$(USBPATH)" || \
+	    (echo "ERROR: USB path '$(USBPATH)' not found -- is the USB stick mounted?" && false)
+
+usb: check-usb all-langs
+	cp build/$(MAIN).tap      "$(USBPATH)/"
+	cp build/$(MAIN)_fr.tap   "$(USBPATH)/"
+	cp build/$(DEMO).tap      "$(USBPATH)/"
+	cp build/$(DEMO)_fr.tap   "$(USBPATH)/"
+
+# -------------------------------------------------------------------------
 # Clean
 # -------------------------------------------------------------------------
 
@@ -188,3 +268,4 @@ clean:
 	$(DEL) build/$(DEMO).tap      2>$(NULLDEV) ; true
 	$(DEL) build/$(DEMO)_fr.bin   2>$(NULLDEV) ; true
 	$(DEL) build/$(DEMO)_fr.tap   2>$(NULLDEV) ; true
+	$(DEL) build/*.zip            2>$(NULLDEV) ; true
