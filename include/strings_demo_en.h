@@ -8,12 +8,15 @@
 // ── Intro / title bar ─────────────────────────────────────────────────────────
 #define MSG_DEMO_TITLE          "LOCI FILE MANAGER V2 - PHASE 2 TEST"
 #define MSG_DEMO_SUBTITLE       "Oscar64 bare-metal Oric Atmos build"
+#define MSG_DEMO_VERSION        "Version: %u.%u.%u"
 
 // ── Build-status window ───────────────────────────────────────────────────────
 #define MSG_DEMO_STATUS_CRT     "[ OK ] oric_crt.c startup + regions"
 #define MSG_DEMO_STATUS_CHARWIN "[ OK ] charwin library initialized"
 #define MSG_DEMO_STATUS_KEYB    "[ OK ] keyboard scanner (VIA/AY)"
 #define MSG_DEMO_STATUS_ORAM    "[ -- ] overlay RAM (requires LOCI)"
+#define MSG_DEMO_STATUS_ORAM_OK "[ OK ] overlay RAM (push/pop OK)"
+#define MSG_DEMO_STATUS_ORAM_ERR "[ERR] overlay RAM test FAILED"
 
 // ── Text-input section ────────────────────────────────────────────────────────
 #define MSG_DEMO_INPUT_PROMPT   "Text input (ENTER=accept, ESC=cancel):"

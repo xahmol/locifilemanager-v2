@@ -10,12 +10,15 @@
 // ── Intro / title bar ─────────────────────────────────────────────────────────
 #define MSG_DEMO_TITLE          "LOCI FILE MANAGER V2 - TEST PHASE 2"
 #define MSG_DEMO_SUBTITLE       "Compilation bare-metal Oric Oscar64"
+#define MSG_DEMO_VERSION        "Version: %u.%u.%u"
 
 // ── Build-status window ───────────────────────────────────────────────────────
 #define MSG_DEMO_STATUS_CRT     "[ OK ] oric_crt.c demarrage + regions"
 #define MSG_DEMO_STATUS_CHARWIN "[ OK ] bibliotheque charwin initialisee"
 #define MSG_DEMO_STATUS_KEYB    "[ OK ] scanner clavier (VIA/AY)"
 #define MSG_DEMO_STATUS_ORAM    "[ -- ] RAM overlay (necessite LOCI)"
+#define MSG_DEMO_STATUS_ORAM_OK "[ OK ] RAM overlay (push/pop OK)"
+#define MSG_DEMO_STATUS_ORAM_ERR "[ERR] RAM overlay test ECHEC"
 
 // ── Text-input section ────────────────────────────────────────────────────────
 #define MSG_DEMO_INPUT_PROMPT   "Saisie (ENTREE=valider, ECHAP=annuler):"

@@ -5,7 +5,7 @@
 // Tests the Phase 3 LOCI library (section H, requires real LOCI hardware):
 //   H:   LOCI detection, firmware version, directory listing, IJK joystick
 //
-// Overlay RAM (cwin_push/cwin_pop) is NOT tested here — requires LOCI.
+// Overlay RAM: tested on first screen when LOCI is detected.
 
 #include "oric.h"
 #include "charwin.h"
@@ -22,9 +22,39 @@ static void hex2(char *buf, uint8_t v)
     buf[1] = hexdig[v & 0x0F];
 }
 
+// Overlay RAM write/read-back test. Enable overlay RAM, write two sentinel
+// bytes, disable, re-enable, read back. Returns true on PASS.
+// LOCI presence must be confirmed before calling.
+static bool test_overlay_ram(void)
+{
+    uint8_t *oram = (uint8_t *)OVERLAY_BASE;
+    bool ok;
+
+    __asm { sei }
+    MICRODISCCFG = OVERLAY_ON;
+    oram[0] = 0xA5;
+    oram[1] = 0x5A;
+    MICRODISCCFG = OVERLAY_OFF;
+    __asm { cli }
+
+    __asm { sei }
+    MICRODISCCFG = OVERLAY_ON;
+    ok = (oram[0] == 0xA5 && oram[1] == 0x5A);
+    MICRODISCCFG = OVERLAY_OFF;
+    __asm { cli }
+
+    return ok;
+}
+
 int main(void)
 {
     charwin_init();
+
+    // Detect LOCI and test overlay RAM early so results appear on the first screen
+    bool loci_found = loci_present();
+    bool oram_ok    = false;
+    if (loci_found)
+        oram_ok = test_overlay_ram();
 
     // ─────────────────────────────────────────────────────────────────────────
     // Full-screen background: white ink, black paper
@@ -36,6 +66,10 @@ int main(void)
 
     cwin_putat_string(&scr, 1, 0, MSG_DEMO_TITLE);
     cwin_putat_string(&scr, 1, 1, MSG_DEMO_SUBTITLE);
+    cwin_putat_printf(&scr, 1, 2, MSG_DEMO_VERSION,
+        (uint16_t)VERSION_MAJOR,
+        (uint16_t)VERSION_MINOR,
+        (uint16_t)VERSION_PATCH);
 
     // ─────────────────────────────────────────────────────────────────────────
     // Status window: green ink — shows build component status
@@ -47,7 +81,12 @@ int main(void)
     cwin_putat_string(&status, 0, 0, MSG_DEMO_STATUS_CRT);
     cwin_putat_string(&status, 0, 1, MSG_DEMO_STATUS_CHARWIN);
     cwin_putat_string(&status, 0, 2, MSG_DEMO_STATUS_KEYB);
-    cwin_putat_string(&status, 0, 3, MSG_DEMO_STATUS_ORAM);
+    if (!loci_found)
+        cwin_putat_string(&status, 0, 3, MSG_DEMO_STATUS_ORAM);
+    else if (oram_ok)
+        cwin_putat_string(&status, 0, 3, MSG_DEMO_STATUS_ORAM_OK);
+    else
+        cwin_putat_string(&status, 0, 3, MSG_DEMO_STATUS_ORAM_ERR);
     cwin_putat_string(&status, 0, 4, MSG_DEMO_PRESS_KEY);
 
     cwin_getch();
@@ -434,8 +473,8 @@ int main(void)
     cwin_init(&lwin, 2, 2, 38, 24, A_FWWHITE, A_BGBLACK);
     cwin_clear(&lwin);
 
-    // Step 1: detection
-    if (!loci_present())
+    // Step 1: detection (result already known from startup check)
+    if (!loci_found)
     {
         cwin_putat_string(&lwin, 0, 0, MSG_DEMO_LOCI_NOT_FOUND);
         cwin_putat_string(&lwin, 0, 2, MSG_DEMO_PRESS_KEY);

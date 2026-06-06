@@ -81,6 +81,9 @@ CFLAGS = \
   -i=include      \
   -O2             \
   -dNOFLOAT       \
+  -dVERSION_MAJOR=$(VERSION_MAJOR) \
+  -dVERSION_MINOR=$(VERSION_MINOR) \
+  -dVERSION_PATCH=$(VERSION_PATCH) \
   $(LANGFLAG)
 
 # -------------------------------------------------------------------------
@@ -208,18 +211,18 @@ all-langs:
 
 docs: README.pdf README_fr.pdf
 
-README.pdf: README.md
+README.pdf: README.md pandoc-defaults.yaml pandoc-header.tex
 	@if which pandoc >/dev/null 2>&1; then \
-	    pandoc README.md -o README.pdf; \
+	    pandoc --defaults=pandoc-defaults.yaml README.md -o README.pdf; \
 	else \
-	    echo "WARNING: pandoc not found -- README.pdf not updated"; \
+	    echo "WARNING: pandoc not found -- README.pdf not updated (install: sudo apt install pandoc texlive-xetex)"; \
 	fi
 
-README_fr.pdf: README_fr.md
+README_fr.pdf: README_fr.md pandoc-defaults.yaml pandoc-header.tex
 	@if which pandoc >/dev/null 2>&1; then \
-	    pandoc README_fr.md -o README_fr.pdf; \
+	    pandoc --defaults=pandoc-defaults.yaml README_fr.md -o README_fr.pdf; \
 	else \
-	    echo "WARNING: pandoc not found -- README_fr.pdf not updated"; \
+	    echo "WARNING: pandoc not found -- README_fr.pdf not updated (install: sudo apt install pandoc texlive-xetex)"; \
 	fi
 
 # -------------------------------------------------------------------------
