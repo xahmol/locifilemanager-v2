@@ -128,11 +128,20 @@ DEMO_SRCS = \
 # -------------------------------------------------------------------------
 # Set USBPATH in .env (gitignored) — path to the directory on the USB stick.
 # Native Linux: /media/yourname/USBSTICK/oric
-# WSL2: Windows drives auto-mount at /mnt/<letter>; USB stick on E: → /mnt/e/oric
+# WSL2: Windows drives auto-mount at /mnt/<letter>; USB stick on E: → /mnt/e/DEV/LFM2
 # See .env.example for a template.
 
 -include .env
-USBPATH ?= NOT_SET
+USBPATH  ?= NOT_SET
+
+# Derived from USBPATH — used for WSL2 auto-mount.
+# Assumes USBPATH starts with /mnt/<letter>/... (standard WSL2 drvfs layout).
+# Example: USBPATH=/mnt/e/DEV/LFM2 → USBMOUNT=/mnt/e, USBDRIVE=E:
+USBMOUNT := $(shell echo "$(USBPATH)" | cut -d/ -f1-3)
+USBDRIVE := $(shell echo "$(USBPATH)" | cut -d/ -f3 | tr a-z A-Z):
+
+# Detect WSL2 at parse time so check-usb can branch without a shell function.
+IS_WSL2  := $(shell grep -qi microsoft /proc/version 2>/dev/null && echo 1 || echo 0)
 
 # -------------------------------------------------------------------------
 # Emulator flags
@@ -251,8 +260,14 @@ zip: all-langs docs
 check-usb:
 	@test "$(USBPATH)" != "NOT_SET" || \
 	    (echo "ERROR: USBPATH not set -- copy .env.example to .env and set USBPATH" && false)
+	@if ! test -d "$(USBPATH)"; then \
+	    if [ "$(IS_WSL2)" = "1" ]; then \
+	        echo "WSL2: mounting $(USBDRIVE) at $(USBMOUNT) via drvfs..."; \
+	        sudo mount -t drvfs $(USBDRIVE) $(USBMOUNT); \
+	    fi; \
+	fi
 	@test -d "$(USBPATH)" || \
-	    (echo "ERROR: USB path '$(USBPATH)' not found -- is the USB stick mounted?" && false)
+	    (echo "ERROR: USB path '$(USBPATH)' not found -- plug in USB stick and retry" && false)
 
 usb: check-usb all-langs
 	cp build/$(MAIN).tap      "$(USBPATH)/"
