@@ -84,18 +84,27 @@ cd locifilemanager-v2
 
 ### USB transfer to real hardware
 
-Copy tap images directly to a mounted USB stick:
+Copy tape images directly to a USB stick:
 
 1. Copy `.env.example` to `.env` (`.env` is gitignored):
    ```sh
    cp .env.example .env
    ```
-2. Edit `.env` and set `USBPATH` to the directory on your mounted USB stick
-   where the tap files should land:
+2. Edit `.env` and set `USBPATH` to the directory on the USB stick:
+
+   **Native Linux** — path under `/media/`:
    ```
    USBPATH = /media/yourname/USBSTICK/oric
    ```
-3. Mount the USB stick, then run:
+
+   **WSL2 (Windows Subsystem for Linux 2)** — no extra tools needed.
+   Windows assigns the USB stick a drive letter (e.g. `E:`); WSL2
+   auto-mounts all Windows drives at `/mnt/<letter>`:
+   ```
+   USBPATH = /mnt/e/oric
+   ```
+
+3. Plug in the USB stick and run:
    ```sh
    make usb
    ```

@@ -126,8 +126,10 @@ DEMO_SRCS = \
 # -------------------------------------------------------------------------
 # USB stick transfer — variable declarations
 # -------------------------------------------------------------------------
-# Set USBPATH in .env (gitignored) — path to a directory on the mounted USB
-# stick where .tap files should be copied.  See .env.example for a template.
+# Set USBPATH in .env (gitignored) — path to the directory on the USB stick.
+# Native Linux: /media/yourname/USBSTICK/oric
+# WSL2: Windows drives auto-mount at /mnt/<letter>; USB stick on E: → /mnt/e/oric
+# See .env.example for a template.
 
 -include .env
 USBPATH ?= NOT_SET

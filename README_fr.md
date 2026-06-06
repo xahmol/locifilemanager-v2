@@ -84,18 +84,28 @@ cd locifilemanager-v2
 
 ### Transfert sur clé USB pour le matériel réel
 
-Pour copier les images bande directement sur une clé USB montée :
+Pour copier les images bande directement sur une clé USB :
 
 1. Copiez `.env.example` vers `.env` (`.env` est ignoré par git) :
    ```sh
    cp .env.example .env
    ```
-2. Éditez `.env` et définissez `USBPATH` en indiquant le répertoire de votre clé
-   USB monté où les fichiers `.tap` doivent être copiés :
+2. Éditez `.env` et définissez `USBPATH` avec le chemin du répertoire cible
+   sur la clé USB :
+
+   **Linux natif** — chemin sous `/media/` :
    ```
    USBPATH = /media/votrelogin/CLUSB/oric
    ```
-3. Montez la clé USB, puis exécutez :
+
+   **WSL2 (Windows Subsystem for Linux 2)** — aucun outil supplémentaire
+   requis. Windows attribue une lettre de lecteur à la clé USB (ex. `E:`) ;
+   WSL2 monte automatiquement tous les lecteurs Windows sous `/mnt/<lettre>` :
+   ```
+   USBPATH = /mnt/e/oric
+   ```
+
+3. Branchez la clé USB puis exécutez :
    ```sh
    make usb
    ```
