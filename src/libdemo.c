@@ -1,17 +1,21 @@
-// libdemo.c - Phase 2+3 library demo for Oric Atmos
+// libdemo.c - Phase 2+3+4 library demo for Oric Atmos
 //
 // Tests the complete Phase 2 stack in Oricutron (no LOCI required):
-//   A–G: Oscar64 bare-metal buildchain, charwin library, keyboard scanner
-// Tests the Phase 3 LOCI library (section H, requires real LOCI hardware):
-//   H:   LOCI detection, firmware version, directory listing, IJK joystick
+//   A–K: Oscar64 bare-metal buildchain, charwin library, keyboard scanner,
+//        text editing, scroll down, viewport, menu system
+// Tests the Phase 3 LOCI library (section L, requires real LOCI hardware):
+//   L:   LOCI detection, firmware version, directory listing, IJK joystick
 //
 // Overlay RAM: tested on first screen when LOCI is detected.
 
+#include <stdio.h>
 #include "oric.h"
 #include "charwin.h"
 #include "keyboard.h"
 #include "loci.h"
 #include "ijk.h"
+#include "strings.h"
+#include "menu.h"
 #include "strings_demo.h"
 
 // Hex digit table for key-echo display
@@ -384,11 +388,70 @@ int main(void)
     cwin_getch();
 
     // ─────────────────────────────────────────────────────────────────────────
-    // F. Scroll Speed Benchmark (500 scroll_up calls)
+    // F. Text Editing Demo — cwin_insert_char, cwin_delete_char, cwin_printline
+    //
+    // Shows insert (text shifts right) and delete (shifts left) with visible
+    // delays, then cwin_printline with auto-scroll on a small window.
     // ─────────────────────────────────────────────────────────────────────────
 
     cwin_clear(&scr);
     cwin_putat_string(&scr, 0, 0, MSG_DEMO_SECTION_F);
+
+#define EDIT_PAUSE 80   // ~30 ms at 1 MHz: enough to see each shift
+
+    // Insert/delete demo window
+    OricCharWin ewin;
+    cwin_init(&ewin, 2, 2, 36, 1, A_FWCYAN, A_BGBLACK);
+    cwin_clear(&ewin);
+    cwin_putat_string(&ewin, 0, 0, "Hello, World!");
+    ewin.cx = 5;
+    ewin.cy = 0;
+
+    cwin_putat_string(&scr, 0, 4, MSG_DEMO_EDIT_INIT);
+
+    for (uint8_t i = 0; i < 5; i++)
+    {
+        for (uint8_t d = 0; d < EDIT_PAUSE; d++) keyb_scan();
+        cwin_insert_char(&ewin);
+    }
+
+    cwin_putat_string(&scr, 0, 4, MSG_DEMO_EDIT_DELETE);
+
+    for (uint8_t i = 0; i < 5; i++)
+    {
+        for (uint8_t d = 0; d < EDIT_PAUSE; d++) keyb_scan();
+        cwin_delete_char(&ewin);
+    }
+
+    cwin_putat_string(&scr, 0, 4, MSG_DEMO_PRESS_KEY);
+    cwin_getch();
+
+    // Printline demo: 5-row window, print 8 lines — auto-scroll kicks in
+    cwin_clear(&scr);
+    cwin_putat_string(&scr, 0, 0, MSG_DEMO_SECTION_F);
+    cwin_putat_string(&scr, 0, 1, MSG_DEMO_EDIT_PRINTLINE);
+
+    OricCharWin pwin;
+    cwin_init(&pwin, 2, 3, 36, 5, A_FWYELLOW, A_BGBLACK);
+    cwin_clear(&pwin);
+
+    for (uint8_t i = 1; i <= 8; i++)
+    {
+        uint8_t cy = pwin.cy;
+        cwin_putat_printf(&pwin, 0, cy, MSG_DEMO_EDIT_LINE_FMT, (uint16_t)i);
+        cwin_printline(&pwin, "");   // advance cursor + auto-scroll
+        for (uint8_t d = 0; d < EDIT_PAUSE; d++) keyb_scan();
+    }
+
+    cwin_putat_string(&scr, 0, 9, MSG_DEMO_PRESS_KEY);
+    cwin_getch();
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // G. Scroll Speed Benchmark (500 scroll_up calls)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    cwin_clear(&scr);
+    cwin_putat_string(&scr, 0, 0, MSG_DEMO_SECTION_G);
 
     OricCharWin bench;
     cwin_init(&bench, 2, 2, 36, 10, A_FWYELLOW, A_BGBLACK);
@@ -408,14 +471,43 @@ int main(void)
     cwin_getch();
 
     // ─────────────────────────────────────────────────────────────────────────
-    // G. Bouncing Character Animation (2000 frames)
+    // H. Scroll Down Demo — cwin_scroll_down (companion to section G)
+    //
+    // Inspired by Oscar64Test 1250 ScrollDown: fill a window with numbered
+    // lines, then scroll down repeatedly while inserting new content at the
+    // top row — content visibly drifts toward the bottom.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    cwin_clear(&scr);
+    cwin_putat_string(&scr, 0, 0, MSG_DEMO_SECTION_H);
+
+    OricCharWin sdn;
+    cwin_init(&sdn, 2, 2, 36, 10, A_FWGREEN, A_BGBLACK);
+    cwin_clear(&sdn);
+
+    for (uint8_t i = 0; i < 10; i++)
+        cwin_putat_printf(&sdn, 0, i, "Line %02u (initial)", (uint16_t)i);
+
+    for (uint8_t f = 0; f < 60; f++)
+    {
+        cwin_scroll_down(&sdn);
+        cwin_putat_printf(&sdn, 0, 0, ">> New top line %u", (uint16_t)f);
+        for (uint8_t d = 0; d < 30; d++) keyb_scan();   // ~11 ms per step
+    }
+
+    cwin_putat_string(&scr, 0, 13, MSG_DEMO_SCROLLDN_DONE);
+    cwin_putat_string(&scr, 0, 14, MSG_DEMO_PRESS_KEY);
+    cwin_getch();
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // I. Bouncing Character Animation (2000 frames)
     //
     // Head: CH_INVSPACE (solid magenta block).
     // Trail: 'O' -> 'o' -> '.' representing diminishing density.
     // ─────────────────────────────────────────────────────────────────────────
 
     cwin_clear(&scr);
-    cwin_putat_string(&scr, 0, 0, MSG_DEMO_SECTION_G);
+    cwin_putat_string(&scr, 0, 0, MSG_DEMO_SECTION_I);
 
     OricCharWin ball;
     cwin_init(&ball, 2, 2, 38, 18, A_FWMAGENTA, A_BGBLACK);
@@ -465,14 +557,137 @@ int main(void)
     cwin_getch();
 
     // ─────────────────────────────────────────────────────────────────────────
-    // H. LOCI Library Demo
+    // J. Viewport / Map Scroll Demo — OricViewport + cwin_viewport_scroll
+    //
+    // Inspired by Oscar64Test 1260 Scroll4Way: a source map larger than the
+    // display window; arrow keys scroll the view over the map interactively.
+    //
+    // Source map: 60 cols × 20 rows = 1200 bytes — must be static to avoid
+    // exhausting the 256-byte 6502 stack.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    cwin_clear(&scr);
+    cwin_putat_string(&scr, 0, 0, MSG_DEMO_SECTION_J);
+    cwin_putat_string(&scr, 0, 1, MSG_DEMO_VP_ARROWS);
+
+    // Static source map: 60 wide × 20 tall
+    static uint8_t vp_map[20 * 60];
+
+    // Fill map: each row starts with "R%02u:" then repeating 0-9 pattern
+    for (uint8_t row = 0; row < 20; row++)
+    {
+        uint8_t *p = vp_map + (uint16_t)row * 60U;
+        // Row header: "R%02u:" (5 chars)
+        p[0] = 'R';
+        p[1] = (uint8_t)('0' + row / 10);
+        p[2] = (uint8_t)('0' + row % 10);
+        p[3] = ':';
+        p[4] = ' ';
+        // Fill rest with repeating digit pattern
+        for (uint8_t col = 5; col < 60; col++)
+            p[col] = (uint8_t)('0' + (col - 5) % 10);
+    }
+
+    // Viewport window: 34 cols × 10 rows at screen row 3
+    OricCharWin vpwin;
+    cwin_init(&vpwin, 2, 3, 34, 10, A_FWWHITE, A_BGBLUE);
+    cwin_clear(&vpwin);
+
+    OricViewport vp;
+    cwin_viewport_init(&vp, vp_map, 60, 20, &vpwin);
+    cwin_viewport_blit(&vp);
+
+    cwin_putat_printf(&scr, 0, 14, MSG_DEMO_VP_POS,
+                      (uint16_t)vp.viewx, (uint16_t)vp.viewy);
+
+    while (1)
+    {
+        uint8_t vk = keyb_poll();
+        if (vk == KEY_NONE) continue;
+
+        if (vk == KEY_ESC || vk == KEY_ENTER) break;
+
+        if (vk == KEY_UP || vk == KEY_DOWN ||
+            vk == KEY_LEFT || vk == KEY_RIGHT)
+        {
+            cwin_viewport_scroll(&vp, vk);
+            cwin_putat_printf(&scr, 0, 14, MSG_DEMO_VP_POS,
+                              (uint16_t)vp.viewx, (uint16_t)vp.viewy);
+        }
+    }
+
+    cwin_putat_string(&scr, 0, 14, MSG_DEMO_PRESS_KEY);
+    cwin_getch();
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // K. Menu System Demo — menu_main + all four popup helpers
+    //
+    // menu_init() calls ijk_detect() internally; no separate call needed.
+    // Window save/restore requires LOCI: in Oricutron the popup backgrounds
+    // are not restored (screen residue), but the navigation still works.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    menu_init();
+
+    // Populate dynamic App pulldown entries
+    sprintf(pulldown_titles[0][0], MSG_MENU_APP_CONFIRM_FMT, MSG_MENU_VAL_ONCE);
+    sprintf(pulldown_titles[0][1], MSG_MENU_APP_RETURN_FMT,  MSG_MENU_VAL_SELECT);
+    sprintf(pulldown_titles[0][2], MSG_MENU_APP_FILTER_FMT,  MSG_MENU_VAL_NONE);
+    sprintf(pulldown_titles[0][3], MSG_MENU_APP_SORT_FMT,    MSG_MENU_VAL_OFF);
+    sprintf(pulldown_titles[3][5], MSG_MENU_MNT_TARGET_FMT,  "A");
+
+    menu_placetop(MSG_MENU_HEADER);
+
+    // Print demo instructions in the content area (row 3+)
+    OricCharWin minfo;
+    cwin_init(&minfo, 2, 3, 38, 2, A_FWWHITE, A_BGBLACK);
+    cwin_clear(&minfo);
+    cwin_putat_string(&minfo, 0, 0, MSG_DEMO_SECTION_K);
+    cwin_putat_string(&minfo, 0, 1, MSG_DEMO_MENU_INTRO);
+
+    OricCharWin mresult;
+    cwin_init(&mresult, 2, 25, 38, 1, A_FWCYAN, A_BGBLACK);
+    cwin_clear(&mresult);
+
+    uint8_t mchoice;
+    do {
+        mchoice = menu_main();
+        cwin_putat_printf(&mresult, 0, 0, MSG_DEMO_MENU_CHOICE, (uint16_t)mchoice);
+    } while (mchoice != 99);
+
+    // Popup demonstrations
+    cwin_clear(&scr);
+    cwin_putat_string(&scr, 0, 0, MSG_DEMO_SECTION_K);
+    cwin_putat_string(&scr, 0, 2, MSG_DEMO_MENU_POPUPS);
+
+    // 1. Message popup
+    menu_messagepopup(MSG_DEMO_MENU_POPUP_MSG);
+
+    // 2. Are-you-sure
+    uint8_t ans = menu_areyousure(MSG_DEMO_MENU_POPUP_ASK);
+    cwin_putat_printf(&scr, 0, 4, MSG_DEMO_MENU_POPUP_RES, (uint16_t)ans);
+
+    // 3. Option select (Enter-action sub-menu = pulldown 5)
+    uint8_t sel = menu_option_select(MSG_DEMO_SECTION_K, 5);
+    cwin_putat_printf(&scr, 0, 6, MSG_DEMO_MENU_SEL_RES, (uint16_t)sel);
+
+    // 4. File error popup (simulated errno=42)
+    cwin_putat_string(&scr, 0, 8, MSG_DEMO_MENU_ERR_SIM);
+    loci_errno = 42;
+    menu_fileerrormessage();
+
+    cwin_putat_string(&scr, 0, 10, MSG_DEMO_PRESS_KEY);
+    cwin_getch();
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // L. LOCI Library Demo
     //
     // Requires real LOCI hardware. In Oricutron (no LOCI), shows "Not found"
     // and stops gracefully — no hang, no crash.
     // ─────────────────────────────────────────────────────────────────────────
 
     cwin_clear(&scr);
-    cwin_putat_string(&scr, 0, 0, MSG_DEMO_SECTION_H);
+    cwin_putat_string(&scr, 0, 0, MSG_DEMO_SECTION_L);
 
     OricCharWin lwin;
     cwin_init(&lwin, 2, 2, 38, 24, A_FWWHITE, A_BGBLACK);

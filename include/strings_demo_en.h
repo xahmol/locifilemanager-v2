@@ -38,9 +38,13 @@
 #define MSG_DEMO_SECTION_C      "C: fill rect (concentric borders)"
 #define MSG_DEMO_SECTION_D      "D: Animated cursor walk (perimeter)"
 #define MSG_DEMO_SECTION_E      "E: getat char read-back test"
-#define MSG_DEMO_SECTION_F      "F: Scroll speed benchmark (500 scrolls)"
-#define MSG_DEMO_SECTION_G      "G: Bounce ball (ESC/ENTER exits)"
-#define MSG_DEMO_SECTION_H      "H: LOCI library demo"
+#define MSG_DEMO_SECTION_F      "F: Text editing (insert/delete/printline)"
+#define MSG_DEMO_SECTION_G      "G: Scroll speed benchmark (500 scrolls)"
+#define MSG_DEMO_SECTION_H      "H: Scroll down demo (cwin_scroll_down)"
+#define MSG_DEMO_SECTION_I      "I: Bounce ball (ESC/ENTER exits)"
+#define MSG_DEMO_SECTION_J      "J: Viewport map scroll (arrows, ESC=exit)"
+#define MSG_DEMO_SECTION_K      "K: Menu system demo"
+#define MSG_DEMO_SECTION_L      "L: LOCI library demo"
 
 // ── Generic prompts ───────────────────────────────────────────────────────────
 #define MSG_DEMO_PRESS_KEY      "Press any key..."
@@ -49,14 +53,37 @@
 #define MSG_DEMO_GETAT_PASS     "GETAT: PASS"
 #define MSG_DEMO_GETAT_FAIL     "GETAT: FAIL at col %u"
 
-// ── Section F: scroll benchmark ───────────────────────────────────────────────
+// ── Section F: text editing ───────────────────────────────────────────────────
+#define MSG_DEMO_EDIT_INIT      "Cursor at col 5. Inserting 5 spaces..."
+#define MSG_DEMO_EDIT_DELETE    "Deleting 5 chars at col 5..."
+#define MSG_DEMO_EDIT_PRINTLINE "cwin_printline: 8 lines with auto-scroll:"
+#define MSG_DEMO_EDIT_LINE_FMT  "Printline row %u of 8"
+
+// ── Section G: scroll benchmark ───────────────────────────────────────────────
 #define MSG_DEMO_SCROLL_DONE    "500 scrolls: done. (fast!)"
 
-// ── Section G: bouncing ball ──────────────────────────────────────────────────
+// ── Section H: scroll down ────────────────────────────────────────────────────
+#define MSG_DEMO_SCROLLDN_DONE  "60 down-scrolls: done."
+
+// ── Section I: bouncing ball ──────────────────────────────────────────────────
 #define MSG_DEMO_FRAME          "Frame: %u"
 #define MSG_DEMO_FRAMES_DONE    "Done: %u frames.    "
 
-// ── Section H: LOCI demo ──────────────────────────────────────────────────────
+// ── Section J: viewport ───────────────────────────────────────────────────────
+#define MSG_DEMO_VP_ARROWS      "Arrow keys scroll. ESC/ENTER exits."
+#define MSG_DEMO_VP_POS         "View x:%u y:%u   "
+
+// ── Section K: menu demo ──────────────────────────────────────────────────────
+#define MSG_DEMO_MENU_INTRO     "Navigate menu. ESC = exit."
+#define MSG_DEMO_MENU_CHOICE    "Menu choice: %u   "
+#define MSG_DEMO_MENU_POPUPS    "Demoing popup helpers..."
+#define MSG_DEMO_MENU_POPUP_MSG "This is a message popup."
+#define MSG_DEMO_MENU_POPUP_ASK "Delete test file?"
+#define MSG_DEMO_MENU_POPUP_RES "Answer: %u (1=Yes 2=No)"
+#define MSG_DEMO_MENU_SEL_RES   "Selection: %u (0=cancel)"
+#define MSG_DEMO_MENU_ERR_SIM   "Simulated error #42:"
+
+// ── Section L: LOCI demo ──────────────────────────────────────────────────────
 #define MSG_DEMO_LOCI_DETECTED  "LOCI: Detected"
 #define MSG_DEMO_LOCI_NOT_FOUND "LOCI: Not found - real hardware needed"
 #define MSG_DEMO_LOCI_FW_VER    "Firmware: "

@@ -111,6 +111,9 @@ MAIN_SRCS = \
   include/keyboard.h    \
   include/charwin.c     \
   include/charwin.h     \
+  include/menu.h        \
+  include/menu.c        \
+  $(IJK_SRCS)           \
   $(LOCI_SRCS)
 
 DEMO_SRCS = \
@@ -125,6 +128,11 @@ DEMO_SRCS = \
   include/loci.h             \
   include/ijk.c              \
   include/ijk.h              \
+  include/menu.h             \
+  include/menu.c             \
+  include/strings.h          \
+  include/strings_en.h       \
+  include/strings_fr.h       \
   include/strings_demo.h     \
   include/strings_demo_en.h  \
   include/strings_demo_fr.h

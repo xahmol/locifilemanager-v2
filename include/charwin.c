@@ -263,6 +263,106 @@ void cwin_scroll_up(OricCharWin *w)
         base[x] = 0x20;
 }
 
+void cwin_scroll_down(OricCharWin *w)
+{
+    // Copy rows downward; iterate from bottom to top to avoid overwrite
+    for (uint8_t y = w->wy - 1; y > 0; y--)
+    {
+        uint8_t *dst = (uint8_t *)row_base[w->sy + y]     + w->sx;
+        uint8_t *src = (uint8_t *)row_base[w->sy + y - 1] + w->sx;
+        for (uint8_t x = 0; x < w->wx; x++)
+            dst[x] = src[x];
+    }
+    // Clear top row: attrs + spaces
+    row_setattr(w->sy, w->ink, w->paper);
+    uint8_t *base = (uint8_t *)row_base[w->sy] + w->sx;
+    for (uint8_t x = 0; x < w->wx; x++)
+        base[x] = 0x20;
+}
+
+void cwin_insert_char(OricCharWin *w)
+{
+    uint8_t *row = (uint8_t *)row_base[w->sy + w->cy] + w->sx;
+    // Shift right from wx-2 down to cx; overflow at wx-1 is discarded
+    for (uint8_t x = w->wx - 1; x > w->cx; x--)
+        row[x] = row[x - 1];
+    row[w->cx] = 0x20;
+}
+
+void cwin_delete_char(OricCharWin *w)
+{
+    uint8_t *row = (uint8_t *)row_base[w->sy + w->cy] + w->sx;
+    // Shift left from cx+1 to wx-1
+    for (uint8_t x = w->cx; x < w->wx - 1; x++)
+        row[x] = row[x + 1];
+    row[w->wx - 1] = 0x20;
+}
+
+void cwin_printline(OricCharWin *w, const char *s)
+{
+    cwin_put_string(w, s);
+    cwin_console_put_char(w, '\n');
+}
+
+// -------------------------------------------------------------------------
+// Viewport
+// -------------------------------------------------------------------------
+
+void cwin_viewport_init(OricViewport *vp,
+                        uint8_t *sourcebase,
+                        uint16_t sourcewidth, uint16_t sourceheight,
+                        OricCharWin *win)
+{
+    vp->sourcebase   = sourcebase;
+    vp->sourcewidth  = sourcewidth;
+    vp->sourceheight = sourceheight;
+    vp->viewx        = 0;
+    vp->viewy        = 0;
+    vp->win          = win;
+}
+
+void cwin_viewport_blit(OricViewport *vp)
+{
+    OricCharWin *w = vp->win;
+    for (uint8_t y = 0; y < w->wy; y++)
+    {
+        uint16_t srcrow = (uint16_t)(vp->viewy + y);
+        if (srcrow >= vp->sourceheight)
+        {
+            // Past source data: write blank row
+            row_setattr(w->sy + y, w->ink, w->paper);
+            uint8_t *dst = (uint8_t *)row_base[w->sy + y] + w->sx;
+            for (uint8_t x = 0; x < w->wx; x++)
+                dst[x] = 0x20;
+            continue;
+        }
+        uint8_t *src = vp->sourcebase + srcrow * vp->sourcewidth + vp->viewx;
+        uint8_t *dst = (uint8_t *)row_base[w->sy + y] + w->sx;
+        row_setattr(w->sy + y, w->ink, w->paper);
+        // Visible columns (may be clipped if viewx+wx > sourcewidth)
+        uint16_t avail = vp->sourcewidth - vp->viewx;
+        uint8_t  cols  = (avail < w->wx) ? (uint8_t)avail : w->wx;
+        for (uint8_t x = 0; x < cols; x++)
+            dst[x] = src[x] ? src[x] : 0x20;   // map NUL → space
+        for (uint8_t x = cols; x < w->wx; x++)
+            dst[x] = 0x20;
+    }
+}
+
+void cwin_viewport_scroll(OricViewport *vp, uint8_t dir)
+{
+    OricCharWin *w = vp->win;
+    if      (dir == KEY_UP   && vp->viewy > 0)
+        vp->viewy--;
+    else if (dir == KEY_DOWN && vp->viewy + w->wy < vp->sourceheight)
+        vp->viewy++;
+    else if (dir == KEY_LEFT  && vp->viewx > 0)
+        vp->viewx--;
+    else if (dir == KEY_RIGHT && vp->viewx + w->wx < vp->sourcewidth)
+        vp->viewx++;
+    cwin_viewport_blit(vp);
+}
+
 void cwin_console_put_char(OricCharWin *w, uint8_t ch)
 {
     if (ch == '\n')

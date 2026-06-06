@@ -111,6 +111,20 @@ void cwin_fill_rect(OricCharWin *w,
 // attrs refreshed for that row.
 void cwin_scroll_up(OricCharWin *w);
 
+// Scroll window content down by 1 row. New top row filled with spaces + attrs.
+void cwin_scroll_down(OricCharWin *w);
+
+// Insert a space at the cursor position, shifting content right within the row.
+// Character at the right edge (wx-1) is lost. Cursor is not moved.
+void cwin_insert_char(OricCharWin *w);
+
+// Delete the character at the cursor position, shifting content left within the row.
+// Right edge (wx-1) is filled with a space. Cursor is not moved.
+void cwin_delete_char(OricCharWin *w);
+
+// Write string at cursor then advance to the start of the next line (auto-scrolls).
+void cwin_printline(OricCharWin *w, const char *s);
+
 // -------------------------------------------------------------------------
 // Cursor
 // -------------------------------------------------------------------------
@@ -124,6 +138,36 @@ bool cwin_cursor_left(OricCharWin *w);
 bool cwin_cursor_right(OricCharWin *w);
 bool cwin_cursor_up(OricCharWin *w);
 bool cwin_cursor_down(OricCharWin *w);
+
+// -------------------------------------------------------------------------
+// Viewport — scrollable view into a flat source character buffer
+// -------------------------------------------------------------------------
+
+// Source map layout: sourcebase[row * sourcewidth + col], col = 0..sourcewidth-1.
+// Only character bytes are stored — attrs come from the window's ink/paper settings.
+// The viewport blits a win->wx × win->wy slice at (viewx, viewy) to the display window.
+
+typedef struct {
+    uint8_t     *sourcebase;    // pointer to flat source character map
+    uint16_t     sourcewidth;   // bytes per row in the source map (>= win->wx)
+    uint16_t     sourceheight;  // total rows in the source map
+    uint16_t     viewx;         // current horizontal scroll offset (0-based)
+    uint16_t     viewy;         // current vertical scroll offset (0-based)
+    OricCharWin *win;           // target display window
+} OricViewport;
+
+// Initialise a viewport. Sets viewx = viewy = 0. Does not draw.
+void cwin_viewport_init(OricViewport *vp,
+                        uint8_t *sourcebase,
+                        uint16_t sourcewidth, uint16_t sourceheight,
+                        OricCharWin *win);
+
+// Blit the current view to the display window (redraws all visible rows with attrs).
+void cwin_viewport_blit(OricViewport *vp);
+
+// Scroll the viewport by one unit in the given direction (KEY_UP/DOWN/LEFT/RIGHT),
+// clamp to source bounds, then call cwin_viewport_blit.
+void cwin_viewport_scroll(OricViewport *vp, uint8_t dir);
 
 // -------------------------------------------------------------------------
 // Overlay RAM save/restore — REQUIRES LOCI device (not testable in Oricutron)
