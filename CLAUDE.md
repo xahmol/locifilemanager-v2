@@ -9,9 +9,9 @@ v2 rebuild of [locifilemanager](https://github.com/xahmol/locifilemanager) — a
 **Phase status:**
 - Phase 1 — Oric platform research: ✅ complete
 - Phase 2 — Buildchain + charwin library + keyboard: ✅ complete
-- Phase 3 — LOCI library (MIA/TAP register wrappers, dir/file ops): 🔲 next
-- Phase 4 — Application rebuild (main, menu, dir, file, drive modules): 🔲
-- Phase 5 — Localisation (EN/FR compile-time switch): 🔲
+- Phase 3 — LOCI library + localisation infrastructure + libdemo expansion: ✅ complete
+- Phase 4 — Application rebuild (main, menu, dir, file, drive modules): 🔲 next
+- Phase 5 — Localisation (EN/FR compile-time switch): merged into Phase 3 ✅
 
 ## Compiler Toolchain
 
@@ -19,7 +19,12 @@ This is an **Oscar64** project. `oscar64manual.md` is in the project root — co
 
 Target: 6502A (Oric Atmos), bare-metal. No VIC-II, SID, or C64 Kernal.
 
-**Critical Oscar64 gotcha: `va_arg` is broken in native mode (`-n`).** Do not use `<stdarg.h>` / `va_list` / `va_arg`. Use the Oscar64-native vararg convention instead — see oscar64manual.md section "va_arg is broken in native mode".
+**Critical Oscar64 gotchas (all documented in oscar64manual.md):**
+- `va_arg` is broken in native mode (`-n`) — do not use `<stdarg.h>` / `va_list` / `va_arg`.
+- `#if MACRO` fails when macro is defined via `-d` flag (no value) — use `#ifdef MACRO`.
+- `(type)struct.member` — Oscar64 applies cast before member access; use a temp variable.
+- Macro that expands to volatile read in braces-free for-loop body causes parse error; use braced body with explicit temp.
+- Ternary `? ptr : 0` in pointer-returning function — use `if`/`return` instead.
 
 ## Build and Run
 

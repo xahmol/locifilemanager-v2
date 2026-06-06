@@ -1516,3 +1516,70 @@ void cwin_putat_printf(OricCharWin *w, uint8_t x, uint8_t y, const char *fmt, ..
     _cwin_vformat(pbuf, 80, fmt, (int *)&fmt + 1);  // fmt is last named param
 }
 ```
+
+### Native-mode preprocessor and expression gotchas
+
+**`#if MACRO` vs `#ifdef MACRO` with `-d` defines**
+
+When a macro is defined via the compiler `-d` flag (e.g. `-dLANG_FR`), Oscar64 defines it with
+no value. `#if LANG_FR` then fails with **error 3032 "Invalid preprocessor token 'tk_eols'"**
+because the expression evaluator sees an empty token stream.
+
+Always use `#ifdef` (or `#ifndef`) when testing macros that may be defined via `-d`:
+```c
+// Wrong — fails when -dLANG_FR is passed:
+#if LANG_FR
+// Right:
+#ifdef LANG_FR
+```
+
+**Cast-before-member precedence: `(type)struct.member`**
+
+Oscar64 native mode parses `(uint16_t)MIA.xreg` as `((uint16_t)MIA).xreg` — applying the
+cast to the whole struct before the member access. In standard C, `.` has higher precedence
+than a unary cast, so this is a compiler bug.
+
+Error produced: `error 3013: Struct expected` at the `.` position.
+
+**Workaround:** use a temporary variable:
+```c
+// Wrong (Oscar64 parses cast before member access):
+return (int16_t)((uint16_t)MIA.xreg << 8 | MIA.areg);
+// Right:
+uint8_t lo = MIA.areg;
+uint8_t hi = MIA.xreg;
+return (int16_t)((uint16_t)hi << 8 | (uint16_t)lo);
+```
+
+**Macro expanding to volatile read in for-loop body**
+
+When a macro expands to a volatile struct member read (e.g. `#define mia_pop_char() (MIA.xstack)`)
+and is used as the RHS of an assignment in a braces-free for-loop body, Oscar64 fails with
+`error 3006: ';' expected` at the closing `}` of the surrounding block.
+
+**Workaround:** use a braced for-loop body with an explicit temp variable:
+```c
+// Wrong:
+for (i = 0; i < count; i++)
+    buf[i] = mia_pop_char();     // macro expands to (MIA.xstack)
+// Right:
+for (i = 0; i < count; i++)
+{
+    uint8_t ch = MIA.xstack;    // read volatile directly into temp
+    buf[i] = ch;
+}
+```
+
+**Ternary with null pointer: `? ptr : 0`**
+
+Oscar64 does not implicitly convert integer `0` to a pointer type in a ternary expression.
+Error: `error 3013: Incompatible conditional types`.
+
+**Workaround:** replace with `if`/`return`:
+```c
+// Wrong:
+return (fd >= 0) ? &s_dir : 0;
+// Right:
+if (fd < 0) return 0;
+return &s_dir;
+```
