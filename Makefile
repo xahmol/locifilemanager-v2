@@ -154,7 +154,7 @@ EMUFLAG = -ma --serial none --vsynchack off --turbotape on
 # all: must appear first so it is the default goal
 # =========================================================================
 
-.PHONY: all all-langs clean run libdemo libdemo-run docs zip check-usb usb unmount-usb
+.PHONY: all all-langs clean run libdemo libdemo-run docs zip check-usb usb
 
 all: build/$(MAIN)$(LANGSUFFIX).tap
 
@@ -274,17 +274,10 @@ usb: check-usb all-langs
 	cp build/$(MAIN)_fr.tap   "$(USBPATH)/"
 	cp build/$(DEMO).tap      "$(USBPATH)/"
 	cp build/$(DEMO)_fr.tap   "$(USBPATH)/"
-	@echo "Done. Run 'make unmount-usb' before ejecting in Windows."
-
-unmount-usb:
-	@test "$(USBPATH)" != "NOT_SET" || \
-	    (echo "ERROR: USBPATH not set -- copy .env.example to .env and set USBPATH" && false)
 	@if [ "$(IS_WSL2)" = "1" ]; then \
 	    echo "WSL2: unmounting $(USBMOUNT)..."; \
 	    sudo umount $(USBMOUNT); \
-	    echo "$(USBMOUNT) unmounted -- USB stick can now be ejected in Windows."; \
-	else \
-	    echo "NOTE: unmount-usb is WSL2-only. Use your file manager to eject."; \
+	    echo "Done -- USB stick can now be ejected in Windows."; \
 	fi
 
 # -------------------------------------------------------------------------
