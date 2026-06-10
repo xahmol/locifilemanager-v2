@@ -68,10 +68,20 @@ static void menu_winsave(uint8_t ypos, uint8_t height)
     uint8_t  *dst = (uint8_t *)menu_win_ptr;
     uint16_t  len = (uint16_t)height * 40U;
 
+    // PHP/PLP, not SEI/CLI: while overlay RAM is enabled, $C000-$FFFF (incl.
+    // the IRQ vector at $FFFE/$FFFF and the ROM IRQ handler) is uninitialized
+    // RAM — an IRQ here would jump to garbage. SEI alone prevents that, but
+    // an unconditional CLI afterward would permanently re-enable IRQs (the
+    // startup code leaves them disabled with no handler installed), letting
+    // the stock ROM IRQ handler corrupt zero page / screen RAM thereafter.
+    // PLP restores the interrupt-disable flag to whatever it was before.
+    __asm { php }
+    __asm { sei }
     enable_overlay_ram();
     for (uint16_t i = 0; i < len; i++)
         dst[i] = src[i];
     disable_overlay_ram();
+    __asm { plp }
 
     menu_win_ptr += len;
 }
@@ -93,10 +103,14 @@ static void menu_winrestore(void)
     uint8_t  *dst = MENU_ROW(ypos);
     uint16_t  len = (uint16_t)height * 40U;
 
+    // PHP/PLP required — see menu_winsave() above.
+    __asm { php }
+    __asm { sei }
     enable_overlay_ram();
     for (uint16_t i = 0; i < len; i++)
         dst[i] = src[i];
     disable_overlay_ram();
+    __asm { plp }
 }
 
 // Draw a white-paper popup background for rows ypos..ypos+height-1.
@@ -131,6 +145,20 @@ static uint8_t menu_getkey(void)
             else if (ijk_ljoy & IJK_JOY_LEFT)  k = KEY_LEFT;
             else if (ijk_ljoy & IJK_JOY_RIGHT) k = KEY_RIGHT;
             else if (ijk_ljoy & IJK_JOY_FIRE)  k = KEY_ENTER;
+
+            // Debounce: wait for stick to return to neutral before
+            // returning the key, mirroring v1 getkey() in generic.c.
+            // Without this, menu_pulldown's tight redraw/getkey loop
+            // reads a held direction on every iteration and races
+            // through every item per nudge (looks like the highlight
+            // "disappears" — it's actually moving far too fast to see).
+            if (k != KEY_NONE)
+            {
+                do {
+                    ijk_read();
+                } while (ijk_ljoy || ijk_rjoy);
+                for (uint16_t d = 0; d < 1000; d++) keyb_scan();
+            }
         }
     } while (k == KEY_NONE);
     return k;
@@ -239,22 +267,42 @@ void menu_placetop(const char *header)
 // Pulldown menu
 // -------------------------------------------------------------------------
 
-// Draw one pulldown item row.
+// Draw one pulldown item row. `width` is the longest item label in this
+// pulldown (computed by the caller from the actual current strings, NOT
+// PULLDOWN_MAXLENGTH) — every row pads to it so the highlight bar is the
+// same width for every item, regardless of how long that item's own label
+// happens to be (titles are not all padded to the same length, and some
+// are filled in at runtime via sprintf with varying result lengths).
 static void menu_draw_item(uint8_t y, uint8_t xpos, uint8_t menunumber,
-                            uint8_t item, uint8_t selected, uint8_t endcolor)
+                            uint8_t item, uint8_t selected, uint8_t endcolor,
+                            uint8_t width)
 {
-    uint8_t *row  = MENU_ROW(y);
-    uint8_t paper = selected ? A_BGYELLOW : A_BGCYAN;
-    uint8_t pfx   = selected ? '-' : ' ';
+    uint8_t *row   = MENU_ROW(y);
+    // WORKAROUND for an Oscar64 -O2 whole-program register-allocator bug:
+    // without this dummy sprintf, menu_pulldown()'s call-site save/restore
+    // set is under-counted (saves only 2 zp bytes instead of the needed 13),
+    // so a live caller variable gets clobbered and stray garbage appears on
+    // screen at a row that tracks menuchoice. The sprintf call's register
+    // pressure forces the correct (larger) save set. 0xA000 is scratch space
+    // in the unused heap region (see /home/xahmol/.claude/projects/-home-xahmol/memory/project_locifm_pulldown_menu_bug.md)
+    // — do not remove or "clean up" this call without re-testing the App
+    // pulldown in the emulator (corruption appears immediately on open).
+    uint8_t *debug = (uint8_t *)0xA000;
+    uint8_t  paper = selected ? A_BGYELLOW : A_BGCYAN;
+    uint8_t  pfx   = selected ? '-' : ' ';
+    const char *title = pulldown_titles[menunumber][item];
+    uint8_t  len   = (uint8_t)strlen(title);
 
     row[xpos - 1] = A_FWBLACK;   // ink (0x00 — direct write)
     row[xpos]     = paper;
     row[xpos + 1] = pfx;
-    menu_screen_putn(xpos + 2, y,
-                     (const uint8_t *)pulldown_titles[menunumber][item],
-                     PULLDOWN_MAXLENGTH - 1);  // write 16 visible chars
-    row[xpos + 18] = 0x20;
-    row[xpos + 19] = endcolor;
+    menu_screen_putn(xpos + 2, y, (const uint8_t *)title, len);
+    for (uint8_t x = len; x < width; x++)
+        row[xpos + 2 + x] = 0x20;
+    row[xpos + 2 + width] = endcolor;
+
+    sprintf((char *)debug, "draw_item: y=%u, menunumber=%u, item=%u, sel=%u, title=\"%s\", width=%u", y, menunumber, item, selected, title, width);
+
 }
 
 uint8_t menu_pulldown(uint8_t xpos, uint8_t ypos,
@@ -266,22 +314,40 @@ uint8_t menu_pulldown(uint8_t xpos, uint8_t ypos,
     uint8_t menuchoice = 1;
     uint8_t exit_flag  = 0;
 
+    // Longest current item label in THIS pulldown — drives a consistent
+    // highlight-bar width. Computed from the live strings (some entries
+    // are sprintf'd at runtime with varying lengths), not assumed from
+    // PULLDOWN_MAXLENGTH, so short pulldowns (e.g. Yes/No, drive letters)
+    // get a compact bar instead of one stretched to the global max.
+    uint8_t width = 0;
+    for (uint8_t i = 0; i < height; i++)
+    {
+        uint8_t l = (uint8_t)strlen(pulldown_titles[menunumber][i]);
+        if (l > width) width = l;
+    }
+
     menu_winsave(ypos, height);
 
     // Draw all items (unselected)
     for (uint8_t y = 0; y < height; y++)
-        menu_draw_item(ypos + y, xpos, menunumber, y, 0, endcolor);
+        menu_draw_item(ypos + y, xpos, menunumber, y, 0, endcolor, width);
 
     do {
+        // Materialize the row index in its own variable so the compiler
+        // can't (mis-)share the "ypos + menuchoice" subexpression between
+        // the highlight-draw call and the un-highlight call below — it did
+        // in an earlier build, drawing the un-highlight on the wrong row.
+        uint8_t row_y = (uint8_t)(ypos + menuchoice - 1);
+
         // Highlight current choice
-        menu_draw_item(ypos + menuchoice - 1, xpos, menunumber,
-                       menuchoice - 1, 1, endcolor);
+        menu_draw_item(row_y, xpos, menunumber,
+                       menuchoice - 1, 1, endcolor, width);
 
         uint8_t key = menu_getkey();
 
         // Un-highlight before acting
-        menu_draw_item(ypos + menuchoice - 1, xpos, menunumber,
-                       menuchoice - 1, 0, endcolor);
+        menu_draw_item(row_y, xpos, menunumber,
+                       menuchoice - 1, 0, endcolor, width);
 
         switch (key)
         {

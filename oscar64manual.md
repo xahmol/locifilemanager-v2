@@ -1584,6 +1584,53 @@ if (fd < 0) return 0;
 return &s_dir;
 ```
 
+**`-O2` whole-program register allocator: caller-save set can be under-counted**
+(discovered locifilemanager-v2, Phase 4, 2026-06-10)
+
+A function `F` that calls a chain of other functions can have its compiler-generated
+prologue/epilogue save/restore set **under-counted** at `-O2` — i.e. it saves too few
+zero-page bytes across the call, leaving some register that's actually live in one of
+`F`'s callers unprotected. That caller's variable gets silently clobbered. Symptom:
+stray garbage written to memory (e.g. screen RAM) at a position that tracks **runtime
+state** (not a fixed location), even though the function `F` itself renders correctly.
+
+This is an *emergent, whole-program* property — adding/removing as little as one
+unrelated function call deep in `F`'s callee subtree (e.g. an extra `sprintf(...)`
+in a leaf function, never on the path back to the affected caller) can flip the
+save-set between drastically different sizes (e.g. 2 vs 13 bytes), in either
+direction, fixing or worsening the corruption. `#pragma optimize(...)` on a callee
+is equally unpredictable — it produced a third, even worse outcome in this case.
+**There's no way to predict the effect without building and testing.**
+
+**Diagnosis:** build with `-g`, find `F`'s label in the `.asm`, and look at its
+prologue. A save loop looks like:
+```
+LDX #$0c
+LDA T1+0,x
+STA $bbXX,x    ; (F@stack + 0)
+DEX
+BPL ...
+```
+`LDX #$0c` saves 13 bytes. A suspiciously tiny save (1-2 bytes, or none) for a
+function with a non-trivial callee subtree is a red flag. To confirm, build two
+`-g` variants differing only in a small, functionally-inert way deep in the callee
+subtree (toggle a debug call on/off) and diff `F`'s prologue between them — if the
+save-set size changes and correlates with the visible bug, this is the cause.
+
+**Fix pattern:** if a "dummy" call happens to produce the correct (larger) save-set,
+keep it but make it harmless — e.g. redirect a debug `sprintf`'s destination buffer
+from visible/important memory to unused scratch space (a spare region from the
+`.map` file), changing only the 16-bit immediate constant so the instruction
+*shapes* — and thus the register allocation — stay identical:
+```c
+// WORKAROUND for -O2 whole-program register-allocator under-count.
+uint8_t *debug = (uint8_t *)0xA000;  // unused scratch RAM, never read
+sprintf((char *)debug, "...", ...);
+```
+Do not remove such a call without re-testing the full UI — its removal can
+silently re-break a caller's save-set. Full writeup with addresses/diffs:
+`~/.claude/oscar64.md`.
+
 ---
 
 ## Oric Atmos Project Library API (`include/charwin.h/c`)

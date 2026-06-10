@@ -351,14 +351,17 @@ void cwin_viewport_blit(OricViewport *vp)
 
 void cwin_viewport_scroll(OricViewport *vp, uint8_t dir)
 {
-    OricCharWin *w = vp->win;
-    if      (dir == KEY_UP   && vp->viewy > 0)
+    OricCharWin *w    = vp->win;
+    uint16_t     wx16 = w->wx;
+    uint16_t     wy16 = w->wy;
+
+    if      (dir == KEY_UP    && vp->viewy > 0)
         vp->viewy--;
-    else if (dir == KEY_DOWN && vp->viewy + w->wy < vp->sourceheight)
+    else if (dir == KEY_DOWN  && (uint16_t)(vp->viewy + wy16) < vp->sourceheight)
         vp->viewy++;
     else if (dir == KEY_LEFT  && vp->viewx > 0)
         vp->viewx--;
-    else if (dir == KEY_RIGHT && vp->viewx + w->wx < vp->sourcewidth)
+    else if (dir == KEY_RIGHT && (uint16_t)(vp->viewx + wx16) < vp->sourcewidth)
         vp->viewx++;
     cwin_viewport_blit(vp);
 }
@@ -667,6 +670,11 @@ void cwin_push(OricCharWin *w)
     save_stack[save_depth].size = size;
     save_depth++;
 
+    // PHP/PLP, not SEI/CLI: see menu.c menu_winsave() for why an unconditional
+    // CLI here would permanently re-enable IRQs (no IRQ handler is installed,
+    // so the stock ROM IRQ handler would then run every frame and corrupt
+    // zero page / screen RAM). PLP restores the prior interrupt-disable state.
+    __asm { php }
     __asm { sei }
     MICRODISCCFG = OVERLAY_ON;
 
@@ -677,7 +685,7 @@ void cwin_push(OricCharWin *w)
 
     overlay_sp  += size;
     MICRODISCCFG = OVERLAY_OFF;
-    __asm { cli }
+    __asm { plp }
 }
 
 void cwin_pop(OricCharWin *w)
@@ -690,6 +698,8 @@ void cwin_pop(OricCharWin *w)
     uint8_t  sy       = save_stack[save_depth].sy;
     uint16_t dst_addr = row_base[sy];
 
+    // PHP/PLP required — see cwin_push() above.
+    __asm { php }
     __asm { sei }
     MICRODISCCFG = OVERLAY_ON;
 
@@ -700,7 +710,7 @@ void cwin_pop(OricCharWin *w)
 
     overlay_sp  -= size;
     MICRODISCCFG = OVERLAY_OFF;
-    __asm { cli }
+    __asm { plp }
 
     (void)w;  // w is unused; geometry is stored in save_stack
 }

@@ -37,18 +37,24 @@ static bool test_overlay_ram(void)
     volatile uint8_t *oram = (volatile uint8_t *)OVERLAY_BASE;
     bool ok;
 
+    // PHP/PLP, not SEI/CLI: oric_startup leaves IRQs permanently disabled
+    // (no IRQ handler is installed). An unconditional CLI here would
+    // re-enable IRQs for the rest of the program, letting the stock ROM
+    // IRQ handler run every frame and corrupt zero page / screen RAM.
+    __asm { php }
     __asm { sei }
     MICRODISCCFG = OVERLAY_ON;
     oram[0] = 0xA5;
     oram[1] = 0x5A;
     MICRODISCCFG = OVERLAY_OFF;
-    __asm { cli }
+    __asm { plp }
 
+    __asm { php }
     __asm { sei }
     MICRODISCCFG = OVERLAY_ON;
     ok = (oram[0] == 0xA5 && oram[1] == 0x5A);
     MICRODISCCFG = OVERLAY_OFF;
-    __asm { cli }
+    __asm { plp }
 
     return ok;
 }
@@ -339,7 +345,6 @@ int main(void)
         cwin_putat_char(&walk, 0, (uint8_t)i, '*');
     }
 
-    cwin_clear(&walk);   // defensive: erase any cwin_cursor_show residue
     cwin_putat_string(&scr, 0, 13, MSG_DEMO_PRESS_KEY);
     cwin_getch();
 
@@ -399,6 +404,8 @@ int main(void)
 
 #define EDIT_PAUSE 80   // ~30 ms at 1 MHz: enough to see each shift
 
+#define SCROLL_BENCH_COUNT 150  // shortened from 500; skippable via keypress
+
     // Insert/delete demo window
     OricCharWin ewin;
     cwin_init(&ewin, 2, 2, 36, 1, A_FWCYAN, A_BGBLACK);
@@ -407,6 +414,7 @@ int main(void)
     ewin.cx = 5;
     ewin.cy = 0;
 
+    cwin_fill_rect(&scr, 0, 4, 38, 1, CH_SPACE);
     cwin_putat_string(&scr, 0, 4, MSG_DEMO_EDIT_INIT);
 
     for (uint8_t i = 0; i < 5; i++)
@@ -415,6 +423,7 @@ int main(void)
         cwin_insert_char(&ewin);
     }
 
+    cwin_fill_rect(&scr, 0, 4, 38, 1, CH_SPACE);
     cwin_putat_string(&scr, 0, 4, MSG_DEMO_EDIT_DELETE);
 
     for (uint8_t i = 0; i < 5; i++)
@@ -423,6 +432,7 @@ int main(void)
         cwin_delete_char(&ewin);
     }
 
+    cwin_fill_rect(&scr, 0, 4, 38, 1, CH_SPACE);
     cwin_putat_string(&scr, 0, 4, MSG_DEMO_PRESS_KEY);
     cwin_getch();
 
@@ -437,9 +447,7 @@ int main(void)
 
     for (uint8_t i = 1; i <= 8; i++)
     {
-        uint8_t cy = pwin.cy;
-        cwin_putat_printf(&pwin, 0, cy, MSG_DEMO_EDIT_LINE_FMT, (uint16_t)i);
-        cwin_printline(&pwin, "");   // advance cursor + auto-scroll
+        cwin_printf(&pwin, MSG_DEMO_EDIT_LINE_FMT "\n", (uint16_t)i);
         for (uint8_t d = 0; d < EDIT_PAUSE; d++) keyb_scan();
     }
 
@@ -452,6 +460,7 @@ int main(void)
 
     cwin_clear(&scr);
     cwin_putat_string(&scr, 0, 0, MSG_DEMO_SECTION_G);
+    cwin_putat_string(&scr, 0, 1, MSG_DEMO_SCROLL_SKIP);
 
     OricCharWin bench;
     cwin_init(&bench, 2, 2, 36, 10, A_FWYELLOW, A_BGBLACK);
@@ -460,10 +469,12 @@ int main(void)
     for (uint8_t i = 0; i < 10; i++)
         cwin_putat_printf(&bench, 0, i, "L%02u Seed line", (uint16_t)i);
 
-    for (uint16_t f = 0; f < 500; f++)
+    for (uint16_t f = 0; f < SCROLL_BENCH_COUNT; f++)
     {
         cwin_scroll_up(&bench);
+        cwin_fill_rect(&bench, 0, 9, 36, 1, CH_SPACE);
         cwin_putat_printf(&bench, 0, 9, "S%u scroll done", f);
+        if (keyb_check() != KEY_NONE) break;
     }
 
     cwin_putat_string(&scr, 0, 13, MSG_DEMO_SCROLL_DONE);
@@ -550,7 +561,6 @@ int main(void)
     cwin_putat_char(&ball, px[0], py[0], CH_SPACE);
     cwin_putat_char(&ball, px[1], py[1], CH_SPACE);
     cwin_putat_char(&ball, px[2], py[2], CH_SPACE);
-    cwin_clear(&ball);   // defensive: erase accumulated trail characters
 
     cwin_putat_printf(&scr, 0, 21, MSG_DEMO_FRAMES_DONE, frames);
     cwin_putat_string(&scr, 0, 22, MSG_DEMO_PRESS_KEY);
@@ -597,8 +607,10 @@ int main(void)
     cwin_viewport_init(&vp, vp_map, 60, 20, &vpwin);
     cwin_viewport_blit(&vp);
 
-    cwin_putat_printf(&scr, 0, 14, MSG_DEMO_VP_POS,
-                      (uint16_t)vp.viewx, (uint16_t)vp.viewy);
+    {
+        uint16_t vx = vp.viewx, vy = vp.viewy;
+        cwin_putat_printf(&scr, 0, 14, MSG_DEMO_VP_POS, vx, vy);
+    }
 
     while (1)
     {
@@ -611,8 +623,10 @@ int main(void)
             vk == KEY_LEFT || vk == KEY_RIGHT)
         {
             cwin_viewport_scroll(&vp, vk);
-            cwin_putat_printf(&scr, 0, 14, MSG_DEMO_VP_POS,
-                              (uint16_t)vp.viewx, (uint16_t)vp.viewy);
+            {
+                uint16_t vx = vp.viewx, vy = vp.viewy;
+                cwin_putat_printf(&scr, 0, 14, MSG_DEMO_VP_POS, vx, vy);
+            }
         }
     }
 
@@ -649,11 +663,15 @@ int main(void)
     cwin_init(&mresult, 2, 25, 38, 1, A_FWCYAN, A_BGBLACK);
     cwin_clear(&mresult);
 
+    // menu_main() encodes its result as menubarchoice*10 + menuoptionchoice.
+    // Valid selections range 10..59; ESC-at-bar sets menuoptionchoice=99,
+    // giving 109..159 (always >=100). "App > [ESC] Exit" (item 4) encodes
+    // as 1*10 + 5 = 15 — exit the demo on either signal.
     uint8_t mchoice;
     do {
         mchoice = menu_main();
         cwin_putat_printf(&mresult, 0, 0, MSG_DEMO_MENU_CHOICE, (uint16_t)mchoice);
-    } while (mchoice != 99);
+    } while (mchoice != 15 && mchoice < 100);
 
     // Popup demonstrations
     cwin_clear(&scr);

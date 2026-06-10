@@ -22,6 +22,11 @@ void ijk_detect(void)
 {
     uint8_t saved_ddra, saved_ora;
 
+    // PHP/PLP, not SEI/CLI: oric_startup leaves IRQs permanently disabled
+    // (no IRQ handler is installed). An unconditional CLI here would
+    // re-enable IRQs for the rest of the program, letting the stock ROM
+    // IRQ handler run every frame and corrupt zero page / screen RAM.
+    __asm { php }
     __asm { sei }
 
     saved_ddra = VIA.ddra;
@@ -46,7 +51,7 @@ void ijk_detect(void)
     VIA.pra2 = saved_ora;
     VIA.ddra = saved_ddra;
 
-    __asm { cli }
+    __asm { plp }
 }
 
 void ijk_read(void)
@@ -55,6 +60,8 @@ void ijk_read(void)
 
     if (!ijk_present) return;
 
+    // PHP/PLP required — see ijk_detect() above.
+    __asm { php }
     __asm { sei }
 
     saved_ddra = VIA.ddra;
@@ -75,5 +82,5 @@ void ijk_read(void)
     VIA.pra2 = saved_ora;
     VIA.ddra = saved_ddra;
 
-    __asm { cli }
+    __asm { plp }
 }

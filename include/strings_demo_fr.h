@@ -13,7 +13,7 @@
 #define MSG_DEMO_VERSION        "Version: %u.%u.%u"
 
 // ── Build-status window ───────────────────────────────────────────────────────
-#define MSG_DEMO_STATUS_CRT     "[ OK ] oric_crt.c demarrage + regions"
+#define MSG_DEMO_STATUS_CRT     "[ OK ] oric-crt.c demarrage + regions"
 #define MSG_DEMO_STATUS_CHARWIN "[ OK ] bibliotheque charwin initialisee"
 #define MSG_DEMO_STATUS_KEYB    "[ OK ] scanner clavier (VIA/AY)"
 #define MSG_DEMO_STATUS_ORAM    "[ -- ] RAM overlay (necessite LOCI)"
@@ -42,9 +42,9 @@
 #define MSG_DEMO_SECTION_E      "E: Test relecture caractere getat"
 #define MSG_DEMO_SECTION_F      "F: Edition texte (inserer/suppr/ligne)"
 #define MSG_DEMO_SECTION_G      "G: Banc defilement (500 scrolls)"
-#define MSG_DEMO_SECTION_H      "H: Defilement bas (cwin_scroll_down)"
+#define MSG_DEMO_SECTION_H      "H: Demo defilement bas (auto)"
 #define MSG_DEMO_SECTION_I      "I: Balle rebondissante (ECHAP/ENTREE)"
-#define MSG_DEMO_SECTION_J      "J: Viewport defilement (fleches, ECHAP)"
+#define MSG_DEMO_SECTION_J      "J: Viewport (fleches, ECHAP=sortir)"
 #define MSG_DEMO_SECTION_K      "K: Demo systeme de menus"
 #define MSG_DEMO_SECTION_L      "L: Demo bibliotheque LOCI"
 
@@ -58,11 +58,12 @@
 // ── Section F: text editing ───────────────────────────────────────────────────
 #define MSG_DEMO_EDIT_INIT      "Curseur col 5. Insertion 5 espaces..."
 #define MSG_DEMO_EDIT_DELETE    "Suppression 5 car. a la col 5..."
-#define MSG_DEMO_EDIT_PRINTLINE "cwin_printline: 8 lignes auto-scroll:"
+#define MSG_DEMO_EDIT_PRINTLINE "demo printline: 8 lignes auto-scroll"
 #define MSG_DEMO_EDIT_LINE_FMT  "Ligne printline %u sur 8"
 
 // ── Section G: scroll benchmark ───────────────────────────────────────────────
-#define MSG_DEMO_SCROLL_DONE    "500 scrolls: termine. (rapide!)"
+#define MSG_DEMO_SCROLL_SKIP    "(touche = passer la suite)"
+#define MSG_DEMO_SCROLL_DONE    "Scrolls: termine. (rapide!)"
 
 // ── Section H: scroll down ────────────────────────────────────────────────────
 #define MSG_DEMO_SCROLLDN_DONE  "60 scrolls bas: termine."
@@ -103,29 +104,29 @@
 #define MSG_DEMO_DONE           "TEST PHASE 2 TERMINE. ARRETE."
 
 // ── Section M: cursor_move / forward / backward / newline / put_chars / getat_chars ──
-#define MSG_DEMO_SECTION_M      "M: cursor_move, avance/recule, chars"
-#define MSG_DEMO_M_MOVE         "cursor_move(10,2) + put_char:"
-#define MSG_DEMO_M_FWD          "cursor_forward (change ligne):"
-#define MSG_DEMO_M_BWD          "cursor_backward (change ligne):"
-#define MSG_DEMO_M_PUT_CHARS    "put_chars 5 car. au curseur:"
-#define MSG_DEMO_M_GETAT        "getat_chars relecture:"
+#define MSG_DEMO_SECTION_M      "M: cursor move, avance/recule, chars"
+#define MSG_DEMO_M_MOVE         "cursor move(10,2) + putchar:"
+#define MSG_DEMO_M_FWD          "cursor forward (change ligne):"
+#define MSG_DEMO_M_BWD          "cursor backward (change ligne):"
+#define MSG_DEMO_M_PUT_CHARS    "putchars 5 car. au curseur:"
+#define MSG_DEMO_M_GETAT        "getat chars relecture:"
 #define MSG_DEMO_M_VERIFY       "getat verif: "
 #define MSG_DEMO_M_PASS         "OK"
 #define MSG_DEMO_M_FAIL         "ECHEC"
 
 // ── Section N: get_rect / put_rect ────────────────────────────────────────────
-#define MSG_DEMO_SECTION_N      "N: get_rect / put_rect sauvegarde+restore"
+#define MSG_DEMO_SECTION_N      "N: getrect/putrect sauve+restaure"
 #define MSG_DEMO_N_ORIGINAL     "Contenu original dessine."
 #define MSG_DEMO_N_SAVED        "Rect sauvegarde. Ecrasement ### ..."
 #define MSG_DEMO_N_RESTORED     "Rect restaure depuis le tampon."
 
 // ── Section O: printwrap ──────────────────────────────────────────────────────
-#define MSG_DEMO_SECTION_O      "O: cwin_printwrap retour a la ligne"
+#define MSG_DEMO_SECTION_O      "O: printwrap retour a la ligne"
 #define MSG_DEMO_O_LABEL        "Habillage fenetre 20 col:"
 #define MSG_DEMO_O_TEXT         "Ceci est une longue phrase qui sera habilee dans une fenetre etroite pour montrer la fonction cwin printwrap."
 
 // ── Section P: scroll_left / scroll_right ─────────────────────────────────────
-#define MSG_DEMO_SECTION_P      "P: cwin_scroll_left / cwin_scroll_right"
+#define MSG_DEMO_SECTION_P      "P: defilement gauche/droite"
 #define MSG_DEMO_P_FILLED       "Lignes remplies. Defilement gauche x3..."
 #define MSG_DEMO_P_LEFT_DONE    "Gauche OK. Defilement droite x3..."
 #define MSG_DEMO_P_RIGHT_DONE   "Droite OK."

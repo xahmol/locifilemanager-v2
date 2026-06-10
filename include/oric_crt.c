@@ -19,6 +19,13 @@
 // polled directly via VIA/AY, and disabling IRQs eliminates the ROM cursor-blink
 // artifact. Phase 3+: install a real handler once the ROM's stack convention
 // is fully understood, or use LOCI-provided IRQ infrastructure.
+//
+// CONVENTION: any code that must briefly enable IRQs (overlay RAM access via
+// MICRODISCCFG, or VIA Port A access in ijk.c) MUST use PHP/SEI ... PLP, not
+// SEI ... CLI. An unconditional CLI would permanently re-enable IRQs (since
+// startup never re-enables them and no handler is installed), letting the
+// stock ROM IRQ handler run every frame and corrupt zero page / screen RAM.
+// PHP/PLP preserves whatever interrupt-disable state was in effect before.
 
 #include <crt.h>
 #include <stdint.h>
