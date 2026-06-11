@@ -8,7 +8,7 @@
 #define STRINGS_DEMO_FR_H
 
 // ── Intro / title bar ─────────────────────────────────────────────────────────
-#define MSG_DEMO_TITLE          "LOCI FILE MANAGER V2 - TEST PHASE 2"
+#define MSG_DEMO_TITLE          "LOCI FILE MANAGER V2 - TEST LIBRAIRIE"
 #define MSG_DEMO_SUBTITLE       "Compilation bare-metal Oric Oscar64"
 #define MSG_DEMO_VERSION        "Version: %u.%u.%u"
 
@@ -101,7 +101,7 @@
 #define MSG_DEMO_ERROR          "Erreur: "
 
 // ── Completion ────────────────────────────────────────────────────────────────
-#define MSG_DEMO_DONE           "TEST PHASE 2 TERMINE. ARRETE."
+#define MSG_DEMO_DONE           "TEST LIBRAIRIE TERMINE. ARRETE."
 
 // ── Section M: cursor_move / forward / backward / newline / put_chars / getat_chars ──
 #define MSG_DEMO_SECTION_M      "M: cursor move, avance/recule, chars"

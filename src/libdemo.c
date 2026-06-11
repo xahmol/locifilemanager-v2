@@ -1,9 +1,9 @@
-// libdemo.c - Phase 2+3+4 library demo for Oric Atmos
+// libdemo.c - library demo for Oric Atmos
 //
-// Tests the complete Phase 2 stack in Oricutron (no LOCI required):
+// Tests the core stack in Oricutron (no LOCI required):
 //   A–K: Oscar64 bare-metal buildchain, charwin library, keyboard scanner,
 //        text editing, scroll down, viewport, menu system
-// Tests the Phase 3 LOCI library (section L, requires real LOCI hardware):
+// Tests the LOCI library (section L, requires real LOCI hardware):
 //   L:   LOCI detection, firmware version, directory listing, IJK joystick
 //
 // Overlay RAM: tested on first screen when LOCI is detected.

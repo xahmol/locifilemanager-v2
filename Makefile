@@ -79,6 +79,7 @@ CFLAGS = \
   -tf=bin         \
   -rt=include/oric_crt.c \
   -i=include      \
+  -i=src          \
   -O2             \
   -dNOFLOAT       \
   -dVERSION_MAJOR=$(VERSION_MAJOR) \
@@ -95,9 +96,9 @@ CFLAGS = \
 LOCI_SRCS = \
   include/loci.c        \
   include/loci.h        \
-  include/strings.h     \
-  include/strings_en.h  \
-  include/strings_fr.h
+  src/strings.h         \
+  src/strings_en.h      \
+  src/strings_fr.h
 
 IJK_SRCS = \
   include/ijk.c         \
@@ -111,8 +112,16 @@ MAIN_SRCS = \
   include/keyboard.h    \
   include/charwin.c     \
   include/charwin.h     \
-  include/menu.h        \
-  include/menu.c        \
+  src/menu.h            \
+  src/menu.c            \
+  src/input.h           \
+  src/input.c           \
+  src/dir.h             \
+  src/dir.c             \
+  src/file.h            \
+  src/file.c            \
+  src/drive.h           \
+  src/drive.c           \
   $(IJK_SRCS)           \
   $(LOCI_SRCS)
 
@@ -128,11 +137,11 @@ DEMO_SRCS = \
   include/loci.h             \
   include/ijk.c              \
   include/ijk.h              \
-  include/menu.h             \
-  include/menu.c             \
-  include/strings.h          \
-  include/strings_en.h       \
-  include/strings_fr.h       \
+  src/menu.h                 \
+  src/menu.c                 \
+  src/strings.h              \
+  src/strings_en.h           \
+  src/strings_fr.h           \
   include/strings_demo.h     \
   include/strings_demo_en.h  \
   include/strings_demo_fr.h
@@ -163,12 +172,29 @@ IS_WSL2  := $(shell grep -qi microsoft /proc/version 2>/dev/null && echo 1 || ec
 
 EMUFLAG = -ma --serial none --vsynchack off --turbotape on
 
+# -------------------------------------------------------------------------
+# Phosphoric automated testing
+# -------------------------------------------------------------------------
+# PHOSDIR is set in .env (see .env.example) -- checkout of
+# https://github.com/benedictemarty/Phosphoric, providing oric1-emu and
+# roms/basic11b.rom. Phosphoric emulates the LOCI MIA peripheral
+# (--loci-flash DIR), so locifm can be fast-loaded (-t ... -f) under Atmos
+# BASIC 1.1 and tested headless against a sandbox directory standing in
+# for the LOCI's USB storage.
+
+PHOSDIR  ?= NOT_SET
+PHOS      = $(PHOSDIR)/oric1-emu
+ATMOSROM  = $(PHOSDIR)/roms/basic11b.rom
+
+CYCLES   ?= 8000000
+
 # =========================================================================
 # Targets
 # all: must appear first so it is the default goal
 # =========================================================================
 
-.PHONY: all all-langs clean run libdemo libdemo-run docs zip check-usb usb
+.PHONY: all all-langs clean run libdemo libdemo-run docs zip check-usb usb \
+        check-phosphoric sandbox-reset test test-quick test-capture
 
 all: build/$(MAIN)$(LANGSUFFIX).tap
 
@@ -295,6 +321,55 @@ usb: check-usb all-langs
 	fi
 
 # -------------------------------------------------------------------------
+# Phosphoric automated testing
+# -------------------------------------------------------------------------
+# make test-quick   -- boot smoke test (LOCI detection + main interface)
+# make test         -- full automated suite (currently == test-quick)
+# make test-capture CYCLES=N TYPEKEYS='...'
+#                   -- calibration helper: fast-loads locifm.tap (-t ... -f)
+#                      under Atmos BASIC 1.1 with --loci-flash tests/sandbox
+#                      as the LOCI device, runs for CYCLES, dumps
+#                      tests/out/capture.bin (RAM) and tests/out/capture.png
+#                      (screenshot). No assertions -- used to find the right
+#                      cycle counts and --type-keys sequences (e.g. for menu
+#                      navigation) for new test scenarios.
+
+check-phosphoric:
+	@test "$(PHOSDIR)" != "NOT_SET" || \
+	    (echo "ERROR: PHOSDIR not set -- copy .env.example to .env and set PHOSDIR" && false)
+	@test -x "$(PHOS)" || \
+	    (echo "ERROR: oric1-emu not found/executable at $(PHOS) -- check PHOSDIR in .env" && false)
+	@test -f "$(ATMOSROM)" || \
+	    (echo "ERROR: Atmos ROM not found at $(ATMOSROM)" && false)
+
+# Reset the LOCI sandbox from checked-in fixtures + freshly built tap, so
+# every test run (including file-operation tests) starts from a known state.
+sandbox-reset: build/$(MAIN)$(LANGSUFFIX).tap
+	$(RMDIR) tests/sandbox 2>$(NULLDEV) ; true
+	$(MKDIR) tests/sandbox 2>$(NULLDEV) ; true
+	cp -r tests/fixtures/. tests/sandbox/
+	cp build/$(MAIN)$(LANGSUFFIX).tap tests/sandbox/
+
+test-capture: check-phosphoric sandbox-reset
+	$(MKDIR) tests/out 2>$(NULLDEV) ; true
+	$(PHOS) -r $(ATMOSROM) --loci-flash tests/sandbox \
+	    -t tests/sandbox/$(MAIN)$(LANGSUFFIX).tap -f \
+	    --headless -c $(CYCLES) \
+	    $(if $(TYPEKEYS),--type-keys '$(TYPEKEYS)') \
+	    --dump-ram-at $(CYCLES):tests/out/capture.bin \
+	    --screenshot-at $(CYCLES):tests/out/capture.ppm
+	@which pnmtopng >$(NULLDEV) 2>&1 && pnmtopng tests/out/capture.ppm > tests/out/capture.png || true
+	python3 tests/scripts/oric_screen.py tests/out/capture.bin
+
+test-quick: check-phosphoric sandbox-reset
+	$(MKDIR) tests/out 2>$(NULLDEV) ; true
+	PHOS=$(PHOS) ATMOSROM=$(ATMOSROM) SANDBOX=tests/sandbox OUT=tests/out \
+	    TAPFILE=$(MAIN)$(LANGSUFFIX).tap \
+	    bash tests/scripts/test_boot.sh
+
+test: test-quick
+
+# -------------------------------------------------------------------------
 # Clean
 # -------------------------------------------------------------------------
 
@@ -308,3 +383,5 @@ clean:
 	$(DEL) build/$(DEMO)_fr.bin   2>$(NULLDEV) ; true
 	$(DEL) build/$(DEMO)_fr.tap   2>$(NULLDEV) ; true
 	$(DEL) build/*.zip            2>$(NULLDEV) ; true
+	$(RMDIR) tests/sandbox        2>$(NULLDEV) ; true
+	$(RMDIR) tests/out            2>$(NULLDEV) ; true

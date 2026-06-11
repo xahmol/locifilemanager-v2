@@ -1461,6 +1461,25 @@ Oscar64 prepends the first `-i=` include path to any path given to `#pragma comp
 // #pragma compile("/absolute/path.c")     // BROKEN: becomes include//absolute/path.c ✗
 ```
 
+### `#pragma compile` with multiple `-i=` paths and co-located header/source
+
+With **two or more** `-i=` paths (e.g. `-i=include -i=src`), if a header and its
+`.c` companion live together in a non-first `-i=` directory, a **plain
+filename** in `#pragma compile("X.c")` still resolves correctly:
+```c
+// src/dir.h, with -i=include -i=src and src/dir.c present:
+#pragma compile("dir.c")           // ✓ resolves to src/dir.c
+
+// Adding a relative prefix BREAKS this case:
+#pragma compile("../src/dir.c")    // ✗ error 3001: looks for src/src/dir.c
+```
+A co-located header/source pair keeps working with a plain filename even
+after both are moved together into a directory that is not the first `-i=`
+path — don't "fix" the pragma when relocating files together. Verified by
+moving locifilemanager-v2's dir/file/drive/menu/input modules from
+`include/` to `src/` (adding `-i=src`) and rebuilding cleanly across all
+targets.
+
 ### Named asm blocks conflict with C prototypes
 
 `__asm funcname { }` defines a function named `funcname`. If a C prototype `void funcname(void);` also exists, Oscar64 raises "Duplicate definition". Remove the prototype — named asm functions are directly callable from C without a prototype (the symbol is visible in the same translation unit).
@@ -1585,7 +1604,7 @@ return &s_dir;
 ```
 
 **`-O2` whole-program register allocator: caller-save set can be under-counted**
-(discovered locifilemanager-v2, Phase 4, 2026-06-10)
+(discovered locifilemanager-v2, 2026-06-10)
 
 A function `F` that calls a chain of other functions can have its compiler-generated
 prologue/epilogue save/restore set **under-counted** at `-O2` — i.e. it saves too few

@@ -473,6 +473,57 @@ int16_t file_copy(const char *dst, const char *src)
     return 0;
 }
 
+// Animated progress-bar characters, cycled every read/write block.
+static const uint8_t progressBar[4] = { 48, 53, 93, 95 };
+
+// Based on libsrc/fileops.c file_copy() (CC65, prog/progx/progy/progl args) by
+// Xander Mol, 2025 — local reference at locifilemanager/libsrc/fileops.c.
+// Adapted: no conio gotoxy/cputc/cclear in Oscar64 bare-metal — progress bar
+// chars are written directly to TEXTVRAM via a row pointer (same pattern as
+// menu.c's MENU_ROW macro).
+int16_t file_copy_progress(const char *dst, const char *src,
+                            uint8_t progx, uint8_t progy, uint8_t progl)
+{
+    uint8_t *row = (uint8_t *)((uint16_t)TEXTVRAM + (uint16_t)progy * 40U);
+    int16_t  fd_src, fd_dst;
+    int16_t  len;
+    uint8_t  cnt = 0;
+    uint8_t  x;
+
+    fd_src = loci_open(src, O_RDONLY | O_EXCL);
+    if (fd_src < 0) return fd_src;
+
+    fd_dst = loci_open(dst, O_WRONLY | O_CREAT);
+    if (fd_dst < 0) { loci_close(fd_src); return fd_dst; }
+
+    row[progx] = A_ALT;
+    for (x = 0; x < progl; x++) row[progx + 1 + x] = 0x20;
+
+    do {
+        if ((cnt >> 2) > (uint8_t)(progl - 2))
+        {
+            cnt = 0;
+            for (x = 0; x < (uint8_t)(progl - 1); x++)
+                row[progx + 1 + x] = 0x20;
+        }
+        else
+        {
+            row[progx + 1 + (cnt >> 2)] = progressBar[cnt & 3];
+            cnt++;
+        }
+
+        len = read_xram(COPYBUF_XRAM_ADDR, COPYBUF_XRAM_SIZE, fd_src);
+        if (len > 0) write_xram(COPYBUF_XRAM_ADDR, (uint16_t)len, fd_dst);
+    } while (len == (int16_t)COPYBUF_XRAM_SIZE);
+
+    loci_close(fd_src);
+    loci_close(fd_dst);
+
+    for (x = 0; x < progl; x++) row[progx + x] = 0x20;
+
+    return 0;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Directory operations
 // ─────────────────────────────────────────────────────────────────────────────

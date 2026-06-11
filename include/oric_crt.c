@@ -15,10 +15,10 @@
 //
 // IRQ NOTE: Interrupts are left disabled (SEI; no CLI). The Oric ROM IRQ chain
 // at $0245/$0246 has a complex stack protocol that is difficult to hook safely
-// without detailed ROM source analysis. Phase 2 needs no IRQs: keyboard is
-// polled directly via VIA/AY, and disabling IRQs eliminates the ROM cursor-blink
-// artifact. Phase 3+: install a real handler once the ROM's stack convention
-// is fully understood, or use LOCI-provided IRQ infrastructure.
+// without detailed ROM source analysis. The keyboard scanner needs no IRQs: it
+// polls directly via VIA/AY, and disabling IRQs eliminates the ROM cursor-blink
+// artifact. A real handler could be installed once the ROM's stack convention
+// is fully understood, or by using LOCI-provided IRQ infrastructure.
 //
 // CONVENTION: any code that must briefly enable IRQs (overlay RAM access via
 // MICRODISCCFG, or VIA Port A access in ijk.c) MUST use PHP/SEI ... PLP, not
@@ -78,10 +78,11 @@ void StackStart, StackEnd, BSSStart, BSSEnd, CodeStart, CodeEnd, ZeroStart, Zero
 // IRQ NOTE: We leave interrupts disabled (no CLI). The Oric ROM IRQ chain at
 // $0245/$0246 uses a non-trivial stack protocol (ROM saves A/X/Y then does
 // a vectored call; the exact return convention requires precise stack knowledge
-// to avoid corruption). Phase 2 needs no interrupts: keyboard is polled via
+// to avoid corruption). No interrupts are needed: keyboard is polled via
 // direct VIA/AY access, charwin is synchronous, and disabling IRQs also
 // eliminates the ROM cursor-blink artifact.
-// Phase 3+: install a proper IRQ handler with full register save/restore.
+// A proper IRQ handler with full register save/restore could be installed
+// later if needed.
 // -------------------------------------------------------------------------
 
 int main(void);
@@ -137,7 +138,7 @@ zp2:
     txs
 
     // Interrupts remain disabled (SEI above, no CLI here).
-    // Phase 2: keyboard is polled, no IRQ handler needed.
+    // Keyboard is polled, no IRQ handler needed.
 
     // Call main (Oscar64 native mode: plain JSR)
     jsr     main

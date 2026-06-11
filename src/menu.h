@@ -111,6 +111,22 @@ void menu_messagepopup(const char *message);
 // Returns 1..N (choice) or MENU_CANCEL (0, if escaped).
 uint8_t menu_option_select(const char *message, uint8_t menu);
 
+// Popup: show message + "Name: <filename>" + Yes/No pulldown.
+// Generic confirm-with-filename dialog for dir/file operations
+// (overwrite/delete confirmations). Returns 1=Yes, 0=No.
+uint8_t menu_confirm_file(const char *message, const char *filename);
+
+// Open a full-width popup: save rows ypos..ypos+height-1, then paint a
+// white-paper background from column xpos to 39 (col xpos = A_BGWHITE,
+// col xpos+1 = A_FWBLACK, cols xpos+2..39 = spaces). Generalizes
+// menu_wininit() (which is hardcoded to xpos=5) for dir/file popups that
+// need to start at column 0. Pair with menu_popup_close().
+void menu_popup_open(uint8_t xpos, uint8_t ypos, uint8_t height);
+
+// Close the most recently opened menu_popup_open() window (restores the
+// saved rows). Equivalent to menu_winrestore().
+void menu_popup_close(void);
+
 #pragma compile("menu.c")
 
 #endif  // MENU_H

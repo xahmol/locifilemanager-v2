@@ -292,6 +292,8 @@ bool    file_exists(const char *path);
 int16_t file_load(const char *path, void *dst, uint16_t count);
 int16_t file_save(const char *path, const void *src, uint16_t count);
 int16_t file_copy(const char *dst, const char *src);
+int16_t file_copy_progress(const char *dst, const char *src,
+                            uint8_t progx, uint8_t progy, uint8_t progl);
 
 // --- Directory ops ---
 LociDir    *loci_opendir(const char *path);

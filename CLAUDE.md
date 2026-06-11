@@ -6,12 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 v2 rebuild of [locifilemanager](https://github.com/xahmol/locifilemanager) — a file manager for the LOCI mass storage device on Oric Atmos — rewritten using Oscar64 instead of CC65. The v1 CC65 implementation at `/home/xahmol/git/locifilemanager/` is the functional reference for all features, screen layouts, and UX behavior.
 
-**Phase status:**
-- Phase 1 — Oric platform research: ✅ complete
-- Phase 2 — Buildchain + charwin library + keyboard: ✅ complete
-- Phase 3 — LOCI library + localisation infrastructure + libdemo expansion: ✅ complete
-- Phase 4 — Application rebuild (main, menu, dir, file, drive modules): 🔲 next
-- Phase 5 — Localisation (EN/FR compile-time switch): merged into Phase 3 ✅
+**Status:** The buildchain, charwin window library, keyboard scanner, full
+LOCI API, and EN/FR localisation infrastructure are complete and exercised by
+`libdemo`. The application itself (`main.c` plus the menu/dir/file/drive
+modules) is implemented and under active refinement.
 
 ## Compiler Toolchain
 
@@ -29,9 +27,9 @@ Target: 6502A (Oric Atmos), bare-metal. No VIC-II, SID, or C64 Kernal.
 ## Build and Run
 
 ```
-make              # build build/locifm.tap  (Phase 3+ app stub)
+make              # build build/locifm.tap  (main application)
 make run          # build + launch in Oricutron
-make libdemo      # build build/libdemo.tap (Phase 2 charwin/keyboard demo)
+make libdemo      # build build/libdemo.tap (charwin/keyboard/LOCI/IJK library demo)
 make libdemo-run  # build + launch libdemo in Oricutron
 make clean        # remove build artifacts
 ```
@@ -44,16 +42,25 @@ Emulator: `/home/xahmol/oricutron/oricutron -ma --serial none --vsynchack off --
 
 ```
 src/
-  main.c          Phase 3+ app entry point (hello-world stub for now)
-  libdemo.c       Phase 2 demo — tests all charwin/keyboard/loci/ijk functions
+  main.c          Application entry point: main loop, event dispatch
+  menu.c/h        Pulldown menu system, popups, window stack
+  dir.c/h         Directory pane rendering, navigation, selection
+  file.c/h        File operations: copy, move, delete, rename, tape browse
+  drive.c/h       LOCI drive enumeration, mount/unmount, boot
+  input.c/h       Shared keyboard/joystick input helper
+  strings.h       Includes strings_en.h or strings_fr.h based on -dLANG_FR
+  strings_en.h    All MSG_* string defines (English)
+  strings_fr.h    All MSG_* string defines (French)
+  libdemo.c       Library demo — tests all charwin/keyboard/loci/ijk functions
 include/
   oric.h          Hardware constants (VIA, AY, screen, overlay RAM, ASTR_*/CH_*/A_* attrs)
   oric_crt.c      Custom Oscar64 runtime: startup, regions, math stubs
+  crt_math.c      Math/float runtime routines for the custom runtime
   keyboard.h/c    Direct VIA/AY keyboard scanner — no ROM calls
   charwin.h/c     Character window library (see below)
   loci.h/c        LOCI mass storage API (MIA/TAP/XRAM/file/dir/mount/tape)
   ijk.h/c         Raxiss IJK joystick driver (VIA Port A; independent of LOCI)
-  strings.h       (Phase 5) Conditionally includes strings_en.h or strings_fr.h
+  strings_demo*.h Demo-only string defines (used by libdemo.c)
 build/
   locifm.tap      Main app tape image
   libdemo.tap     Demo tape image
@@ -135,7 +142,7 @@ Animation delay without `sleep`: `for (uint8_t d = 0; d < N; d++) keyb_scan();` 
 - **Inverse video:** `ch | 0x80` inverts pixel rendering; `CH_INVSPACE` (0xA0) = solid ink-coloured block.
 - **Double-height:** `ASTR_CHARSET_STD2H` on row N shows top halves; same attr+content on row N+1 shows bottom halves. Use `cwin_putat_dblhi_string()` to write both rows in one call.
 
-## LOCI Hardware API (Phase 3 target)
+## LOCI Hardware API
 
 The LOCI device exposes two memory-mapped register blocks:
 
@@ -184,7 +191,7 @@ struct __LOCI_TAP {
 ### XRAM and Overlay RAM
 
 - **XRAM** — accessed via MIA DMA channels; for large file copy buffers. Functions needed: `xram_memcpy_to`, `xram_memcpy_from`, `xram_poke`, `xram_peek`.
-- **Overlay RAM** (`$C000–$FFFF`) — enabled via `MICRODISCCFG` ($0314) = `$FD`; requires LOCI. `cwin_push`/`cwin_pop` already use this. Functions needed for Phase 3: `enable_overlay_ram`, `disable_overlay_ram`.
+- **Overlay RAM** (`$C000–$FFFF`) — enabled via `MICRODISCCFG` ($0314) = `$FD`; requires LOCI. `cwin_push`/`cwin_pop`, and `enable_overlay_ram`/`disable_overlay_ram`, already use this.
 - **Not testable in Oricutron** — all MIA/TAP/overlay features require real LOCI hardware.
 
 ### High-Level LOCI Routines (implemented in `include/loci.h/c`)
@@ -225,9 +232,10 @@ SEI/CLI brackets all VIA Port A accesses to prevent conflict with keyboard scann
 
 Recognized extensions: `.DSK`, `.TAP`, `.ROM`, `.LCE`.
 
-## Phase 4 — Application Architecture
+## Application Architecture
 
-Port these modules from v1 (`/home/xahmol/git/locifilemanager/src/`):
+Application modules (ported from v1 `/home/xahmol/git/locifilemanager/src/`,
+now in `src/`):
 
 | Module | Purpose |
 |---|---|
@@ -243,7 +251,7 @@ Menu system: follows `~/.claude/menu_conventions.md` (Oric CC65 section). Key co
 
 **IJK joystick:** Raxiss IJK at fixed I/O. Include `ijk.h` for directions → cursor keys, fire → RETURN. Direction constants are `IJK_JOY_RIGHT/LEFT/FIRE/DOWN/UP` — see IJK section above.
 
-## Phase 5 — Localisation (EN/FR)
+## Localisation (EN/FR)
 
 **Compile-time switch, two binaries.** `make` → EN default; `make LANG=FR` → FR; `make all-langs` → both. Oscar64 receives `-dLANG_FR` flag.
 
@@ -254,6 +262,6 @@ include/strings_en.h   — all MSG_* defines in English
 include/strings_fr.h   — all MSG_* defines in French (unaccented — Oric ROM has no é è à ç)
 ```
 
-**All user-visible strings must be `MSG_*` macros from Phase 3 day one.** No raw string literals in logic files. Retroactive extraction is painful.
+**All user-visible strings must be `MSG_*` macros.** No raw string literals in logic files. Retroactive extraction is painful.
 
 French without accents: "Deplacer", "Effacer", "Renommer", "Oui", "Non" — consistent with historic Oric French software.

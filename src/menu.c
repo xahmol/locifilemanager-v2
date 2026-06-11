@@ -128,6 +128,28 @@ static void menu_wininit(uint8_t ypos, uint8_t height)
     }
 }
 
+// Open a full-width popup: save rows ypos..ypos+height-1, then paint a
+// white-paper background from column xpos to 39. Generalizes menu_wininit()
+// (hardcoded xpos=5) for dir/file popups that need to start at column 0.
+// Based on v1 windownew() (locifilemanager src/menu.c) by Xander Mol, 2025.
+void menu_popup_open(uint8_t xpos, uint8_t ypos, uint8_t height)
+{
+    menu_winsave(ypos, height);
+    for (uint8_t y = 0; y < height; y++)
+    {
+        uint8_t *row = MENU_ROW(ypos + y);
+        row[xpos]     = A_BGWHITE;
+        row[xpos + 1] = A_FWBLACK;   // 0x00 — must write directly (not in string literal)
+        for (uint8_t x = (uint8_t)(xpos + 2); x < 40; x++)
+            row[x] = 0x20;
+    }
+}
+
+void menu_popup_close(void)
+{
+    menu_winrestore();
+}
+
 // -------------------------------------------------------------------------
 // Input: keyboard + IJK joystick
 // -------------------------------------------------------------------------
@@ -537,4 +559,26 @@ uint8_t menu_option_select(const char *message, uint8_t menu)
     option = menu_pulldown(10, 12, menu, 1);
     menu_winrestore();
     return option;
+}
+
+// Based on v1 file_confirm_message() (locifilemanager src/file.c) by
+// Xander Mol, 2025. Adapted: full-width popup via menu_popup_open(0,...)
+// instead of windownew(0,...); raw screen writes instead of cputsxy/cprintf.
+uint8_t menu_confirm_file(const char *message, const char *filename)
+{
+    uint8_t choice;
+    char    namebuf[31];
+    uint8_t i;
+
+    menu_popup_open(0, 14, 9);
+    menu_screen_puts(2, 16, message);
+    menu_screen_puts(2, 18, MSG_MENU_CONFIRM_NAME);
+
+    for (i = 0; i < 30 && filename[i]; i++) namebuf[i] = filename[i];
+    namebuf[i] = '\0';
+    menu_screen_puts(2, 19, namebuf);
+
+    choice = menu_pulldown(10, 20, MENU_YESNO, 0);
+    menu_popup_close();
+    return (choice == 1) ? 1 : 0;
 }
