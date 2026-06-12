@@ -129,4 +129,14 @@
 #define MSG_DEMO_P_LEFT_DONE    "Left done. Scroll right x3 by 3..."
 #define MSG_DEMO_P_RIGHT_DONE   "Right done."
 
+// ── Section Q: LOCI lseek / file I/O smoke test ───────────────────────────────
+#define MSG_DEMO_SECTION_Q      "Q: LOCI lseek / file I/O test"
+#define MSG_DEMO_Q1             "Q1 CREATE+WRITE 32"
+#define MSG_DEMO_Q2             "Q2 SEEK_SET=10/READ K"
+#define MSG_DEMO_Q3             "Q3 SEEK_CUR+5=16/READ Q"
+#define MSG_DEMO_Q4             "Q4 SEEK_CUR-7=10/READ K"
+#define MSG_DEMO_Q5             "Q5 SEEK_END-4=28/READ ]"
+#define MSG_DEMO_Q6             "Q6 SEEK_END=32/EOF"
+#define MSG_DEMO_Q7             "Q7 CLOSE+UNLINK"
+
 #endif

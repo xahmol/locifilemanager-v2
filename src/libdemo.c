@@ -929,6 +929,56 @@ int main(void)
     cwin_getch();
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Q. LOCI lseek / file I/O smoke test
+    // ─────────────────────────────────────────────────────────────────────────
+
+    cwin_clear(&scr);
+    cwin_putat_string(&scr, 0, 0, MSG_DEMO_SECTION_Q);
+
+    // 32-byte recognisable buffer: 'A'..'`'
+    char qbuf[32];
+    for (uint8_t i = 0; i < 32; i++)
+        qbuf[i] = (char)('A' + i);
+
+    int16_t qfd = loci_open("LSEEKTST.BIN", O_CREAT | O_TRUNC | O_RDWR);
+    bool q1_pass = (qfd >= 0) && (loci_write(qfd, qbuf, 32) == 32);
+    cwin_putat_string(&scr, 0, 1, MSG_DEMO_Q1);
+    cwin_putat_string(&scr, 24, 1, q1_pass ? MSG_DEMO_M_PASS : MSG_DEMO_M_FAIL);
+
+    char qc;
+    bool q2_pass = (loci_lseek(qfd, 10, SEEK_SET) == 10) &&
+                   (loci_read(qfd, &qc, 1) == 1) && (qc == qbuf[10]);
+    cwin_putat_string(&scr, 0, 2, MSG_DEMO_Q2);
+    cwin_putat_string(&scr, 24, 2, q2_pass ? MSG_DEMO_M_PASS : MSG_DEMO_M_FAIL);
+
+    bool q3_pass = (loci_lseek(qfd, 5, SEEK_CUR) == 16) &&
+                   (loci_read(qfd, &qc, 1) == 1) && (qc == qbuf[16]);
+    cwin_putat_string(&scr, 0, 3, MSG_DEMO_Q3);
+    cwin_putat_string(&scr, 24, 3, q3_pass ? MSG_DEMO_M_PASS : MSG_DEMO_M_FAIL);
+
+    bool q4_pass = (loci_lseek(qfd, -7, SEEK_CUR) == 10) &&
+                   (loci_read(qfd, &qc, 1) == 1) && (qc == qbuf[10]);
+    cwin_putat_string(&scr, 0, 4, MSG_DEMO_Q4);
+    cwin_putat_string(&scr, 24, 4, q4_pass ? MSG_DEMO_M_PASS : MSG_DEMO_M_FAIL);
+
+    bool q5_pass = (loci_lseek(qfd, -4, SEEK_END) == 28) &&
+                   (loci_read(qfd, &qc, 1) == 1) && (qc == qbuf[28]);
+    cwin_putat_string(&scr, 0, 5, MSG_DEMO_Q5);
+    cwin_putat_string(&scr, 24, 5, q5_pass ? MSG_DEMO_M_PASS : MSG_DEMO_M_FAIL);
+
+    bool q6_pass = (loci_lseek(qfd, 0, SEEK_END) == 32) &&
+                   (loci_read(qfd, &qc, 1) == 0);
+    cwin_putat_string(&scr, 0, 6, MSG_DEMO_Q6);
+    cwin_putat_string(&scr, 24, 6, q6_pass ? MSG_DEMO_M_PASS : MSG_DEMO_M_FAIL);
+
+    bool q7_pass = (loci_close(qfd) >= 0) && (loci_unlink("LSEEKTST.BIN") >= 0);
+    cwin_putat_string(&scr, 0, 7, MSG_DEMO_Q7);
+    cwin_putat_string(&scr, 24, 7, q7_pass ? MSG_DEMO_M_PASS : MSG_DEMO_M_FAIL);
+
+    cwin_putat_string(&scr, 0, 9, MSG_DEMO_PRESS_KEY);
+    cwin_getch();
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Done
     // ─────────────────────────────────────────────────────────────────────────
 

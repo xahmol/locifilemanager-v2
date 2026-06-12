@@ -123,7 +123,8 @@ S30='\p1\n'   # Section N getch#3 (restored) -> Section O (printwrap)
 S31='\p1\n'   # Section O getch -> Section P (filled)
 S32='\p1\n'   # Section P getch#1 (filled) -> P (scroll-left done)
 S33='\p1\n'   # Section P getch#2 (scroll-left) -> P (scroll-right done)
-S34='\p1\n'   # Section P getch#3 (scroll-right) -> Done/halted screen
+S34='\p1\n'   # Section P getch#3 (scroll-right) -> Section Q (lseek/file I/O)
+S35='\p1\n'   # Section Q getch -> Done/halted screen
 
 TK02="$S01$S02"
 TK04="$TK02$S03$S04"
@@ -152,6 +153,7 @@ TK31="$TK30$S31"
 TK32="$TK31$S32"
 TK33="$TK32$S33"
 TK34="$TK33$S34"
+TK35="$TK34$S35"
 
 echo ""
 echo "Title screen"
@@ -324,8 +326,21 @@ DUMP=$(run_capture "$TK33" 54000000 section_p3)
 check_found "$DUMP" "Section P scroll-right done" "Right done."
 
 echo ""
+echo "Section Q: LOCI lseek / file I/O smoke test"
+DUMP=$(run_capture "$TK34" 56000000 section_q)
+check_found "$DUMP" "Section Q header" "Q: LOCI lseek / file I/O test"
+check_found "$DUMP" "Q1 create+write PASS" "Q1 CREATE+WRITE 32      PASS"
+check_found "$DUMP" "Q2 seek_set/read PASS" "Q2 SEEK_SET=10/READ K   PASS"
+check_found "$DUMP" "Q3 seek_cur+/read PASS" "Q3 SEEK_CUR+5=16/READ Q PASS"
+check_found "$DUMP" "Q4 seek_cur-/read PASS" "Q4 SEEK_CUR-7=10/READ K PASS"
+check_found "$DUMP" "Q5 seek_end-/read PASS" "Q5 SEEK_END-4=28/READ ] PASS"
+check_found "$DUMP" "Q6 seek_end/eof PASS" "Q6 SEEK_END=32/EOF      PASS"
+check_found "$DUMP" "Q7 close+unlink PASS" "Q7 CLOSE+UNLINK         PASS"
+check_not_found "$DUMP" "no Section Q check reports FAIL" "FAIL"
+
+echo ""
 echo "Final screen"
-DUMP=$(run_capture "$TK34" 56000000 done)
+DUMP=$(run_capture "$TK35" 58000000 done)
 check_found "$DUMP" "library test complete + halted" "LIBRARY TEST COMPLETE. HALTED."
 
 echo ""
