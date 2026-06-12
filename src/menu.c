@@ -263,8 +263,11 @@ void menu_placebar(uint8_t y)
     for (uint8_t i = 0; i < MENUBAR_MAXOPTIONS; i++)
     {
         uint8_t len = (uint8_t)strlen(menubar.titles[i]);
-        if (xcoord + len + 1 > 39)
-            xcoord = 39 - len - 1;
+        // Keep room for the trailing un-highlight writes in menu_main()
+        // (row[xi+1+len] and row[xi+2+len]): require xi <= 37-len so
+        // row[xi+2+len] <= row[39], the last byte of the 40-byte row.
+        if (xcoord + len + 2 > 39)
+            xcoord = 37 - len;
         menubar.xstart[i] = xcoord;
         menu_screen_puts(xcoord + 1, y, menubar.titles[i]);
         xcoord += (uint8_t)(len + 2);

@@ -233,18 +233,27 @@ static int16_t write_xstack(const void *buf, uint16_t count, int16_t fildes)
 }
 
 // Read count bytes from an open file into XRAM at xram_addr.
+//
+// xram_addr and count are passed via XSTACK (buf pushed first, then count
+// — MIA_OP_READ_XRAM pops count first, then xram_addr), matching v1's
+// read_xram() (libsrc/read_xram.c). MIA.addr0/.step0/.rw0 are a *different*
+// direct register DMA window (used by xram_memcpy_*()/xram_peek/poke) and
+// are not consulted by this op — writing MIA.addr0 here left only 2 bytes
+// on XSTACK, one short of the 4 MIA_OP_READ_XRAM expects, so the firmware
+// returned EINVAL on every call.
 static int16_t read_xram(uint16_t xram_addr, uint16_t count, int16_t fildes)
 {
-    MIA.addr0 = xram_addr;
+    mia_push_int(xram_addr);
     mia_push_int(count);
     mia_set_ax((uint16_t)fildes);
     return mia_call_int_errno(MIA_OP_READ_XRAM);
 }
 
-// Write count bytes from XRAM at xram_addr to an open file.
+// Write count bytes from XRAM at xram_addr to an open file. See read_xram()
+// for why xram_addr/count are pushed via XSTACK rather than MIA.addr1.
 static int16_t write_xram(uint16_t xram_addr, uint16_t count, int16_t fildes)
 {
-    MIA.addr1 = xram_addr;
+    mia_push_int(xram_addr);
     mia_push_int(count);
     mia_set_ax((uint16_t)fildes);
     return mia_call_int_errno(MIA_OP_WRITE_XRAM);
@@ -314,6 +323,7 @@ void get_locicfg(void)
 
     // Walk root dir to enumerate USB MSC devices (entries "N.MSC.*")
     dir = loci_opendir("");
+    if (!dir) return;
     while (1)
     {
         fil = loci_readdir(dir);
@@ -543,6 +553,7 @@ int16_t file_copy(const char *dst, const char *src)
 {
     int16_t fd_src, fd_dst;
     int16_t len;
+    int16_t result = 0;
 
     fd_src = loci_open(src, O_RDONLY | O_EXCL);
     if (fd_src < 0) return fd_src;
@@ -552,12 +563,17 @@ int16_t file_copy(const char *dst, const char *src)
 
     do {
         len = read_xram(COPYBUF_XRAM_ADDR, COPYBUF_XRAM_SIZE, fd_src);
-        if (len > 0) write_xram(COPYBUF_XRAM_ADDR, (uint16_t)len, fd_dst);
+        if (len < 0) { result = len; break; }
+        if (len > 0)
+        {
+            int16_t wr = write_xram(COPYBUF_XRAM_ADDR, (uint16_t)len, fd_dst);
+            if (wr < 0) { result = wr; break; }
+        }
     } while (len == (int16_t)COPYBUF_XRAM_SIZE);
 
     loci_close(fd_src);
     loci_close(fd_dst);
-    return 0;
+    return result;
 }
 
 // Animated progress-bar characters, cycled every read/write block.
@@ -574,6 +590,7 @@ int16_t file_copy_progress(const char *dst, const char *src,
     uint8_t *row = (uint8_t *)((uint16_t)TEXTVRAM + (uint16_t)progy * 40U);
     int16_t  fd_src, fd_dst;
     int16_t  len;
+    int16_t  result = 0;
     uint8_t  cnt = 0;
     uint8_t  x;
 
@@ -600,7 +617,12 @@ int16_t file_copy_progress(const char *dst, const char *src,
         }
 
         len = read_xram(COPYBUF_XRAM_ADDR, COPYBUF_XRAM_SIZE, fd_src);
-        if (len > 0) write_xram(COPYBUF_XRAM_ADDR, (uint16_t)len, fd_dst);
+        if (len < 0) { result = len; break; }
+        if (len > 0)
+        {
+            int16_t wr = write_xram(COPYBUF_XRAM_ADDR, (uint16_t)len, fd_dst);
+            if (wr < 0) { result = wr; break; }
+        }
     } while (len == (int16_t)COPYBUF_XRAM_SIZE);
 
     loci_close(fd_src);
@@ -608,7 +630,7 @@ int16_t file_copy_progress(const char *dst, const char *src,
 
     for (x = 0; x < progl; x++) row[progx + x] = 0x20;
 
-    return 0;
+    return result;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

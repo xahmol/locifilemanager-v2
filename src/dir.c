@@ -177,6 +177,17 @@ static void dir_progress_step(uint8_t dirnr, uint8_t *count)
 }
 
 // -------------------------------------------------------------------------
+// Path helpers
+// -------------------------------------------------------------------------
+
+// Build "dirpath + name" into dest (e.g. a directory path plus an entry name).
+void dir_build_path(char *dest, uint16_t destsize, const char *dirpath, const char *name)
+{
+    strncpy(dest, dirpath, destsize);
+    strncat(dest, name, destsize - strlen(dest) - 1);
+}
+
+// -------------------------------------------------------------------------
 // Element storage
 // -------------------------------------------------------------------------
 
@@ -194,6 +205,14 @@ void dir_save_element(uint16_t address)
     xram_memcpy_to(workaddress, &presentdirelement.meta, sizeof(presentdirelement.meta));
     workaddress += sizeof(presentdirelement.meta);
     xram_memcpy_to(workaddress, presentdirelement.name, presentdirelement.meta.length);
+}
+
+// Refresh `present` and presentdirelement from the active pane's current element
+void dir_refresh_present(void)
+{
+    present = presentdir[activepane].present;
+    if (present)
+        dir_get_element(present);
 }
 
 // -------------------------------------------------------------------------
@@ -222,6 +241,7 @@ void dir_read(uint8_t dirnr, uint8_t filterval)
     presentdir[dirnr].lastprint = 0;
     presentdir[dirnr].position = 0;
     presentdir[dirnr].present = 0;
+    selection[dirnr] = 0;
 
     dir = loci_opendir(presentdir[dirnr].path);
 
@@ -303,12 +323,15 @@ void dir_read(uint8_t dirnr, uint8_t filterval)
 
         if (presenttype)
         {
-            // Memory-full check, preserved verbatim from v1: both sides include
-            // presentdir[dirnr].address so this is effectively a no-op (always
-            // false for any realistic datalength). See dir.h note.
-            if (presentdir[dirnr].address + datalength + sizeof(presentdirelement.meta) > presentdir[dirnr].address + DIRSIZE - 1)
+            // Memory-full check: stop adding entries once the per-pane
+            // XRAM region (DIR1BASE/DIR2BASE, each DIRSIZE bytes) would be
+            // exceeded. Compare against the region's fixed end address, not
+            // presentdir[dirnr].address itself (a prior version of this
+            // check included presentdir[dirnr].address on both sides,
+            // making it a permanent no-op).
+            if (presentdir[dirnr].address + datalength + sizeof(presentdirelement.meta) > (dirnr ? DIR2BASE : DIR1BASE) + DIRSIZE - 1)
             {
-                return;
+                break;
             }
 
             // Is this the first entry?
@@ -440,6 +463,7 @@ void dir_tape_parse(uint8_t dirnr)
     presentdir[dirnr].lastprint = 0;
     presentdir[dirnr].position = 0;
     presentdir[dirnr].present = 0;
+    selection[dirnr] = 0;
 
     // Rewind tape
     TAP.cmd = TAP_CMD_REW;
@@ -485,11 +509,14 @@ void dir_tape_parse(uint8_t dirnr)
         counter += (int32_t)sizeof(LociTapHdr) + 4 + size;
         tap_seek(counter);
 
-        // Memory-full check, preserved verbatim from v1 — see dir_read note.
-        if (presentdir[dirnr].address + datalength + sizeof(presentdirelement.meta) > presentdir[dirnr].address + DIRSIZE - 1)
+        // Memory-full check: stop adding entries once the per-pane XRAM
+        // region (DIR1BASE/DIR2BASE, each DIRSIZE bytes) would be exceeded.
+        // See the analogous check in dir_read() for why the comparison is
+        // against the region's fixed end address, not presentdir[dirnr].address.
+        if (presentdir[dirnr].address + datalength + sizeof(presentdirelement.meta) > (dirnr ? DIR2BASE : DIR1BASE) + DIRSIZE - 1)
         {
             TAP.cmd = TAP_CMD_REW;
-            return;
+            break;
         }
 
         // Is this the first entry?
@@ -818,7 +845,7 @@ void dir_go_up(void)
         if (!presentdir[activepane].position)
         {
             presentdir[activepane].position = PANE_HEIGHT - 1;
-            for (count = 0; count < 9; count++)
+            for (count = 0; count < PANE_HEIGHT - 1; count++)
             {
                 if (!presentdirelement.meta.prev)
                 {
@@ -1139,8 +1166,7 @@ void dir_newdir(void)
         // Input new name and check if not cancelled or empty string
         if (cwin_textinput(&popup, 0, 4, 35, input, sizeof(input) - 1, VINPUT_ALL) > 0)
         {
-            strncpy(pathbuffer, presentdir[activepane].path, sizeof(pathbuffer));
-            strncat(pathbuffer, input, sizeof(pathbuffer) - strlen(pathbuffer) - 1);
+            dir_build_path(pathbuffer, sizeof(pathbuffer), presentdir[activepane].path, input);
 
             if (loci_mkdir(pathbuffer) < 0)
             {
@@ -1148,13 +1174,24 @@ void dir_newdir(void)
             }
             else
             {
-                // Wait for dir create to finish
-                while ((dir = loci_opendir(pathbuffer)) == 0)
-                {
-                }
-                loci_closedir(dir);
+                // Wait for dir create to finish. Bounded: loci_opendir()
+                // returns 0 on ANY failure (not just "not yet visible"),
+                // so an unbounded retry here could hang forever with no
+                // escape on a firmware edge case.
+                uint16_t tries;
+                dir = nullptr;
+                for (tries = 0; tries < 10000 && !dir; tries++)
+                    dir = loci_opendir(pathbuffer);
 
-                dir_draw(activepane, 1);
+                if (!dir)
+                {
+                    menu_fileerrormessage();
+                }
+                else
+                {
+                    loci_closedir(dir);
+                    dir_draw(activepane, 1);
+                }
             }
         }
         menu_popup_close();
@@ -1165,8 +1202,7 @@ void dir_deletedir(void)
 {
     if (presentdir[activepane].firstelement && !insidetape[activepane] && presentdirelement.meta.type == 1)
     {
-        strncpy(pathbuffer, presentdir[activepane].path, sizeof(pathbuffer));
-        strncat(pathbuffer, presentdirelement.name, sizeof(pathbuffer) - strlen(pathbuffer) - 1);
+        dir_build_path(pathbuffer, sizeof(pathbuffer), presentdir[activepane].path, presentdirelement.name);
 
         // Check if dir is empty (skip for internal storage, drive 0:
         // its filesystem returns no entries here, so rely on unlink's

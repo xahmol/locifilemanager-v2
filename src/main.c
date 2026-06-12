@@ -164,9 +164,7 @@ static void mainmenuloop(void)
 
     do
     {
-        present = presentdir[activepane].present;
-        if (present)
-            dir_get_element(present);
+        dir_refresh_present();
 
         choice = menu_main();
 
@@ -385,9 +383,7 @@ int main(void)
     // Main loop
     for (;;)
     {
-        present = presentdir[activepane].present;
-        if (present)
-            dir_get_element(present);
+        dir_refresh_present();
 
         switch (fm_getkey())
         {
@@ -400,8 +396,7 @@ int main(void)
             // Enter: Enter directory or perform selected action on file
             if (presentdir[activepane].firstelement && presentdirelement.meta.type == 1)
             {
-                strncpy(pathbuffer, presentdir[activepane].path, sizeof(pathbuffer));
-                strncat(pathbuffer, presentdirelement.name, sizeof(pathbuffer) - strlen(pathbuffer) - 1);
+                dir_build_path(pathbuffer, sizeof(pathbuffer), presentdir[activepane].path, presentdirelement.name);
                 strncpy(presentdir[activepane].path, pathbuffer, sizeof(presentdir[activepane].path));
                 dir_draw(activepane, 1);
             }

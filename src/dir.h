@@ -91,8 +91,10 @@ extern char pathbuffer2[256];
 // Function prototypes
 // -------------------------------------------------------------------------
 
+void dir_build_path(char *dest, uint16_t destsize, const char *dirpath, const char *name);
 void dir_get_element(uint16_t address);
 void dir_save_element(uint16_t address);
+void dir_refresh_present(void);
 void dir_read(uint8_t dirnr, uint8_t filterval);
 void dir_tape_parse(uint8_t dirnr);
 void dir_print_id_and_path(uint8_t dirnr);

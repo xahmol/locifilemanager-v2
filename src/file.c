@@ -71,8 +71,7 @@ void file_copy_move_selected(uint8_t move)
                 }
 
                 // Derive full target path
-                strncpy(pathbuffer, presentdir[target].path, sizeof(pathbuffer));
-                strncat(pathbuffer, presentdirelement.name, sizeof(pathbuffer) - strlen(pathbuffer) - 1);
+                dir_build_path(pathbuffer, sizeof(pathbuffer), presentdir[target].path, presentdirelement.name);
 
                 // Check if file exists
                 if (file_exists(pathbuffer))
@@ -92,8 +91,7 @@ void file_copy_move_selected(uint8_t move)
                 }
 
                 // Derive full source path
-                strncpy(pathbuffer2, presentdir[activepane].path, sizeof(pathbuffer2));
-                strncat(pathbuffer2, presentdirelement.name, sizeof(pathbuffer2) - strlen(pathbuffer2) - 1);
+                dir_build_path(pathbuffer2, sizeof(pathbuffer2), presentdir[activepane].path, presentdirelement.name);
 
                 // Copy file with progress bar on row 14, columns 2..33
                 if (file_copy_progress(pathbuffer, pathbuffer2, 2, 14, 32) != 0)
@@ -188,8 +186,7 @@ void file_delete(void)
                 }
 
                 // Derive full target path
-                strncpy(pathbuffer, presentdir[activepane].path, sizeof(pathbuffer));
-                strncat(pathbuffer, presentdirelement.name, sizeof(pathbuffer) - strlen(pathbuffer) - 1);
+                dir_build_path(pathbuffer, sizeof(pathbuffer), presentdir[activepane].path, presentdirelement.name);
 
                 if (loci_unlink(pathbuffer) < 0)
                 {
@@ -226,6 +223,7 @@ void file_rename(void)
 {
     OricCharWin popup;
     char input[64];
+    char origname[64];
 
     if (presentdir[activepane].firstelement && !insidetape[activepane])
     {
@@ -241,9 +239,12 @@ void file_rename(void)
         if (presentdirelement.meta.type == 1)
             input[strlen(input) - 1] = 0;
 
+        // Snapshot of the pre-edit name (trailing / already stripped for
+        // dirs, same as input) to compare against after editing.
+        strncpy(origname, input, sizeof(origname));
+
         // Set old name full path
-        strncpy(pathbuffer, presentdir[activepane].path, sizeof(pathbuffer));
-        strncat(pathbuffer, presentdirelement.name, sizeof(pathbuffer) - strlen(pathbuffer) - 1);
+        dir_build_path(pathbuffer, sizeof(pathbuffer), presentdir[activepane].path, presentdirelement.name);
 
         cwin_putat_string(&popup, 0, 3, MSG_FILE_RENAME_PROMPT);
 
@@ -251,11 +252,10 @@ void file_rename(void)
         if (cwin_textinput(&popup, 0, 4, 35, input, sizeof(input) - 1, VINPUT_ALL) > 0)
         {
             // Check if name is actually altered
-            if (strcmp(input, presentdirelement.name))
+            if (strcmp(input, origname))
             {
                 // Set new name full path
-                strncpy(pathbuffer2, presentdir[activepane].path, sizeof(pathbuffer2));
-                strncat(pathbuffer2, input, sizeof(pathbuffer2) - strlen(pathbuffer2) - 1);
+                dir_build_path(pathbuffer2, sizeof(pathbuffer2), presentdir[activepane].path, input);
 
                 if (loci_rename(pathbuffer, pathbuffer2) < 0)
                 {
