@@ -194,7 +194,8 @@ CYCLES   ?= 8000000
 # =========================================================================
 
 .PHONY: all all-langs clean run libdemo libdemo-run docs zip check-usb usb \
-        check-phosphoric sandbox-reset test test-quick test-capture
+        check-phosphoric sandbox-reset test test-quick test-menus test-fileops \
+        test-libdemo test-capture
 
 all: build/$(MAIN)$(LANGSUFFIX).tap
 
@@ -324,7 +325,13 @@ usb: check-usb all-langs
 # Phosphoric automated testing
 # -------------------------------------------------------------------------
 # make test-quick   -- boot smoke test (LOCI detection + main interface)
-# make test         -- full automated suite (currently == test-quick)
+# make test-menus   -- pulldown menu regression test (5 menus, open + close)
+# make test-fileops -- file operation regression test (mkdir/rename/delete/
+#                      copy/move), verified via tests/sandbox host-fs state
+# make test-libdemo -- libdemo boot smoke test (build status checks, LOCI
+#                      detection, overlay RAM push/pop)
+# make test         -- full automated suite (test-quick + test-menus +
+#                      test-fileops + test-libdemo)
 # make test-capture CYCLES=N TYPEKEYS='...'
 #                   -- calibration helper: fast-loads locifm.tap (-t ... -f)
 #                      under Atmos BASIC 1.1 with --loci-flash tests/sandbox
@@ -342,13 +349,14 @@ check-phosphoric:
 	@test -f "$(ATMOSROM)" || \
 	    (echo "ERROR: Atmos ROM not found at $(ATMOSROM)" && false)
 
-# Reset the LOCI sandbox from checked-in fixtures + freshly built tap, so
+# Reset the LOCI sandbox from checked-in fixtures + freshly built taps, so
 # every test run (including file-operation tests) starts from a known state.
-sandbox-reset: build/$(MAIN)$(LANGSUFFIX).tap
+sandbox-reset: build/$(MAIN)$(LANGSUFFIX).tap build/$(DEMO)$(LANGSUFFIX).tap
 	$(RMDIR) tests/sandbox 2>$(NULLDEV) ; true
 	$(MKDIR) tests/sandbox 2>$(NULLDEV) ; true
 	cp -r tests/fixtures/. tests/sandbox/
 	cp build/$(MAIN)$(LANGSUFFIX).tap tests/sandbox/
+	cp build/$(DEMO)$(LANGSUFFIX).tap tests/sandbox/
 
 test-capture: check-phosphoric sandbox-reset
 	$(MKDIR) tests/out 2>$(NULLDEV) ; true
@@ -367,7 +375,35 @@ test-quick: check-phosphoric sandbox-reset
 	    TAPFILE=$(MAIN)$(LANGSUFFIX).tap \
 	    bash tests/scripts/test_boot.sh
 
-test: test-quick
+test-menus: check-phosphoric sandbox-reset
+	$(MKDIR) tests/out 2>$(NULLDEV) ; true
+	PHOS=$(PHOS) ATMOSROM=$(ATMOSROM) SANDBOX=tests/sandbox OUT=tests/out \
+	    TAPFILE=$(MAIN)$(LANGSUFFIX).tap \
+	    bash tests/scripts/test_menus.sh
+
+test-fileops: check-phosphoric sandbox-reset
+	$(MKDIR) tests/out 2>$(NULLDEV) ; true
+	PHOS=$(PHOS) ATMOSROM=$(ATMOSROM) SANDBOX=tests/sandbox OUT=tests/out \
+	    TAPFILE=$(MAIN)$(LANGSUFFIX).tap \
+	    bash tests/scripts/test_fileops.sh
+
+test-libdemo: check-phosphoric sandbox-reset
+	$(MKDIR) tests/out 2>$(NULLDEV) ; true
+	PHOS=$(PHOS) ATMOSROM=$(ATMOSROM) SANDBOX=tests/sandbox OUT=tests/out \
+	    TAPFILE=$(DEMO)$(LANGSUFFIX).tap \
+	    bash tests/scripts/test_libdemo.sh
+
+# test_fileops.sh mutates tests/sandbox/ (resetting it before each sub-test),
+# unlike test_boot.sh/test_menus.sh/test_libdemo.sh which are read-only -- so
+# each sub-target gets its own check-phosphoric + sandbox-reset via $(MAKE)
+# rather than sharing one sandbox-reset.
+test:
+	@status=0; \
+	$(MAKE) test-quick   || status=1; \
+	$(MAKE) test-menus   || status=1; \
+	$(MAKE) test-fileops || status=1; \
+	$(MAKE) test-libdemo || status=1; \
+	exit $$status
 
 # -------------------------------------------------------------------------
 # Clean

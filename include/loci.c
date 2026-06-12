@@ -412,11 +412,12 @@ int16_t loci_unlink(const char *path)
 
 int16_t loci_rename(const char *oldpath, const char *newpath)
 {
-    // Push new path, then separator, then old path
-    // MIA firmware reverses each segment back to forward order
-    push_path(newpath);
-    mia_push_char('/');
+    // Push old path, then a NUL separator, then new path (each reversed).
+    // MIA firmware reverses each segment back to forward order on dequeue.
+    // Matches sysrename.c in sodiumlb/loci-rom (libsrc reference client).
     push_path(oldpath);
+    mia_push_char(0);
+    push_path(newpath);
     return mia_call_int_errno(MIA_OP_RENAME);
 }
 

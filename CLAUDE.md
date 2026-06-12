@@ -38,6 +38,33 @@ Compiler flags: `-n -tf=bin -rt=include/oric_crt.c -i=include -O2 -dNOFLOAT`
 
 Emulator: `/home/xahmol/oricutron/oricutron -ma --serial none --vsynchack off --turbotape on`
 
+## Testing
+
+Automated headless testing via the [Phosphoric](https://github.com/xahmol/Phosphoric)
+emulator's `--loci-flash` sandbox (standing in for the LOCI's USB storage) and
+`--type-keys`/`--dump-ram-at` auto-typer/screen-capture.
+
+```
+make test          # full suite: test-quick + test-menus + test-fileops + test-libdemo
+make test-quick    # boot smoke test (LOCI detection + main interface)
+make test-menus    # pulldown menu regression (5 menus, open + close)
+make test-fileops  # file ops regression (mkdir/rename/delete/copy/move) via
+                    # tests/sandbox host-fs state
+make test-libdemo  # full libdemo walkthrough: title/status screen, textinput
+                    # + key-echo, every lettered section A-P, and the final
+                    # "LIBRARY TEST COMPLETE. HALTED." screen
+make test-capture CYCLES=N TYPEKEYS='...'
+                    # calibration helper for writing new test scripts
+```
+
+Each `make test-*` target runs `sandbox-reset` first (copies `tests/fixtures/`
++ freshly built `.tap`s into `tests/sandbox/`), then runs the matching
+`tests/scripts/test_*.sh`. `tests/scripts/oric_screen.py` decodes the 40x28
+`$BB80` text screen from a `--dump-ram-at` RAM dump for `--find`/`--row`
+assertions. `test_fileops.sh` mutates `tests/sandbox/`, so `test` runs each
+sub-target via a separate `$(MAKE)` invocation (own sandbox-reset) rather than
+sharing one.
+
 ## Source Layout
 
 ```
