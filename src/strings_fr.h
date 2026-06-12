@@ -26,36 +26,36 @@
 #define MSG_MENU_APP0           "Confirm.: 1x"
 #define MSG_MENU_APP1           "Retour:  Select"
 #define MSG_MENU_APP2           "[F]iltrer: Aucun"
-#define MSG_MENU_APP3           "[o] Tri:  Non"
+#define MSG_MENU_APP3           "[O] Tri:  Non"
 #define MSG_MENU_APP4           "[ESC] Quitter"
 
 // Pulldown 1 — File
 #define MSG_MENU_FILE0          "[S]el. basculer"
-#define MSG_MENU_FILE1          "Sel. [a] Tout"
-#define MSG_MENU_FILE2          "Sel. Aucu[n]"
+#define MSG_MENU_FILE1          "Sel. [A] Tout"
+#define MSG_MENU_FILE2          "Sel. Aucu[N]"
 #define MSG_MENU_FILE3          "[I]nverser sel."
 #define MSG_MENU_FILE4          "[DEL]ete"
 #define MSG_MENU_FILE5          "[R]enommer"
 #define MSG_MENU_FILE6          "[C]opier"
-#define MSG_MENU_FILE7          "[v] Deplacer"
-#define MSG_MENU_FILE8          "[w] Lire bande"
+#define MSG_MENU_FILE7          "[V] Deplacer"
+#define MSG_MENU_FILE8          "[W] Lire bande"
 
 // Pulldown 2 — Dir
 #define MSG_MENU_DIR0           "[\\] Racine"
 #define MSG_MENU_DIR1           "[<] Retour"
 #define MSG_MENU_DIR2           "Page suivante[D]"
 #define MSG_MENU_DIR3           "[P]age prec."
-#define MSG_MENU_DIR4           "[t] Premier"
-#define MSG_MENU_DIR5           "[b] Dernier"
-#define MSG_MENU_DIR6           "Nouv. r[e]p."
+#define MSG_MENU_DIR4           "[T] Premier"
+#define MSG_MENU_DIR5           "[B] Dernier"
+#define MSG_MENU_DIR6           "Nouv. r[E]p."
 
 // Pulldown 3 — Mounts (item 5 overwritten at runtime)
 #define MSG_MENU_MNT0           "[/] Autre pan."
-#define MSG_MENU_MNT1           "[.] Suiv. unité"
-#define MSG_MENU_MNT2           "[,] Prec. unité"
+#define MSG_MENU_MNT1           "[.] Suiv. unite"
+#define MSG_MENU_MNT2           "[,] Prec. unite"
 #define MSG_MENU_MNT3           "[M]onter"
-#define MSG_MENU_MNT4           "[u] Demonter"
-#define MSG_MENU_MNT5           "[g] Cible: A"
+#define MSG_MENU_MNT4           "[U] Demonter"
+#define MSG_MENU_MNT5           "[G] Cible: A"
 #define MSG_MENU_MNT6           "Voir montages"
 
 // Pulldown 4 — Info
@@ -97,8 +97,8 @@
 #define MSG_MENU_APP_CONFIRM_FMT    "Confirm.: %s"
 #define MSG_MENU_APP_RETURN_FMT     "Retour: %s"
 #define MSG_MENU_APP_FILTER_FMT     "[F]iltre: %s"
-#define MSG_MENU_APP_SORT_FMT       "[o] Tri: %s"
-#define MSG_MENU_MNT_TARGET_FMT     "[g] Cible: %s"
+#define MSG_MENU_APP_SORT_FMT       "[O] Tri: %s"
+#define MSG_MENU_MNT_TARGET_FMT     "[G] Cible: %s"
 
 // Value strings for dynamic entries (padded so total fits in 16 chars)
 #define MSG_MENU_VAL_ONCE       "1x"
