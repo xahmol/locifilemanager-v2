@@ -5,11 +5,12 @@
 //
 // Adapted: stdint types; fm_getkey() (input.h) replaces v1's getkey(ijk_present)
 // — IJK joystick decoding happens inside fm_getkey(). No `done` flag: boot()
-// either reboots via mia_call_int_errno(MIA_OP_BOOT) (never returns) or returns
+// either reboots via mia_call_boot(MIA_OP_BOOT) (never returns) or returns
 // on failure, in which case a popup is shown and the for(;;) loop continues.
-// VIA.ier is left untouched in boot() — CPU IRQs are permanently masked at
-// startup with no handler installed (see oric_crt.c); v1's VIA.ier
-// disable/enable around the boot call is therefore a no-op in v2.
+// mia_call_boot() clears VIA.ifr and disables VIA.ier right before the boot
+// jump (see its comment in loci.c) — v2 runs permanently under SEI with no
+// IRQ handler, so a stale unacknowledged Timer 1 IFR flag could otherwise
+// fire immediately when the booted ROM's cold-start executes CLI.
 // help()/versioninfo() use menu_popup_open/menu_popup_close + OricCharWin
 // instead of v1's windowsave/windowrestore + cputsxy/cprintf; the help table
 // uses fixed-column cwin_putat_string calls because _cwin_vformat does not
@@ -148,10 +149,7 @@ static void boot(void)
     if (!mount_filename[0][0] && mount_filename[4][0])
         ald_on = 1;
 
-    // Set boot options
-    mia_set_ax((uint16_t)(0x80 | (ald_on << 4) | (bit_on << 3) | (b11_on << 2) | (tap_on << 1) | fdc_on));
-
-    if (mia_call_int_errno(MIA_OP_BOOT) < 0)
+    if (mia_call_boot((uint8_t)(0x80 | (ald_on << 4) | (bit_on << 3) | (b11_on << 2) | (tap_on << 1) | fdc_on)) < 0)
         menu_messagepopup(MSG_MAIN_BOOT_FAILED);
 }
 

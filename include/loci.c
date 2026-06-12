@@ -65,14 +65,43 @@ void mia_set_ax(uint16_t v)
     MIA.areg = (uint8_t)v;
 }
 
+void mia_set_axsreg(uint32_t v)
+{
+    MIA.sreg = (uint16_t)(v >> 16);
+    mia_set_ax((uint16_t)v);
+}
+
+// MIA_OP_BOOT (with the FAST bit boot() always sets) ends its MIA.spin
+// sequence with api_return_boot()'s "CLV; BVC+0; JMP ($FFFC)" instead of
+// the normal "CLV; BVC+0; LDA #lo; LDX #hi; RTS" — that JMP to the 6502
+// reset vector IS the reboot. Polling MIA.busy and reading MIA.areg/xreg
+// as plain data (the previous implementation) never executes it, so boot
+// silently never reboots, and the $FC/$FF JMP-operand bytes misread as
+// AX=$FFFC (-4), a false error. JSR MIA.spin ($03B1) executes the
+// firmware-written sequence directly: it blocks via an in-place BVC loop
+// while busy, then either returns with the result in A/X (normal ops) or
+// jumps into the freshly booted ROM and never returns (MIA_OP_BOOT
+// success). Matches v1 mia.s _mia_call_int (sta MIA_OP; jmp MIA_SPIN).
+//
+// CLV before the JSR is required: $03B1 is the BVC opcode itself (the
+// CLV the firmware wrote sits at $03B0, one byte EARLIER) so JSR 0x03b1
+// enters past it, at the mercy of whatever the V flag happens to be from
+// preceding code. If V is set on entry, "BVC -2" (the busy pattern) does
+// NOT branch on the first check and falls straight through to the stale
+// LDA #areg/LDX #xreg/RTS bytes — returning immediately with garbage
+// before the firmware has even started, right as it begins overwriting
+// low RAM for the boot. At -O2 a preceding BIT-style flag test can leave
+// V set depending on the call site, so this can't be left to chance.
 int16_t mia_call_int(uint8_t op)
 {
-    uint8_t lo, hi;
-    MIA.op = op;
-    while (MIA.busy & MIA_BUSY_BIT) {}
-    lo = MIA.areg;
-    hi = MIA.xreg;
-    return (int16_t)((uint16_t)hi << 8 | (uint16_t)lo);
+    return __asm {
+        lda op
+        sta [0x03af]
+        clv
+        jsr 0x03b1
+        sta accu
+        stx accu + 1
+    };
 }
 
 int16_t mia_call_int_errno(uint8_t op)
@@ -82,18 +111,75 @@ int16_t mia_call_int_errno(uint8_t op)
     return r;
 }
 
+// MIA_OP_BOOT only. mia_call_int's "sta [0x03af]; jsr 0x03b1" — writing
+// the op and immediately JSR-ing into the busy/done dispatch at $03B1 —
+// hangs on real LOCI hardware for this op specifically (confirmed: same
+// settings via mia_call_int_errno(MIA_OP_BOOT) freeze with no further
+// code executing, while the sequence below completes and reboots
+// correctly for both ESC-exit ($80) and TAP-launch ($92) settings).
+// Splitting the wait from the jump avoids whatever the hazard is: poll
+// MIA.busy as plain data until the firmware finishes (success rewrites
+// $03B0-$03B7 to "CLV;BVC+0;JMP($FFFC)"; failure rewrites it to the
+// normal "CLV;BVC+0;LDA#lo;LDX#hi;RTS" released form), THEN jsr 0x03b1.
+// On success that JMP reboots the machine and this never returns; on
+// failure it returns the LDA/LDX result like mia_call_int.
+int16_t mia_call_boot(uint8_t settings)
+{
+    int16_t r;
+
+    mia_set_ax((uint16_t)settings);
+    MIA.op = MIA_OP_BOOT;
+
+    while (MIA.busy & MIA_BUSY_BIT) { }
+
+    // On success the jump below lands in the freshly-loaded ROM's cold-start
+    // (e.g. BASIC10 $F84A), which performs its own VIA init and eventually
+    // executes CLI. v2 runs permanently under SEI with no IRQ handler, so
+    // VIA.ifr can accumulate a stale, unacknowledged Timer 1 flag (set once,
+    // ~10ms after startup, and never cleared since nothing ever reads T1C-L
+    // or rewrites T1C-H). If the cold-start enables VIA.ier's T1 bit before
+    // it clears/reads T1C-L, that stale IFR bit fires an IRQ the instant it
+    // executes CLI -- before its own zero-page setup is complete -- hanging
+    // the machine. v1 avoided this by running with IRQs enabled throughout
+    // (IFR serviced every jiffy) and writing VIA.ier = 0x7F just before this
+    // same call. Here we both disable IER and clear IFR, leaving VIA in a
+    // clean, reset-like state for the booted ROM to initialise from.
+    VIA.ier = 0x7F;
+    VIA.ifr = 0x7F;
+
+    r = __asm {
+        jsr 0x03b1
+        sta accu
+        stx accu + 1
+    };
+
+    if (r < 0) { loci_errno = MIA.errno_lo; return -1; }
+    return r;
+}
+
+// JSR-based, like mia_call_int (see its comment) — executes the firmware's
+// busy/done routine at MIA.spin rather than reading MIA.areg/xreg/sreg as
+// plain data. Matches v1 mia.s _mia_call_long (sta MIA_OP; jsr MIA_SPIN;
+// ldy MIA_SREG; ...). None of mia_call_long's ops end in a JMP-style
+// return, so A/X come back as the normal LDA #lo / LDX #hi result.
+//
+// CLV before the JSR — see mia_call_int's comment: $03B1 is the BVC
+// opcode itself, one byte past the firmware's own CLV at $03B0, so the
+// busy-loop's correctness depends on V being clear on entry.
 int32_t mia_call_long(uint8_t op)
 {
-    uint8_t  b0, b1, b2, b3;
-    uint16_t sr;
-    MIA.op = op;
-    while (MIA.busy & MIA_BUSY_BIT) {}
-    b0 = MIA.areg;
-    b1 = MIA.xreg;
-    sr = MIA.sreg;
-    b2 = (uint8_t)sr;
-    b3 = (uint8_t)(sr >> 8);
-    return (int32_t)(((uint32_t)b3 << 24) | ((uint32_t)b2 << 16) | ((uint32_t)b1 << 8) | (uint32_t)b0);
+    return __asm {
+        lda op
+        sta [0x03af]
+        clv
+        jsr 0x03b1
+        sta accu
+        stx accu + 1
+        lda [0x03b8]
+        sta accu + 2
+        lda [0x03b9]
+        sta accu + 3
+    };
 }
 
 int32_t mia_call_long_errno(uint8_t op)
@@ -622,7 +708,9 @@ int16_t loci_umount(int16_t drive)
 
 int32_t tap_seek(int32_t pos)
 {
-    mia_push_long((uint32_t)pos);
+    // MIA_OP_TAP_SEEK reads its single argument from API_AXSREG (registers),
+    // not XSTACK — matches v1 tap.c tap_seek() (mia_set_axsreg).
+    mia_set_axsreg((uint32_t)pos);
     return mia_call_long_errno(MIA_OP_TAP_SEEK);
 }
 
@@ -631,10 +719,16 @@ int32_t tap_tell(void)
     return mia_call_long_errno(MIA_OP_TAP_TELL);
 }
 
+// MIA_OP_TAP_HDR pushes sizeof(LociTapHdr) header bytes onto XSTACK
+// (regardless of success/failure) — pop them into *hdr, matching v1
+// tap.c tap_read_header().
 int32_t tap_read_header(LociTapHdr *hdr)
 {
-    MIA.step0 = 1;
-    MIA.addr0 = (uint16_t)hdr;
-    return mia_call_long_errno(MIA_OP_TAP_HDR);
+    int32_t  pos = mia_call_long_errno(MIA_OP_TAP_HDR);
+    uint8_t *h   = (uint8_t *)hdr;
+    uint8_t  i;
+    for (i = 0; i < sizeof(LociTapHdr); i++)
+        h[i] = MIA.xstack;
+    return pos;
 }
 

@@ -232,9 +232,31 @@ extern LociCfg  locicfg;
 //   Pop int16:  low byte from XSTACK, then high byte → hi<<8|lo.
 //   Push int32: byte3(MSB) first, then byte2, byte1, byte0(LSB).
 //   Set areg/xreg:  MIA.xreg = high byte; MIA.areg = low byte.
-//   Call:       write opcode to MIA.op, spin until MIA.busy bit 7 clears.
+//   Call (mia_call_int/mia_call_long): write opcode to MIA.op, CLV, then
+//     JSR MIA.spin ($03B1) — must be EXECUTED, not polled. The firmware
+//     writes a tiny 6502 routine into $03B0-$03B9: while busy it is a
+//     "CLV;BVC -2" self-loop; once done it is "CLV;BVC+0;LDA #lo;LDX
+//     #hi;RTS" (result in A/X, mia_call_long also reads MIA.sreg for the
+//     upper 16 bits). CLV before the JSR is required because $03B1 is the
+//     BVC opcode itself (the firmware's own CLV sits one byte earlier, at
+//     $03B0) — the busy-loop's correctness depends on V being clear on
+//     entry.
+//   Call (mia_call_boot, MIA_OP_BOOT only): the "done" sequence is instead
+//     "CLV;BVC+0;JMP ($FFFC)" — a jump to the reset vector that never
+//     returns on success. Combining trigger+JSR like mia_call_int hangs on
+//     real LOCI hardware for this op, so mia_call_boot splits it: set
+//     MIA.op, poll MIA.busy as plain data until done, clear VIA.ifr/VIA.ier
+//     (a stale unacknowledged Timer 1 IFR flag would otherwise fire an IRQ
+//     the instant the booted ROM's cold-start enables IER and executes CLI
+//     — v2 runs permanently under SEI with no IRQ handler), then JSR
+//     MIA.spin to take the jump. On failure it returns the LDA/LDX result
+//     like mia_call_int.
 //   Result int16: MIA.xreg<<8 | MIA.areg
 //   Result int32: also reads MIA.sreg for upper 16 bits.
+//   Set areg/xreg/sreg (mia_set_axsreg): for ops whose single int32
+//     argument is passed in registers, not XSTACK (e.g. MIA_OP_TAP_SEEK
+//     reads API_AXSREG directly) — MIA.sreg = upper 16 bits, then
+//     mia_set_ax() for the lower 16 bits.
 //   Error:      result < 0 → loci_errno = MIA.errno_lo, return -1.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -248,10 +270,12 @@ int16_t  mia_pop_int(void);
 void     mia_push_long(uint32_t v);
 uint32_t mia_pop_long(void);
 void     mia_set_ax(uint16_t v);
+void     mia_set_axsreg(uint32_t v);
 int16_t  mia_call_int(uint8_t op);
 int16_t  mia_call_int_errno(uint8_t op);
 int32_t  mia_call_long(uint8_t op);
 int32_t  mia_call_long_errno(uint8_t op);
+int16_t  mia_call_boot(uint8_t settings);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Function prototypes
