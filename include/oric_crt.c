@@ -7,8 +7,13 @@
 //   $0000-$00FF  Zero page (Oscar64 internal registers)
 //   $0100-$01FF  6502 hardware stack
 //   $0200-$04FF  Oric ROM system variables (do not use)
-//   $0500-$B97F  Program code, data, BSS, heap (~46 KB)
-//   $B980-$BB7F  6502 software stack (512 bytes)
+//   $0500-$057F  Startup region (tape entry point -> oric_startup)
+//   $0580-$B2FF  Program code, data, BSS, heap (~43.4 KB)
+//   $B300-$B4FF  6502 software stack (512 bytes)
+//   $B500-$BBFF  Character set RAM (standard $B400-$B7FF, alternate $B800-$BBFF)
+//                — left untouched by code/data/stack so ALT-charset glyphs used
+//                  by the version splash are not corrupted by stack contents
+//                  (see ~/.claude/oric_atmos_reference.md, "user program area")
 //   $BB80-$FFFF  Screen RAM ($BB80) + ROM ($C000)
 //
 // The overlay RAM at $C000-$FFFF requires LOCI device; not mapped as a code region.
@@ -51,9 +56,9 @@ void StackStart, StackEnd, BSSStart, BSSEnd, CodeStart, CodeEnd, ZeroStart, Zero
 #pragma section(bss,       0x0000, BSSStart,   BSSEnd)
 #pragma section(zeropage,  0x0000, ZeroStart,  ZeroEnd)
 
-// Stack: 512 bytes just below screen RAM
+// Stack: 512 bytes, just below the standard/alternate character set RAM
 #pragma stacksize(0x0200)
-#pragma region(stack, 0xB980, 0xBB80, , , {stack})
+#pragma region(stack, 0xB300, 0xB500, , , {stack})
 
 // Startup region: Oscar64 requires a region named "startup" for the #pragma startup
 // function. Without it Oscar64 auto-creates one at $0800, conflicting with main.
@@ -61,7 +66,7 @@ void StackStart, StackEnd, BSSStart, BSSEnd, CodeStart, CodeEnd, ZeroStart, Zero
 #pragma region(startup, 0x0500, 0x0580, , , {})
 
 // Main program region: starts at $0580 (after startup region)
-#pragma region(main, 0x0580, 0xB980, , , {code, data, bss, heap})
+#pragma region(main, 0x0580, 0xB300, , , {code, data, bss, heap})
 
 // -------------------------------------------------------------------------
 // Startup

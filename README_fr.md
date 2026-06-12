@@ -518,7 +518,11 @@ Cette fonction est aussi accessible avec la touche **E**.
 
 *Version/crédits*
 
-Affiche les informations de version de l'application.
+Affiche deux écrans pleins successifs. Le premier montre le logo "I Dream in
+8 Bits" avec le nom de l'application, la version (horodatage de compilation
+`vMAJOR.MINOR.PATCH - AAAAMMJJ-HHMMSS`) et les crédits ; le second montre un
+code QR menant vers la page GitHub du projet. Appuyer sur une touche pour
+passer à l'écran suivant, puis à nouveau pour revenir à l'application.
 
 ![Info : Version](screenshots/LociFM-menu-info-version.png)
 

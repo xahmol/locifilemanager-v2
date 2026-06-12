@@ -439,7 +439,11 @@ This function can be reached also by pressing the **E** key.
 
 *Version/credits*
 
-Shows version information of the application.
+Shows two full-screen splashes. The first displays the "I Dream in 8 Bits"
+logo together with the application name, version (`vMAJOR.MINOR.PATCH -
+YYYYMMDD-HHMMSS` build timestamp) and credits; the second shows a QR code
+linking to the project's GitHub page. Press any key to advance to the next
+screen, and again to return to the application.
 
 ![Info: Version](screenshots/LociFM-menu-info-version.png)
 

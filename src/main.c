@@ -29,6 +29,7 @@
 #include "dir.h"
 #include "drive.h"
 #include "file.h"
+#include "splash_data.h"
 
 // Help text — key, description (see strings_en/fr.h MSG_HELP_TABLE)
 static const char * const helpinfo[22][2] = { MSG_HELP_TABLE };
@@ -78,28 +79,51 @@ static void select_filter(void)
 // -------------------------------------------------------------------------
 
 static void versioninfo(void)
-// Show version information and credits
+// Show version information and credits, then a QR code linking to the
+// project's GitHub page, as two full-screen splashes (black paper
+// background) with a keypress between and after.
 {
     OricCharWin win;
     char buf[40];
+    uint8_t x, y;
 
-    menu_popup_open(0, 5, 15);
-    cwin_init(&win, 2, 5, 38, 15, A_FWBLACK, A_BGWHITE);
+    menu_popup_open(0, 0, 28);   // save whole screen (overlay RAM)
 
-    cwin_putat_string(&win, 0, 1, MSG_VERSION_TITLE);
-    cwin_putat_string(&win, 0, 3, MSG_MENU_HEADER);
-    cwin_putat_string(&win, 0, 4, MSG_VERSION_AUTHOR);
+    // --- Splash 1: logo + version/credits -------------------------------
+    memcpy((uint8_t *)TEXTVRAM, idi8b_logo, sizeof(idi8b_logo));   // rows 0-12
 
-    sprintf(buf, MSG_VERSION_FMT, (uint16_t)VERSION_MAJOR, (uint16_t)VERSION_MINOR, (uint16_t)VERSION_PATCH, __DATE__, __TIME__);
-    cwin_putat_string(&win, 0, 6, buf);
+    cwin_init(&win, 2, 13, 38, 15, A_FWWHITE, A_BGBLACK);          // rows 13-27
+    cwin_clear(&win);                                              // black bg, incl. row 27
 
-    cwin_putat_string(&win, 0, 8, MSG_VERSION_SOURCE);
-    cwin_putat_string(&win, 0, 9, MSG_VERSION_URL);
-    cwin_putat_string(&win, 0, 11, MSG_VERSION_COPYRIGHT);
-    cwin_putat_string(&win, 0, 13, MSG_MAIN_PRESS_CONTINUE);
+    cwin_putat_string(&win, 0, 0,  MSG_VERSION_TITLE);
+    cwin_putat_string(&win, 0, 2,  MSG_MENU_HEADER);
+    cwin_putat_string(&win, 0, 3,  MSG_VERSION_AUTHOR);
+
+    sprintf(buf, MSG_VERSION_FMT,
+            (uint16_t)VERSION_MAJOR, (uint16_t)VERSION_MINOR, (uint16_t)VERSION_PATCH,
+            VERSION_TIMESTAMP);
+    cwin_putat_string(&win, 0, 5,  buf);
+
+    cwin_putat_string(&win, 0, 7,  MSG_VERSION_SOURCE);
+    cwin_putat_string(&win, 0, 8,  MSG_VERSION_URL);
+    cwin_putat_string(&win, 0, 10, MSG_VERSION_COPYRIGHT);
+    cwin_putat_string(&win, 0, 14, MSG_MAIN_PRESS_CONTINUE);
 
     cwin_getch();
-    menu_popup_close();
+
+    // --- Splash 2: QR code ------------------------------------------------
+    cwin_init(&win, 2, 0, 38, 28, A_FWWHITE, A_BGBLACK);
+    cwin_clear(&win);
+
+    cwin_putat_string(&win, 0, 0, MSG_VERSION_QR_TITLE);
+    for (y = 0; y < 25; y++)
+        for (x = 0; x < 25; x++)
+            cwin_putat_char(&win, 6 + x, 2 + y, qr_github[(uint16_t)y * 25 + x]);
+    cwin_putat_string(&win, 0, 27, MSG_MAIN_PRESS_CONTINUE);
+
+    cwin_getch();
+
+    menu_popup_close();   // restore whole screen
 }
 
 static void help(void)

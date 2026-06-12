@@ -170,10 +170,11 @@
 // Version/credits popup
 #define MSG_VERSION_TITLE       "Version information and credits"
 #define MSG_VERSION_AUTHOR      "Written 2025-2026 by Xander Mol"
-#define MSG_VERSION_FMT         "Version: v%u.%u.%u - %s %s"
+#define MSG_VERSION_FMT         "Version: v%u.%u.%u - %s"
 #define MSG_VERSION_SOURCE      "Source, docs and credits at:"
 #define MSG_VERSION_URL         "github.com/xahmol/locifilemanager"
 #define MSG_VERSION_COPYRIGHT   "(C) 2025-2026, IDreamtIn8bits.com"
+#define MSG_VERSION_QR_TITLE    "Scan QR code for source:"
 
 // Help screen
 #define MSG_HELP_TITLE1         "Keyboard shortcuts help information"

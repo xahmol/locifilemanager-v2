@@ -39,8 +39,8 @@ EMUL  = /home/xahmol/oricutron/oricutron
 VERSION_MAJOR     = 2
 VERSION_MINOR     = 0
 VERSION_PATCH     = 0
-VERSION_TIMESTAMP = $(shell date "+%Y%m%d-%H%M")
-VERSION           = v$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)-$(VERSION_TIMESTAMP)
+VERSION_TIMESTAMP := $(shell date "+%Y%m%d-%H%M%S")
+VERSION           := v$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)-$(VERSION_TIMESTAMP)
 
 # -------------------------------------------------------------------------
 # Localisation
@@ -68,7 +68,7 @@ PROGNAME  = LOCIFM
 DEMO      = libdemo
 DEMONAME  = LIBDEMO
 LOAD_ADDR = 0x0500
-ZIPNAME   = $(MAIN)-v$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)
+ZIPNAME   = $(MAIN)-$(VERSION)
 
 # -------------------------------------------------------------------------
 # Compiler flags
@@ -85,6 +85,7 @@ CFLAGS = \
   -dVERSION_MAJOR=$(VERSION_MAJOR) \
   -dVERSION_MINOR=$(VERSION_MINOR) \
   -dVERSION_PATCH=$(VERSION_PATCH) \
+  -dVERSION_TIMESTAMP=\"$(VERSION_TIMESTAMP)\" \
   $(LANGFLAG)
 
 # -------------------------------------------------------------------------
@@ -106,6 +107,7 @@ IJK_SRCS = \
 
 MAIN_SRCS = \
   src/main.c            \
+  src/splash_data.h     \
   include/oric_crt.c    \
   include/oric.h        \
   include/keyboard.c    \
@@ -250,10 +252,10 @@ libdemo-run: libdemo
 # -------------------------------------------------------------------------
 
 all-langs:
-	$(MAKE) LANG=EN
-	$(MAKE) LANG=FR
-	$(MAKE) libdemo LANG=EN
-	$(MAKE) libdemo LANG=FR
+	$(MAKE) LANG=EN         VERSION_TIMESTAMP=$(VERSION_TIMESTAMP)
+	$(MAKE) LANG=FR         VERSION_TIMESTAMP=$(VERSION_TIMESTAMP)
+	$(MAKE) libdemo LANG=EN VERSION_TIMESTAMP=$(VERSION_TIMESTAMP)
+	$(MAKE) libdemo LANG=FR VERSION_TIMESTAMP=$(VERSION_TIMESTAMP)
 
 # -------------------------------------------------------------------------
 # Documentation — generate PDF from Markdown (requires pandoc)
