@@ -539,7 +539,11 @@ Cette fonction est aussi accessible avec la touche **E**.
 *Propriétés*
 
 Affiche une fenêtre avec les détails du fichier ou répertoire présent :
-- Nom, type (DSK/TAP/ROM/LCE/DIR/inconnu) et chemin actif
+- Nom, type et chemin actif. Le type est affiché sous forme de description :
+  "Repertoire" pour les répertoires, ".DSK - Image disque", ".TAP - Image
+  bande", ".ROM - Image ROM" ou ".LCE - Executable LOCI" pour ces types de
+  fichiers, et l'extension propre du fichier (par ex. ".TXT") pour tout autre
+  fichier
 - Attributs : R (lecture seule) et S (système), affichés par un tiret (-) si absents
 - Taille en octets. Pour un répertoire, la taille est calculée récursivement
   sur tous les fichiers de son arborescence ; pendant le calcul, "Calcul en
