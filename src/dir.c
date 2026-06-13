@@ -1290,14 +1290,18 @@ void dir_newdir(void)
             }
             else
             {
-                // Wait for dir create to finish. Bounded: loci_opendir()
-                // returns 0 on ANY failure (not just "not yet visible"),
-                // so an unbounded retry here could hang forever with no
-                // escape on a firmware edge case.
-                uint16_t tries;
-                dir = nullptr;
-                for (tries = 0; tries < 10000 && !dir; tries++)
-                    dir = loci_opendir(pathbuffer);
+                // loci_mkdir() is synchronous (mia_call_int blocks until the
+                // firmware operation completes), so the new directory is
+                // immediately visible -- a single loci_opendir() suffices.
+                // A previous retry loop called loci_opendir() repeatedly on
+                // failure; on real LOCI hardware each failed opendir appears
+                // to consume a firmware directory-handle slot that is never
+                // released (loci_closedir() can't be called without a valid
+                // fd), so retrying exhausted the firmware's handle pool and
+                // surfaced as "error #5" (EMFILE) on later, unrelated file
+                // operations -- e.g. copying into a freshly-created
+                // multi-level subdirectory tree.
+                dir = loci_opendir(pathbuffer);
 
                 if (!dir)
                 {
