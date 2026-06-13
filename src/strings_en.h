@@ -172,7 +172,7 @@
 #define MSG_FILE_VAL_COPY       "Copy"
 #define MSG_FILE_VAL_MOVE       "Move"
 #define MSG_FILE_PROCESSING     "Processing file:"
-#define MSG_FILE_ESC_CANCEL     "Press ESC to cancel after next file."
+#define MSG_FILE_ESC_CANCEL     "Press ESC to cancel."
 #define MSG_FILE_PATH_TOO_LONG  "Path gets too long."
 #define MSG_FILE_COPY_CANCELLED "Copy cancelled."
 #define MSG_FILE_NOTHING_COPY   "Nothing to copy."
@@ -192,7 +192,6 @@
 #define MSG_MAIN_ENTER_PROMPT   "Action for enter"
 #define MSG_MAIN_FILTER_PROMPT  "Apply filter"
 #define MSG_MAIN_PRESS_CONTINUE "Press a key to continue"
-#define MSG_MAIN_TODO           "Not implemented yet."
 
 // Text file viewer
 #define MSG_VIEWER_PRESS_KEY    "SPACE: next page  ESC: exit"

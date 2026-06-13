@@ -50,10 +50,15 @@ Pour plus d'informations sur le périphérique LOCI lui-même, voir le
 Fonctionnalités :
 - Parcourir aussi bien le stockage interne du LOCI que tous les périphériques de stockage de masse USB connectés
 - Deux volets de navigation avec deux répertoires chargés indépendamment
-- Copier et déplacer des fichiers (pas des répertoires) entre les volets
-- Supprimer et renommer des fichiers et des répertoires
+- Copier et déplacer des fichiers et des répertoires (avec tout leur contenu) entre les volets
+- Supprimer et renommer des fichiers et des répertoires, y compris la suppression récursive de répertoires non vides
 - Créer des répertoires
 - Copier, déplacer et supprimer en fonction d'une sélection de plusieurs fichiers
+- Annuler une copie de fichier en cours avec ESC ; tout fichier de destination partiel est supprimé automatiquement
+- Filtrer la liste des répertoires par type de fichier, ou par un motif de nom de fichier avec caractères génériques
+- Afficher le contenu des fichiers texte dans une visionneuse plein écran, paginée et avec retour à la ligne automatique
+- Afficher les propriétés (type, attributs, taille) d'un fichier ou répertoire, y compris une taille totale calculée récursivement pour les répertoires
+- Les réglages de l'application (confirmation, action de RETURN, filtre de type, tri) sont mémorisés entre les redémarrages
 - Monter des images de disque, de bande et de ROM
 - À la sortie, démarrer en fonction des images montées (disque > bande > ROM)
 - Parcourir l'intérieur d'une image de bande pour sélectionner un fichier à monter/démarrer
@@ -211,6 +216,9 @@ Pour savoir comment utiliser votre périphérique LOCI, voir le
 |**W**|Démarrer la navigation (bro**w**se) à l'intérieur d'une image de bande à partir du fichier .TAP présent
 |**E**|Créer un nouveau (**e**) répertoire
 |**H**|Afficher l'écran d'aide (**h**elp) des commandes clavier
+|**K**|Afficher les propriétés (type, attributs, taille) du fichier ou répertoire présent
+|**L**|Définir ou effacer un fi**l**tre de nom de fichier (caractères génériques) pour les deux volets
+|**J**|Afficher le fichier texte présent dans une visionneuse plein écran avec retour à la ligne automatique
 
 ### Dans le menu principal et les menus déroulants
 
@@ -277,6 +285,12 @@ utiliser, classées par option du menu principal.
 ### App : Options de l'application
 
 ![Menu Application](screenshots/LociFM-menu-app.png)
+
+Les réglages ci-dessous (Confirm., Retour, Filtre, Tri) sont enregistrés dans
+`LOCIFM.CFG` sur le stockage interne du LOCI à chaque modification, et sont
+restaurés automatiquement au démarrage suivant de l'application. Si aucun
+fichier de configuration n'est trouvé (par exemple au premier démarrage), les
+valeurs par défaut décrites ci-dessous sont utilisées.
 
 *Confirm.*
 
@@ -377,11 +391,17 @@ Une fenêtre demande confirmation (selon le réglage Confirm. du menu App, une
 seule fois ou pour chaque fichier), après quoi la suppression a lieu. Appuyer
 sur une touche pour revenir.
 
-Cette fonction permet aussi de supprimer un répertoire, mais :
-- Un répertoire doit être vide, sinon un message d'erreur s'affiche. La
-  suppression récursive de répertoire n'est pas (encore) implémentée.
+Cette fonction permet aussi de supprimer un répertoire :
+- Si le répertoire est vide, il est supprimé directement après la confirmation
+  habituelle.
+- Si le répertoire n'est pas vide, une confirmation supplémentaire « Rep. non
+  vide. Tout effacer? » s'affiche. Confirmer supprime récursivement tout le
+  contenu du répertoire (fichiers et sous-répertoires) puis le répertoire
+  lui-même ; refuser laisse le répertoire intact.
 - Les répertoires ne peuvent pas être sélectionnés, leur suppression doit donc
   se faire un par un.
+- Si l'arborescence dépasse 8 niveaux de profondeur, le(s) niveau(x) le(s) plus
+  profond(s) peuvent ne pas être supprimés ; un message l'indique.
 
 Cette fonction est aussi accessible avec la touche **DEL**.
 
@@ -401,9 +421,11 @@ Cette fonction est aussi accessible avec la touche **R**.
 
 *Copier / Déplacer*
 
-Copie ou déplace le fichier présent. Ou, si une sélection de fichiers a été
-faite, tous les fichiers sélectionnés. Copier ou déplacer des répertoires,
-avec ou sans contenu, n'est pas (encore) implémenté.
+Copie ou déplace le fichier ou répertoire présent. Ou, si une sélection de
+fichiers et/ou répertoires a été faite, toutes les entrées sélectionnées. Les
+répertoires sont copiés ou déplacés récursivement, avec tous les fichiers et
+sous-répertoires qu'ils contiennent ; si le répertoire cible existe déjà, son
+contenu est fusionné.
 
 La copie ou le déplacement s'effectue depuis le répertoire du volet actif vers
 le répertoire du volet non actif. Vous ne pouvez pas copier ou déplacer vers
@@ -418,14 +440,17 @@ Confirm. du menu App, une seule fois ou pour chaque fichier).
 ![Fichier : Copier - confirmation d'écrasement](screenshots/LociFM-menu-file-copy-confirm.png)
 
 Sinon, une fenêtre affiche la progression de la copie ou du déplacement.
-Appuyer sur **ESC** permet d'annuler la copie après la fin de la copie du
-fichier en cours. L'annulation en cours de copie d'un fichier n'est pas
-(encore) implémentée.
+Appuyer sur **ESC** annule immédiatement, même en cours de copie d'un fichier ;
+tout fichier de destination partiellement écrit est supprimé automatiquement.
 
 ![Fichier : Copier](screenshots/LociFM-menu-file-copy.png)
 
 Cette fonction est aussi accessible avec la touche **C** pour copier ou **V**
 pour déplacer.
+
+Lors de la copie ou du déplacement d'une arborescence de plus de 8 niveaux de
+profondeur, le(s) niveau(x) le(s) plus profond(s) peuvent rester incomplets ;
+un message l'indique.
 
 *Parcourir une bande*
 
@@ -531,6 +556,46 @@ passer à l'écran suivant, puis à nouveau pour revenir à l'application.
 Affiche un écran d'aide pour les commandes clavier.
 
 ![Info : Aide](screenshots/LociFM-menu-info-help.png)
+
+### Outils : propriétés, filtre par nom et visionneuse de texte
+
+*Propriétés*
+
+Affiche une fenêtre avec les détails du fichier ou répertoire présent :
+- Nom, type (DSK/TAP/ROM/LCE/DIR/inconnu) et chemin actif
+- Attributs : R (lecture seule) et S (système), affichés par un tiret (-) si absents
+- Taille en octets. Pour un répertoire, la taille est calculée récursivement
+  sur tous les fichiers de son arborescence ; pendant le calcul, "Calcul en
+  cours..." s'affiche, et appuyer sur **ESC** annule le calcul, après quoi
+  "Annulé." s'affiche à la place d'une taille. Si l'arborescence dépasse 8
+  niveaux de profondeur, le total est affiché avec un "+" final pour indiquer
+  qu'il peut être incomplet.
+
+Appuyer sur une touche pour fermer la fenêtre.
+
+Cette fonction est aussi accessible avec la touche **K**.
+
+*Filtrer par nom*
+
+Ouvre une fenêtre pour saisir un motif avec caractères génériques (`*` et `?`,
+insensible à la casse) qui filtre la liste des répertoires des deux volets par
+nom de fichier. Les répertoires sont toujours affichés quel que soit le motif,
+afin que la navigation ne soit jamais bloquée.
+
+Saisir un motif vide pour effacer le filtre. Appuyer sur **RETURN** pour
+appliquer, **ESC** pour annuler sans modification. Contrairement aux réglages
+App, ce filtre n'est pas mémorisé entre les redémarrages.
+
+Cette fonction est aussi accessible avec la touche **L**.
+
+*Voir le texte*
+
+Ouvre le fichier présent dans une visionneuse de texte plein écran avec retour
+à la ligne automatique. Appuyer sur **ESPACE** (ou toute autre touche) pour
+passer à la page suivante, ou **ESC** pour revenir au navigateur de fichiers.
+La pagination se fait uniquement vers l'avant.
+
+Cette fonction est aussi accessible avec la touche **J**.
 
 ---
 

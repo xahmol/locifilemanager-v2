@@ -173,7 +173,7 @@
 #define MSG_FILE_VAL_COPY       "Copier"
 #define MSG_FILE_VAL_MOVE       "Deplacer"
 #define MSG_FILE_PROCESSING     "Traitement fichier:"
-#define MSG_FILE_ESC_CANCEL     "ESC pour annuler apres ce fich."
+#define MSG_FILE_ESC_CANCEL     "ESC pour annuler."
 #define MSG_FILE_PATH_TOO_LONG  "Chemin trop long."
 #define MSG_FILE_COPY_CANCELLED "Copie annulee."
 #define MSG_FILE_NOTHING_COPY   "Rien a copier."
@@ -193,7 +193,6 @@
 #define MSG_MAIN_ENTER_PROMPT   "Action pour Entree"
 #define MSG_MAIN_FILTER_PROMPT  "Appliquer filtre"
 #define MSG_MAIN_PRESS_CONTINUE "Appuyer touche pour continuer"
-#define MSG_MAIN_TODO           "Pas encore implemente."
 
 // Lecteur de fichiers texte
 #define MSG_VIEWER_PRESS_KEY    "ESPACE: page suiv.  ESC: sortir"

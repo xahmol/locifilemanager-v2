@@ -8,8 +8,11 @@ v2 rebuild of [locifilemanager](https://github.com/xahmol/locifilemanager) — a
 
 **Status:** The buildchain, charwin window library, keyboard scanner, full
 LOCI API, and EN/FR localisation infrastructure are complete and exercised by
-`libdemo`. The application itself (`main.c` plus the menu/dir/file/drive
-modules) is implemented and under active refinement.
+`libdemo`. The application itself (`main.c` plus the
+menu/dir/file/drive/recurse/viewer modules) is implemented and under active
+refinement; see `ROADMAP.md` for the feature history (recursive copy/move/
+delete, persistent settings, name filter, mid-copy cancellation, text viewer,
+properties popup).
 
 ## Compiler Toolchain
 
@@ -74,6 +77,8 @@ src/
   dir.c/h         Directory pane rendering, navigation, selection
   file.c/h        File operations: copy, move, delete, rename, tape browse
   drive.c/h       LOCI drive enumeration, mount/unmount, boot
+  recurse.c/h     Iterative depth-first directory walker (recurse_walk())
+  viewer.c/h      Full-screen paged, word-wrapped text file viewer
   input.c/h       Shared keyboard/joystick input helper
   strings.h       Includes strings_en.h or strings_fr.h based on -dLANG_FR
   strings_en.h    All MSG_* string defines (English)
@@ -267,10 +272,12 @@ now in `src/`):
 | Module | Purpose |
 |---|---|
 | `main.c` | Main loop, event dispatch, configuration state |
-| `menu.c/h` | Pulldown menu system; returns `menubarchoice * 10 + menuoptionchoice` |
-| `dir.c/h` | Directory pane rendering, navigation, selection |
-| `file.c/h` | File ops: copy, move, delete, rename, tape browse |
+| `menu.c/h` | Pulldown menu system (6 menu-bar items: App/File/Dir/Mounts/Info/Tools); returns `menubarchoice * 10 + menuoptionchoice` |
+| `dir.c/h` | Directory pane rendering, navigation, selection, name filter, recursive delete, properties popup |
+| `file.c/h` | File ops: copy, move (recursive for directories), delete, rename, tape browse |
 | `drive.c/h` | LOCI drive enumeration, mount/unmount, boot |
+| `recurse.c/h` | Iterative depth-first directory walker shared by recursive copy/move/delete and the properties recursive size calc |
+| `viewer.c/h` | Full-screen paged, word-wrapped text file viewer |
 
 Menu system: follows `~/.claude/menu_conventions.md` (Oric CC65 section). Key conventions: LIFO window stack (`cwin_push`/`cwin_pop`), `[X]` keyboard hints, four standard popup helpers.
 
@@ -284,9 +291,9 @@ Menu system: follows `~/.claude/menu_conventions.md` (Oric CC65 section). Key co
 
 Architecture:
 ```
-include/strings.h      — #if LANG_FR → strings_fr.h, else strings_en.h
-include/strings_en.h   — all MSG_* defines in English
-include/strings_fr.h   — all MSG_* defines in French (unaccented — Oric ROM has no é è à ç)
+src/strings.h      — #if LANG_FR → strings_fr.h, else strings_en.h
+src/strings_en.h   — all MSG_* defines in English
+src/strings_fr.h   — all MSG_* defines in French (unaccented — Oric ROM has no é è à ç)
 ```
 
 **All user-visible strings must be `MSG_*` macros.** No raw string literals in logic files. Retroactive extraction is painful.

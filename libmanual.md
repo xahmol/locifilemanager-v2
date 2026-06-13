@@ -599,6 +599,12 @@ Key fields used by high-level functions:
 ```c
 extern uint8_t loci_errno;  // error code from last failed operation
 extern LociCfg locicfg;     // device configuration (filled by get_locicfg)
+
+#define LOCI_EACCES 3        // "not empty": loci_errno set by MIA_OP_UNLINK
+                             // on a non-empty directory (FatFs FR_DENIED /
+                             // POSIX ENOTEMPTY; confirmed against
+                             // Phosphoric's loci_fs.c op_unlink, revisit
+                             // against real LOCI firmware if it differs)
 ```
 
 ### Data structures
@@ -760,6 +766,17 @@ int16_t file_copy(const char *dst, const char *src);
 Copy file `src` to `dst` using the XRAM copy buffer.  Returns bytes copied
 or negative on error.
 
+```c
+int16_t file_copy_progress(const char *dst, const char *src,
+                            uint8_t progx, uint8_t progy, uint8_t progl);
+```
+Like `file_copy`, but draws a progress bar directly into screen RAM at
+column `progx`, row `progy` (`progl` cells wide) while copying via the XRAM
+buffer. Polls `keyb_check()` once per chunk; if `KEY_ESC` is pressed,
+copying stops immediately, the partially written `dst` file is removed via
+`loci_unlink`, and the function returns `-2`. Returns `0` on success, or
+another negative `loci_errno`-setting error code on I/O failure.
+
 ### Directory operations
 
 ```c
@@ -809,7 +826,7 @@ and optional IJK joystick input.  Include `menu.h`.
 ### Architecture
 
 Three layers:
-- **Menu bar** (row 1) — green background, five titled items.
+- **Menu bar** (row 1) — green background, six titled items.
 - **Pulldown menus** — cyan items with yellow highlight; open below the bar.
 - **Popup dialogs** — white background; use the Yes/No pulldown or a sub-menu.
 
@@ -817,9 +834,9 @@ Three layers:
 
 | Constant | Value | Meaning |
 |---|---|---|
-| `MENUBAR_MAXOPTIONS` | 5 | Number of bar items |
+| `MENUBAR_MAXOPTIONS` | 6 | Number of bar items |
 | `MENUBAR_MAXLENGTH` | 12 | Max chars per bar title |
-| `PULLDOWN_NUMBER` | 10 | Total pulldown menus (0–9) |
+| `PULLDOWN_NUMBER` | 11 | Total pulldown menus (0–10) |
 | `PULLDOWN_MAXOPTIONS` | 9 | Max items per pulldown |
 | `PULLDOWN_MAXLENGTH` | 17 | 16 visible chars + NUL |
 | `MENU_WIN_DEPTH` | 9 | Max overlay RAM save depth |
@@ -831,7 +848,7 @@ Three layers:
 | `MENU_CANCEL` | 0 | ESC pressed (escapable pulldown) |
 | `MENU_LEFT_ARROW` | 18 | Left arrow → open previous bar item |
 | `MENU_RIGHT_ARROW` | 19 | Right arrow → open next bar item |
-| `MENU_YESNO` | 9 | Index of the Yes/No pulldown |
+| `MENU_YESNO` | 10 | Index of the Yes/No pulldown |
 
 ### Pulldown index map
 
@@ -842,11 +859,15 @@ Three layers:
 | 2 | Dir (root, back, page down/up, top, bottom, new dir) |
 | 3 | Mounts (switch pane, next/prev drive, mount, unmount, target, show) |
 | 4 | Info (version/credits, help) |
-| 5 | Enter-action sub-menu (Select / Mount / Launch) |
-| 6 | Filter sub-menu (None / .DSK / .TAP / .ROM / .LCE) |
-| 7 | Target drive sub-menu (A / B / C / D) |
-| 8 | Mount source sub-menu (A / B / C / D / Tape / ROM / None) |
-| 9 | Yes/No dialog |
+| 5 | Tools (properties, filter by name, view text) |
+| 6 | Enter-action sub-menu (Select / Mount / Launch) |
+| 7 | Filter sub-menu (None / .DSK / .TAP / .ROM / .LCE) |
+| 8 | Target drive sub-menu (A / B / C / D) |
+| 9 | Mount source sub-menu (A / B / C / D / Tape / ROM / None) |
+| 10 | Yes/No dialog |
+
+`pulldown_options[PULLDOWN_NUMBER]` (number of items per pulldown, indices as
+above): `{ 5, 9, 7, 7, 2, 3, 3, 5, 4, 7, 2 }`.
 
 ### Data structures
 

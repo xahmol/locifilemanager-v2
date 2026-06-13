@@ -47,10 +47,15 @@ For more information about the LOCI device itself, see the
 Features:
 - Browse both the internal storage of the LOCI and all connected USB mass storage devices
 - Two browser panes with two independently loaded directories
-- Copy and move files (not directories) between panes
-- Delete and rename files and directories
+- Copy and move files and directories (including their full contents) between panes
+- Delete and rename files and directories, including recursive deletion of non-empty directories
 - Create directories
 - Copy, move and delete based on a user-made selection of multiple files
+- Cancel a file copy mid-transfer with ESC; any partial destination file is removed automatically
+- Filter the directory listing by file type, or by a wildcard filename pattern
+- View the contents of text files in a full-screen, word-wrapped, paged viewer
+- Show properties (type, attributes, size) for a file or directory, including a recursively calculated total size for directories
+- Application settings (confirm, RETURN action, type filter, sort) are remembered across restarts
 - Mount disk, tape, and ROM images
 - On exit, boot based on mounted images (disk > tape > ROM)
 - Browse inside a tape image to select a file on the tape to mount/boot
@@ -205,6 +210,9 @@ For details on how to operate your LOCI device, see the
 |**W**|Start bro**w**sing inside a tape image from present .TAP file
 |**E**|Create n**e**w directory
 |**H**|Show **h**elp screen for keyboard commands
+|**K**|Show properties (type, attributes, size) for the present file or directory
+|**L**|Set or clear a wildcard fi**l**e name filter for both panes
+|**J**|View the present text file in a full-screen, word-wrapped pager
 
 ### In main menu and pulldown menus
 
@@ -254,6 +262,8 @@ Reference is made to the [Keyboard commands](#keyboard-commands) section above f
 ### App: Application options
 
 ![Application menu](screenshots/LociFM-menu-app.png)
+
+The settings below (Confirm, Return, Filter, Sort) are saved to `LOCIFM.CFG` on the internal LOCI storage whenever they are changed, and are restored automatically the next time the application starts. If no configuration file is found (e.g. on first run), the defaults described below are used.
 
 *Confirm*
 
@@ -333,9 +343,11 @@ Deletes the present file or directory. Or, if a selection of files is made, all 
 
 A popup will ask for confirmation (based on the application configuration setting for Confirm in the App menu, only once, or for every file), after which deletion will proceed. Press key to return.
 
-This function will also delete a directory, but:
-- A directory must be empty, otherwise an error message will be shown. Recursive directory delete is not (yet) implemented.
+This function will also delete a directory:
+- If the directory is empty, it is removed directly after the usual confirmation.
+- If the directory is not empty, an extra "Directory not empty. Delete ALL contents?" confirmation is shown. Confirming recursively deletes the entire contents of the directory (files and subdirectories) and then the directory itself; declining leaves the directory untouched.
 - Directories can not be selected, so deletion of directories has to be performed one by one.
+- If the directory tree is deeper than 8 levels, the deepest level(s) may be left undeleted; a message will indicate this.
 
 This function can be reached also by pressing the **DEL** key.
 
@@ -353,7 +365,7 @@ This function can be reached also by pressing the **R** key.
 
 *Copy / Move*
 
-Copies or moves the present file. Or, if a selection of files is made, all selected files. Copying or moving directories with or without content is not (yet) implemented.
+Copies or moves the present file or directory. Or, if a selection of files and/or directories is made, all selected entries. Directories are copied or moved recursively, including all files and subdirectories they contain; if the target directory already exists its contents are merged.
 
 Copy or move will be performed from the directory in the active pane to the directory in the non-active pane. You can not copy or move to the same directory, in this case an error message will be shown:
 
@@ -363,11 +375,13 @@ If file(s) with the same name already exist, a popup will ask for confirmation t
 
 ![File: Copy - confirm overwrite](screenshots/LociFM-menu-file-copy-confirm.png)
 
-Otherwise a popup will appear showing copy or move progress. Pressing **ESC** can cancel file copying after finishing copying the present file. Mid-file copy cancellation is not (yet) implemented.
+Otherwise a popup will appear showing copy or move progress. Pressing **ESC** cancels immediately, even in the middle of copying a file; any partially written destination file is removed automatically.
 
 ![File: Copy](screenshots/LociFM-menu-file-copy.png)
 
 This function can be reached also by pressing the **C** key for copy or **V** key for move.
+
+When copying or moving a directory tree deeper than 8 levels, the deepest level(s) may be left incomplete; a message will indicate this.
 
 *Browse tape*
 
@@ -452,6 +466,33 @@ screen, and again to return to the application.
 Shows a help screen for the keyboard commands.
 
 ![Info: Help](screenshots/LociFM-menu-info-help.png)
+
+### Tools: Properties, name filter, and text viewer
+
+*Properties*
+
+Shows a popup with details about the present file or directory:
+- Name, type (DSK/TAP/ROM/LCE/DIR/unknown) and the active path
+- Attributes: R (read-only) and S (system), shown as a dash (-) if not set
+- Size in bytes. For a directory, the size is calculated recursively over all files in its tree; while calculating, "Calculating..." is shown, and pressing **ESC** cancels the calculation, after which "Cancelled." is shown instead of a size. If the directory tree is deeper than 8 levels, the total is shown with a trailing "+" to indicate it may be incomplete.
+
+Press any key to close the popup.
+
+This function can be reached also by pressing the **K** key.
+
+*Filter by name*
+
+Opens a popup to enter a wildcard pattern (using `*` and `?`, case-insensitive) that filters the directory listing in both panes by file name. Directories are always shown regardless of the pattern, so navigation is never blocked.
+
+Enter an empty pattern to clear the filter. Press **RETURN** to apply, **ESC** to cancel without changes. Unlike the App settings, this filter is not remembered across restarts.
+
+This function can be reached also by pressing the **L** key.
+
+*View text*
+
+Opens the present file in a full-screen, word-wrapped text viewer. Press **SPACE** (or any other key) to advance to the next page, or **ESC** to exit back to the file browser. Paging is forward-only.
+
+This function can be reached also by pressing the **J** key.
 
 ---
 

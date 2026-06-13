@@ -621,6 +621,13 @@ Champs principaux utilisés par les fonctions de haut niveau :
 ```c
 extern uint8_t loci_errno;  // code d'erreur de la dernière opération échouée
 extern LociCfg locicfg;     // configuration du périphérique (rempli par get_locicfg)
+
+#define LOCI_EACCES 3        // "non vide" : valeur de loci_errno renseignée
+                             // par MIA_OP_UNLINK sur un répertoire non vide
+                             // (FatFs FR_DENIED / POSIX ENOTEMPTY ; confirmé
+                             // avec loci_fs.c op_unlink de Phosphoric, à
+                             // revérifier avec le micrologiciel LOCI réel
+                             // si différent)
 ```
 
 ### Structures de données
@@ -784,6 +791,18 @@ int16_t file_copy(const char *dst, const char *src);
 Copie le fichier `src` vers `dst` en utilisant le tampon XRAM. Retourne les
 octets copiés ou une valeur négative en cas d'erreur.
 
+```c
+int16_t file_copy_progress(const char *dst, const char *src,
+                            uint8_t progx, uint8_t progy, uint8_t progl);
+```
+Comme `file_copy`, mais dessine une barre de progression directement dans la
+RAM écran à la colonne `progx`, ligne `progy` (largeur `progl` cellules)
+pendant la copie via le tampon XRAM. Vérifie `keyb_check()` à chaque bloc ;
+si **ÉCHAP** est pressé, la copie s'arrête immédiatement, le fichier `dst`
+partiellement écrit est supprimé via `loci_unlink`, et la fonction retourne
+`-2`. Retourne `0` en cas de succès, ou un autre code d'erreur négatif (avec
+`loci_errno` renseigné) en cas d'échec d'E/S.
+
 ### Opérations de répertoire
 
 ```c
@@ -836,7 +855,7 @@ LIFO de fenêtres et saisie optionnelle par manette IJK. Inclure `menu.h`.
 ### Architecture
 
 Trois niveaux :
-- **Barre de menus** (ligne 1) — fond vert, cinq titres.
+- **Barre de menus** (ligne 1) — fond vert, six titres.
 - **Menus déroulants** — items cyan avec surbrillance jaune ; s'ouvrent sous la barre.
 - **Boîtes de dialogue** — fond blanc ; utilisent le menu Oui/Non ou un sous-menu.
 
@@ -844,9 +863,9 @@ Trois niveaux :
 
 | Constante | Valeur | Signification |
 |---|---|---|
-| `MENUBAR_MAXOPTIONS` | 5 | Nombre d'items dans la barre |
+| `MENUBAR_MAXOPTIONS` | 6 | Nombre d'items dans la barre |
 | `MENUBAR_MAXLENGTH` | 12 | Longueur max d'un titre de barre |
-| `PULLDOWN_NUMBER` | 10 | Nombre total de menus déroulants (0–9) |
+| `PULLDOWN_NUMBER` | 11 | Nombre total de menus déroulants (0–10) |
 | `PULLDOWN_MAXOPTIONS` | 9 | Items max par menu déroulant |
 | `PULLDOWN_MAXLENGTH` | 17 | 16 caractères visibles + NUL |
 | `MENU_WIN_DEPTH` | 9 | Profondeur max de la pile de sauvegarde |
@@ -858,7 +877,7 @@ Trois niveaux :
 | `MENU_CANCEL` | 0 | ÉCHAP pressé (menu déroulant échappable) |
 | `MENU_LEFT_ARROW` | 18 | Flèche gauche → ouvrir l'item précédent |
 | `MENU_RIGHT_ARROW` | 19 | Flèche droite → ouvrir l'item suivant |
-| `MENU_YESNO` | 9 | Index du menu Oui/Non |
+| `MENU_YESNO` | 10 | Index du menu Oui/Non |
 
 ### Carte des indices de menus déroulants
 
@@ -869,11 +888,15 @@ Trois niveaux :
 | 2 | Répertoire (racine, retour, page bas/haut, début, fin, nouveau) |
 | 3 | Montages (changer panneau, lecteur suiv./préc., monter, démonter, cible, afficher) |
 | 4 | Info (version/crédits, aide) |
-| 5 | Sous-menu action Entrée (Sélect. / Monter / Lancer) |
-| 6 | Sous-menu filtre (Aucun / .DSK / .TAP / .ROM / .LCE) |
-| 7 | Sous-menu lecteur cible (A / B / C / D) |
-| 8 | Sous-menu source de montage (A / B / C / D / Cassette / ROM / Aucun) |
-| 9 | Dialogue Oui/Non |
+| 5 | Outils (propriétés, filtre par nom, voir le texte) |
+| 6 | Sous-menu action Entrée (Sélect. / Monter / Lancer) |
+| 7 | Sous-menu filtre (Aucun / .DSK / .TAP / .ROM / .LCE) |
+| 8 | Sous-menu lecteur cible (A / B / C / D) |
+| 9 | Sous-menu source de montage (A / B / C / D / Cassette / ROM / Aucun) |
+| 10 | Dialogue Oui/Non |
+
+`pulldown_options[PULLDOWN_NUMBER]` (nombre d'items par menu déroulant,
+indices comme ci-dessus) : `{ 5, 9, 7, 7, 2, 3, 3, 5, 4, 7, 2 }`.
 
 ### Structures de données
 
