@@ -1435,6 +1435,8 @@ void dir_show_properties(void)
     char     namebuf[64];
     char     sizebuf[11];
     char     attrstr[3];
+    char     typebuf[24];
+    char    *ext;
     uint8_t  namelen;
     uint8_t  attrib = 0;
     uint32_t filesize = 0;
@@ -1466,12 +1468,46 @@ void dir_show_properties(void)
         loci_closedir(dir);
     }
 
+    // Build a descriptive type string: known extensions get their full
+    // "EXT - Description" label, directories get MSG_PROP_TYPE_DIR, and
+    // anything else falls back to the file's own extension (if any).
+    switch (presentdirelement.meta.type)
+    {
+        case 1:
+            strcpy(typebuf, MSG_PROP_TYPE_DIR);
+            break;
+        case 2:
+            strcpy(typebuf, MSG_PROP_TYPE_DSK);
+            break;
+        case 3:
+            strcpy(typebuf, MSG_PROP_TYPE_TAP);
+            break;
+        case 4:
+            strcpy(typebuf, MSG_PROP_TYPE_ROM);
+            break;
+        case 5:
+            strcpy(typebuf, MSG_PROP_TYPE_LCE);
+            break;
+        default:
+            ext = strrchr(namebuf, '.');
+            if (ext)
+            {
+                strncpy(typebuf, ext, sizeof(typebuf) - 1);
+                typebuf[sizeof(typebuf) - 1] = '\0';
+            }
+            else
+            {
+                typebuf[0] = '\0';
+            }
+            break;
+    }
+
     menu_popup_open(0, 8, 12);
     cwin_init(&popup, 2, 8, 38, 12, A_FWBLACK, A_BGWHITE);
 
     cwin_putat_string(&popup, 0, 0, MSG_PROP_TITLE);
     cwin_putat_printf(&popup, 0, 2, MSG_PROP_NAME_FMT, presentdirelement.name);
-    cwin_putat_printf(&popup, 0, 3, MSG_PROP_TYPE_FMT, dir_entry_types[presentdirelement.meta.type - 1]);
+    cwin_putat_printf(&popup, 0, 3, MSG_PROP_TYPE_FMT, typebuf);
     cwin_putat_printf(&popup, 0, 4, MSG_PROP_PATH_FMT, presentdir[activepane].path);
 
     attrstr[0] = (attrib & DIR_ATTR_RDO) ? 'R' : '-';

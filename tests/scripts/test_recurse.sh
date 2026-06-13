@@ -283,6 +283,7 @@ if [ ! -f "$propsfile_dump" ]; then
 else
     check_found "popup title shown"   "Properties"   "$propsfile_dump"
     check_found "file name shown"     "NOTES.TXT"    "$propsfile_dump"
+    check_found "file type shown"     "Type: .TXT"   "$propsfile_dump"
     check_found "byte count shown"    "78 bytes"     "$propsfile_dump"
     check_found "path shown"          "Path: 0:/"    "$propsfile_dump"
 fi
@@ -298,7 +299,7 @@ if [ ! -f "$propsdir_dump" ]; then
 else
     check_found "popup title shown"        "Properties" "$propsdir_dump"
     check_found "directory name shown"     "DEEP/"      "$propsdir_dump"
-    check_found "directory type shown"     "Type: DIR"  "$propsdir_dump"
+    check_found "directory type shown"     "Type: Directory"  "$propsdir_dump"
     check_found "recursive total shown"    "600 bytes"  "$propsdir_dump"
 fi
 

@@ -152,6 +152,11 @@
 #define MSG_PROP_BYTES_APPROX   "bytes+"
 #define MSG_PROP_CALCULATING    "Calculating..."
 #define MSG_PROP_CANCELLED      "Cancelled."
+#define MSG_PROP_TYPE_DIR       "Directory"
+#define MSG_PROP_TYPE_DSK       ".DSK - Disk image"
+#define MSG_PROP_TYPE_TAP       ".TAP - Tape image"
+#define MSG_PROP_TYPE_ROM       ".ROM - ROM image"
+#define MSG_PROP_TYPE_LCE       ".LCE - LOCI Executable"
 
 // ── Drive module strings ──────────────────────────────────────────────────────
 #define MSG_DRIVE_SELECT_TARGET   "Select target drive."

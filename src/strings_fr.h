@@ -153,6 +153,11 @@
 #define MSG_PROP_BYTES_APPROX   "octets+"
 #define MSG_PROP_CALCULATING    "Calcul en cours..."
 #define MSG_PROP_CANCELLED      "Annule."
+#define MSG_PROP_TYPE_DIR       "Repertoire"
+#define MSG_PROP_TYPE_DSK       ".DSK - Image disque"
+#define MSG_PROP_TYPE_TAP       ".TAP - Image bande"
+#define MSG_PROP_TYPE_ROM       ".ROM - Image ROM"
+#define MSG_PROP_TYPE_LCE       ".LCE - Executable LOCI"
 
 // ── Drive module strings ──────────────────────────────────────────────────────
 #define MSG_DRIVE_SELECT_TARGET   "Choisir lecteur cible."
