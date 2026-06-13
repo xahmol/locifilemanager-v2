@@ -133,14 +133,14 @@ fi
 echo ""
 echo "Tools pulldown menu"
 tools_dump="$OUT/recurse_tools_open.bin"
-run_emu "${BOOT_CYCLES}:\\r\\r\\r\\r\\r\\r\\p1\\n" $OPEN_CYCLES "$tools_dump"
+run_emu "${BOOT_CYCLES}:\\r\\r\\r\\r\\r\\p1\\n" $OPEN_CYCLES "$tools_dump"
 if [ ! -f "$tools_dump" ]; then
     echo "  [FAIL] emulator did not produce a RAM dump at $tools_dump"
     fail=$((fail+1))
 else
-    check_found "Properties item visible"     "[K] Properties"   "$tools_dump"
-    check_found "Filter by name item visible" "Fi[l]ter by name" "$tools_dump"
-    check_found "View text item visible"      "[J] View text"    "$tools_dump"
+    check_found "Properties item visible"     "[K] Properties" "$tools_dump"
+    check_found "Filter by name item visible" "[L] Text: Off"  "$tools_dump"
+    check_found "View text item visible"      "[J] View text"  "$tools_dump"
 fi
 
 echo ""

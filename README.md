@@ -40,7 +40,7 @@ copy/move/delete, mid-copy cancellation, name and type filters, text viewer,
 properties popup, persistent settings), and is covered by an automated test
 suite (`make test`). The screenshots further down in this manual were
 captured from an earlier v2 build and predate the "Tools" menu
-(Properties/Filter by name/View text); they will be refreshed to show the
+(Properties/Text filter/View text); they will be refreshed to show the
 current 6-item menu bar.
 
 For more information about the LOCI device itself, see the
@@ -265,7 +265,7 @@ Reference is made to the [Keyboard commands](#keyboard-commands) section above f
 
 ![Application menu](screenshots/LociFM-menu-app.png)
 
-The settings below (Confirm, Return, Filter, Sort) are saved to `LOCIFM.CFG` on the internal LOCI storage whenever they are changed, and are restored automatically the next time the application starts. If no configuration file is found (e.g. on first run), the defaults described below are used.
+The settings below (Confirm, Return, Type filter, Sort) are saved to `LOCIFM.CFG` on the internal LOCI storage whenever they are changed, and are restored automatically the next time the application starts. If no configuration file is found (e.g. on first run), the defaults described below are used.
 
 *Confirm*
 
@@ -284,11 +284,12 @@ Selects which action should be performed when pressing RETURN:
 
 This function can be reached via the menu only.
 
-*Filter*
+*Type filter*
 
 ![App: Filter](screenshots/LociFM-menu-app-filter.png)
 
-Selects which filter to apply when showing directories:
+Selects which filter to apply when showing directories. The menu shows the
+active value directly (`[F] Type: None`/`.DSK`/`.TAP`/`.ROM`/`.LCE`):
 - None: No filter applied
 - .DSK: Only .DSK disk images shown
 - .TAP: Only .TAP tape images shown
@@ -449,6 +450,35 @@ This function can be reached also by pressing the **E** key.
 
 ![Dir: New dir](screenshots/LociFM-menu-dir-create-dir.png)
 
+### Tools: Properties, name filter, and text viewer
+
+*Properties*
+
+Shows a popup with details about the present file or directory:
+- Name, type (DSK/TAP/ROM/LCE/DIR/unknown) and the active path
+- Attributes: R (read-only) and S (system), shown as a dash (-) if not set
+- Size in bytes. For a directory, the size is calculated recursively over all files in its tree; while calculating, "Calculating..." is shown, and pressing **ESC** cancels the calculation, after which "Cancelled." is shown instead of a size. If the directory tree is deeper than 8 levels, the total is shown with a trailing "+" to indicate it may be incomplete.
+
+Press any key to close the popup.
+
+This function can be reached also by pressing the **K** key.
+
+*Text filter*
+
+Opens a popup to enter a wildcard pattern (using `*` and `?`, case-insensitive) that filters the directory listing in both panes by file name. Directories are always shown regardless of the pattern, so navigation is never blocked.
+
+Enter an empty pattern to clear the filter. Press **RETURN** to apply, **ESC** to cancel without changes. Unlike the App settings, this filter is not remembered across restarts.
+
+The Tools menu shows `[L] Text: On` or `[L] Text: Off` depending on whether a pattern is currently active; the pattern itself is shown in this popup's "Current:" line.
+
+This function can be reached also by pressing the **L** key.
+
+*View text*
+
+Opens the present file in a full-screen, word-wrapped text viewer. Press **SPACE** (or any other key) to advance to the next page, or **ESC** to exit back to the file browser. Paging is forward-only.
+
+This function can be reached also by pressing the **J** key.
+
 ### Info: Version information and help
 
 ![Info menu](screenshots/LociFM-menu-info.png)
@@ -468,33 +498,6 @@ screen, and again to return to the application.
 Shows a help screen for the keyboard commands.
 
 ![Info: Help](screenshots/LociFM-menu-info-help.png)
-
-### Tools: Properties, name filter, and text viewer
-
-*Properties*
-
-Shows a popup with details about the present file or directory:
-- Name, type (DSK/TAP/ROM/LCE/DIR/unknown) and the active path
-- Attributes: R (read-only) and S (system), shown as a dash (-) if not set
-- Size in bytes. For a directory, the size is calculated recursively over all files in its tree; while calculating, "Calculating..." is shown, and pressing **ESC** cancels the calculation, after which "Cancelled." is shown instead of a size. If the directory tree is deeper than 8 levels, the total is shown with a trailing "+" to indicate it may be incomplete.
-
-Press any key to close the popup.
-
-This function can be reached also by pressing the **K** key.
-
-*Filter by name*
-
-Opens a popup to enter a wildcard pattern (using `*` and `?`, case-insensitive) that filters the directory listing in both panes by file name. Directories are always shown regardless of the pattern, so navigation is never blocked.
-
-Enter an empty pattern to clear the filter. Press **RETURN** to apply, **ESC** to cancel without changes. Unlike the App settings, this filter is not remembered across restarts.
-
-This function can be reached also by pressing the **L** key.
-
-*View text*
-
-Opens the present file in a full-screen, word-wrapped text viewer. Press **SPACE** (or any other key) to advance to the next page, or **ESC** to exit back to the file browser. Paging is forward-only.
-
-This function can be reached also by pressing the **J** key.
 
 ---
 
@@ -519,7 +522,7 @@ implementation. For users coming from v1, the main differences are:
 - A new full-screen, word-wrapped text file viewer (**J**)
 - A new properties popup (**K**) showing type, attributes and size,
   including a recursively calculated total size for directories
-- Application settings (Confirm, Return, Filter, Sort) are now remembered
+- Application settings (Confirm, Return, Type filter, Sort) are now remembered
   across restarts
 - Available in English and French
 - New splash screens showing version info and a GitHub QR code
@@ -588,6 +591,11 @@ Code and resources from others used:
 -   forum.defence-force.org: For inspiration and advice while coding.
 
 -   Original windowing system code on Commodore 128 by unknown author.
+
+-   Phosphoric, a cycle-accurate ORIC-1/Atmos emulator by Xander Mol, used to
+    drive the automated headless test suite (`make test`)
+
+    https://github.com/xahmol/Phosphoric
 
 -   Tested using real hardware Oric Atmos plus LOCI
 

@@ -42,8 +42,8 @@ récursifs, annulation de copie en cours, filtres par nom et par type,
 visionneuse de texte, fenêtre de propriétés, réglages persistants), et est
 couverte par une suite de tests automatisés (`make test`). Les captures
 d'écran plus loin dans ce manuel proviennent d'une version antérieure de la
-v2 et datent d'avant l'ajout du menu « Tools » (Propriétés/Filtre par
-nom/Voir le texte) ; elles seront mises à jour pour montrer la barre de menu
+v2 et datent d'avant l'ajout du menu « Tools » (Propriétés/Filtre de
+texte/Voir le texte) ; elles seront mises à jour pour montrer la barre de menu
 actuelle à 6 éléments.
 
 Pour plus d'informations sur le périphérique LOCI lui-même, voir le
@@ -289,7 +289,7 @@ utiliser, classées par option du menu principal.
 
 ![Menu Application](screenshots/LociFM-menu-app.png)
 
-Les réglages ci-dessous (Confirm., Retour, Filtre, Tri) sont enregistrés dans
+Les réglages ci-dessous (Confirm., Retour, Filtre de type, Tri) sont enregistrés dans
 `LOCIFM.CFG` sur le stockage interne du LOCI à chaque modification, et sont
 restaurés automatiquement au démarrage suivant de l'application. Si aucun
 fichier de configuration n'est trouvé (par exemple au premier démarrage), les
@@ -321,11 +321,12 @@ Sélectionne l'action à effectuer en appuyant sur RETURN :
 
 Cette fonction n'est accessible que via le menu.
 
-*Filtre*
+*Filtre de type*
 
 ![App : Filtre](screenshots/LociFM-menu-app-filter.png)
 
-Sélectionne le filtre à appliquer pour l'affichage des répertoires :
+Sélectionne le filtre à appliquer pour l'affichage des répertoires. Le menu
+affiche directement la valeur active (`[F] Type: Aucun`/`.DSK`/`.TAP`/`.ROM`/`.LCE`) :
 - Aucun : aucun filtre appliqué
 - .DSK : seules les images disque .DSK sont affichées
 - .TAP : seules les images bande .TAP sont affichées
@@ -540,6 +541,50 @@ Cette fonction est aussi accessible avec la touche **E**.
 
 ![Répertoire : Nouveau répertoire](screenshots/LociFM-menu-dir-create-dir.png)
 
+### Outils : propriétés, filtre par nom et visionneuse de texte
+
+*Propriétés*
+
+Affiche une fenêtre avec les détails du fichier ou répertoire présent :
+- Nom, type (DSK/TAP/ROM/LCE/DIR/inconnu) et chemin actif
+- Attributs : R (lecture seule) et S (système), affichés par un tiret (-) si absents
+- Taille en octets. Pour un répertoire, la taille est calculée récursivement
+  sur tous les fichiers de son arborescence ; pendant le calcul, "Calcul en
+  cours..." s'affiche, et appuyer sur **ESC** annule le calcul, après quoi
+  "Annulé." s'affiche à la place d'une taille. Si l'arborescence dépasse 8
+  niveaux de profondeur, le total est affiché avec un "+" final pour indiquer
+  qu'il peut être incomplet.
+
+Appuyer sur une touche pour fermer la fenêtre.
+
+Cette fonction est aussi accessible avec la touche **K**.
+
+*Filtre de texte*
+
+Ouvre une fenêtre pour saisir un motif avec caractères génériques (`*` et `?`,
+insensible à la casse) qui filtre la liste des répertoires des deux volets par
+nom de fichier. Les répertoires sont toujours affichés quel que soit le motif,
+afin que la navigation ne soit jamais bloquée.
+
+Saisir un motif vide pour effacer le filtre. Appuyer sur **RETURN** pour
+appliquer, **ESC** pour annuler sans modification. Contrairement aux réglages
+App, ce filtre n'est pas mémorisé entre les redémarrages.
+
+Le menu Outils affiche `[L] Texte: Oui` ou `[L] Texte: Non` selon qu'un motif
+est actif ou non ; le motif lui-même est affiché sur la ligne « Actuel: » de
+cette fenêtre.
+
+Cette fonction est aussi accessible avec la touche **L**.
+
+*Voir le texte*
+
+Ouvre le fichier présent dans une visionneuse de texte plein écran avec retour
+à la ligne automatique. Appuyer sur **ESPACE** (ou toute autre touche) pour
+passer à la page suivante, ou **ESC** pour revenir au navigateur de fichiers.
+La pagination se fait uniquement vers l'avant.
+
+Cette fonction est aussi accessible avec la touche **J**.
+
 ### Info : Informations sur la version et aide
 
 ![Menu Info](screenshots/LociFM-menu-info.png)
@@ -559,46 +604,6 @@ passer à l'écran suivant, puis à nouveau pour revenir à l'application.
 Affiche un écran d'aide pour les commandes clavier.
 
 ![Info : Aide](screenshots/LociFM-menu-info-help.png)
-
-### Outils : propriétés, filtre par nom et visionneuse de texte
-
-*Propriétés*
-
-Affiche une fenêtre avec les détails du fichier ou répertoire présent :
-- Nom, type (DSK/TAP/ROM/LCE/DIR/inconnu) et chemin actif
-- Attributs : R (lecture seule) et S (système), affichés par un tiret (-) si absents
-- Taille en octets. Pour un répertoire, la taille est calculée récursivement
-  sur tous les fichiers de son arborescence ; pendant le calcul, "Calcul en
-  cours..." s'affiche, et appuyer sur **ESC** annule le calcul, après quoi
-  "Annulé." s'affiche à la place d'une taille. Si l'arborescence dépasse 8
-  niveaux de profondeur, le total est affiché avec un "+" final pour indiquer
-  qu'il peut être incomplet.
-
-Appuyer sur une touche pour fermer la fenêtre.
-
-Cette fonction est aussi accessible avec la touche **K**.
-
-*Filtrer par nom*
-
-Ouvre une fenêtre pour saisir un motif avec caractères génériques (`*` et `?`,
-insensible à la casse) qui filtre la liste des répertoires des deux volets par
-nom de fichier. Les répertoires sont toujours affichés quel que soit le motif,
-afin que la navigation ne soit jamais bloquée.
-
-Saisir un motif vide pour effacer le filtre. Appuyer sur **RETURN** pour
-appliquer, **ESC** pour annuler sans modification. Contrairement aux réglages
-App, ce filtre n'est pas mémorisé entre les redémarrages.
-
-Cette fonction est aussi accessible avec la touche **L**.
-
-*Voir le texte*
-
-Ouvre le fichier présent dans une visionneuse de texte plein écran avec retour
-à la ligne automatique. Appuyer sur **ESPACE** (ou toute autre touche) pour
-passer à la page suivante, ou **ESC** pour revenir au navigateur de fichiers.
-La pagination se fait uniquement vers l'avant.
-
-Cette fonction est aussi accessible avec la touche **J**.
 
 ---
 
@@ -627,7 +632,7 @@ sont :
 - Une nouvelle fenêtre de propriétés (**K**) affichant le type, les attributs
   et la taille, avec une taille totale calculée récursivement pour les
   répertoires
-- Les réglages de l'application (Confirmer, Retour, Filtre, Tri) sont
+- Les réglages de l'application (Confirmer, Retour, Filtre de type, Tri) sont
   désormais mémorisés entre les redémarrages
 - Disponible en anglais et en français
 - Nouveaux écrans de démarrage affichant les informations de version et un
@@ -701,6 +706,11 @@ Code et ressources d'autres auteurs utilisés :
 
 -   Code source du système de fenêtrage original sur Commodore 128, auteur
     inconnu.
+
+-   Phosphoric, émulateur ORIC-1/Atmos cycle-exact par Xander Mol, utilisé
+    pour la suite de tests automatisés (`make test`)
+
+    https://github.com/xahmol/Phosphoric
 
 -   Testé sur matériel réel Oric Atmos avec LOCI
 

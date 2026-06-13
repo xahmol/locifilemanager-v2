@@ -103,7 +103,7 @@ if [ ! -f "$load_dump" ]; then
     fail=$((fail+1))
 else
     check_found "Sort On restored"     "S[O]rt: On"     "$load_dump"
-    check_found "Filter .DSK restored" "[F]ilter: .DSK" "$load_dump"
+    check_found "Filter .DSK restored" "[F] Type: .DSK" "$load_dump"
 fi
 
 # -----------------------------------------------------------------------
@@ -127,7 +127,7 @@ if [ ! -f "$fallback_dump" ]; then
 else
     check_found "Sort Off default"     "S[O]rt: Off"    "$fallback_dump"
     check_found "Confirm Once default" "Confirm: Once"  "$fallback_dump"
-    check_found "Filter None default"  "[F]ilter: None" "$fallback_dump"
+    check_found "Filter None default"  "[F] Type: None" "$fallback_dump"
 fi
 
 echo ""

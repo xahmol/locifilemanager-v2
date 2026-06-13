@@ -104,24 +104,12 @@ static void select_namefilter(void)
     {
         strcpy(namefilter, input);
 
-        // Tools pulldown label: show the active pattern, or revert to the
-        // static "filter by name" hint when cleared. Bounded to fit
-        // pulldown_titles[5][1] (PULLDOWN_MAXLENGTH=17: 16 chars + NUL).
-        if (namefilter[0])
-        {
-            char buf[17];
-            uint8_t i = 0, j;
-
-            for (j = 0; MSG_MENU_VAL_NAME[j]; j++) buf[i++] = MSG_MENU_VAL_NAME[j];
-            buf[i++] = ':';
-            for (j = 0; namefilter[j] && i < 16; j++) buf[i++] = namefilter[j];
-            buf[i] = '\0';
-            strcpy(pulldown_titles[5][1], buf);
-        }
-        else
-        {
-            strcpy(pulldown_titles[5][1], MSG_MENU_TOOLS1);
-        }
+        // Tools pulldown label: show On/Off rather than the pattern itself
+        // -- patterns can be longer than fits in pulldown_titles[4][1]
+        // (PULLDOWN_MAXLENGTH=17: 16 chars + NUL), and the active pattern is
+        // already shown in this popup's "Current: %s" line.
+        sprintf(pulldown_titles[4][1], MSG_MENU_TOOLS_TEXT_FMT,
+                namefilter[0] ? MSG_MENU_VAL_ON : MSG_MENU_VAL_OFF);
 
         dir_draw(0, 1);
         dir_draw(1, 1);
@@ -368,28 +356,28 @@ static void mainmenuloop(void)
             break;
 
         case 51:
-            versioninfo();
-            break;
-
-        case 52:
-            help();
-            break;
-
-        case 61:
             dir_show_properties();
             break;
 
-        case 62:
+        case 52:
             select_namefilter();
             break;
 
-        case 63:
+        case 53:
             if (presentdir[activepane].firstelement && !insidetape[activepane] &&
                 presentdirelement.meta.type != 1)
             {
                 dir_build_path(pathbuffer, sizeof(pathbuffer), presentdir[activepane].path, presentdirelement.name);
                 viewer_show_text(pathbuffer);
             }
+            break;
+
+        case 61:
+            versioninfo();
+            break;
+
+        case 62:
+            help();
             break;
 
         default:

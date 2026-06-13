@@ -272,7 +272,7 @@ now in `src/`):
 | Module | Purpose |
 |---|---|
 | `main.c` | Main loop, event dispatch, configuration state |
-| `menu.c/h` | Pulldown menu system (6 menu-bar items: App/File/Dir/Mounts/Info/Tools); returns `menubarchoice * 10 + menuoptionchoice` |
+| `menu.c/h` | Pulldown menu system (6 menu-bar items: App/File/Dir/Mounts/Tools/Info); returns `menubarchoice * 10 + menuoptionchoice` |
 | `dir.c/h` | Directory pane rendering, navigation, selection, name filter, recursive delete, properties popup |
 | `file.c/h` | File ops: copy, move (recursive for directories), delete, rename, tape browse |
 | `drive.c/h` | LOCI drive enumeration, mount/unmount, boot |

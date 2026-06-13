@@ -266,7 +266,7 @@ echo ""
 echo "Section K: menu system + popups"
 DUMP=$(run_capture "$TK19" 35000000 section_k_menu)
 check_found "$DUMP" "menu bar header renders" "LOCI File Manager"
-check_found "$DUMP" "menu bar items render" "App File  Dir  Mounts  Info"
+check_found "$DUMP" "menu bar items render" "App File  Dir  Mounts  Tools  Info"
 check_found "$DUMP" "Section K intro" "Navigate menu. ESC = exit."
 
 DUMP=$(run_capture "$TK25" 40000000 section_k_popups)

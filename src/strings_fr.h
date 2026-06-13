@@ -26,7 +26,7 @@
 // Pulldown 0 — App (items 0-3 overwritten at runtime via snprintf + _FMT macros)
 #define MSG_MENU_APP0           "Confirm.: 1x"
 #define MSG_MENU_APP1           "Retour:  Select"
-#define MSG_MENU_APP2           "[F]iltrer: Aucun"
+#define MSG_MENU_APP2           "[F] Type: Aucun"
 #define MSG_MENU_APP3           "[O] Tri:  Non"
 #define MSG_MENU_APP4           "[ESC] Quitter"
 
@@ -96,15 +96,16 @@
 
 // Pulldown 10 — Tools
 #define MSG_MENU_TOOLS0         "[K] Proprietes"
-#define MSG_MENU_TOOLS1         "[L] Filtre nom"
+#define MSG_MENU_TOOLS1         "[L] Texte: Non"
 #define MSG_MENU_TOOLS2         "[J] Voir texte"
 
 // Format macros for dynamic App pulldown entries (snprintf label + value → 16 chars max)
 #define MSG_MENU_APP_CONFIRM_FMT    "Confirm.: %s"
 #define MSG_MENU_APP_RETURN_FMT     "Retour: %s"
-#define MSG_MENU_APP_FILTER_FMT     "[F]iltre: %s"
+#define MSG_MENU_APP_FILTER_FMT     "[F] Type: %s"
 #define MSG_MENU_APP_SORT_FMT       "[O] Tri: %s"
 #define MSG_MENU_MNT_TARGET_FMT     "[G] Cible: %s"
+#define MSG_MENU_TOOLS_TEXT_FMT     "[L] Texte: %s"
 
 // Value strings for dynamic entries (padded so total fits in 16 chars)
 #define MSG_MENU_VAL_ONCE       "1x"
@@ -114,7 +115,6 @@
 #define MSG_MENU_VAL_LAUNCH     "Lancr."
 #define MSG_MENU_VAL_OFF        "Non"
 #define MSG_MENU_VAL_ON         "Oui"
-#define MSG_MENU_VAL_NAME       "Nom"
 #define MSG_MENU_VAL_NONE       "Aucun"
 #define MSG_MENU_VAL_DSK        ".DSK"
 #define MSG_MENU_VAL_TAP        ".TAP"

@@ -81,11 +81,12 @@ fi
 # rightcount:name:item|item|... (items are the exact MSG_MENU_* texts,
 # without the leading "-" selection marker drawn on the first item)
 menus=(
-    "1:app:Confirm: Once|Return: Select|[F]ilter: None|S[O]rt: Off|[ESC] Exit"
+    "1:app:Confirm: Once|Return: Select|[F] Type: None|S[O]rt: Off|[ESC] Exit"
     "2:file:[S]elect toggle|Select [A]ll|Select [N]one|[I]nverse select|[DEL]ete|[R]ename|[C]opy|Mo[v]e|Bro[W]se tape"
     "3:dir:[\\] Go to root|[<] Back|Page [D]own|Page U[P]|[T]op|[B]ottom|N[e]w dir"
     "4:mounts:[/] Switch pane|[.] Next drive|[,] Prev drive|[M]ount|[U]nmount|Tar[G]et: A|Show mounts"
-    "5:info:Version/credits|Help"
+    "5:tools:[K] Properties|[L] Text: Off|[J] View text"
+    "6:info:Version/credits|Help"
 )
 
 for entry in "${menus[@]}"; do

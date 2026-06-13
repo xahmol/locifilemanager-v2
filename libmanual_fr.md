@@ -883,12 +883,12 @@ Trois niveaux :
 
 | Index | Menu |
 |---|---|
-| 0 | App (mode confirm, action retour, filtre, tri, Quitter) |
+| 0 | App (mode confirm, action retour, filtre de type, tri, Quitter) |
 | 1 | Fichier (sélect., suppr., renommer, copier, déplacer, parcourir) |
 | 2 | Répertoire (racine, retour, page bas/haut, début, fin, nouveau) |
 | 3 | Montages (changer panneau, lecteur suiv./préc., monter, démonter, cible, afficher) |
-| 4 | Info (version/crédits, aide) |
-| 5 | Outils (propriétés, filtre par nom, voir le texte) |
+| 4 | Outils (propriétés, filtre de texte, voir le texte) |
+| 5 | Info (version/crédits, aide) |
 | 6 | Sous-menu action Entrée (Sélect. / Monter / Lancer) |
 | 7 | Sous-menu filtre (Aucun / .DSK / .TAP / .ROM / .LCE) |
 | 8 | Sous-menu lecteur cible (A / B / C / D) |
@@ -896,7 +896,7 @@ Trois niveaux :
 | 10 | Dialogue Oui/Non |
 
 `pulldown_options[PULLDOWN_NUMBER]` (nombre d'items par menu déroulant,
-indices comme ci-dessus) : `{ 5, 9, 7, 7, 2, 3, 3, 5, 4, 7, 2 }`.
+indices comme ci-dessus) : `{ 5, 9, 7, 7, 3, 2, 3, 5, 4, 7, 2 }`.
 
 ### Structures de données
 

@@ -854,12 +854,12 @@ Three layers:
 
 | Index | Menu |
 |---|---|
-| 0 | App (confirm mode, return action, filter, sort, Exit) |
+| 0 | App (confirm mode, return action, type filter, sort, Exit) |
 | 1 | File (select, delete, rename, copy, move, browse tape) |
 | 2 | Dir (root, back, page down/up, top, bottom, new dir) |
 | 3 | Mounts (switch pane, next/prev drive, mount, unmount, target, show) |
-| 4 | Info (version/credits, help) |
-| 5 | Tools (properties, filter by name, view text) |
+| 4 | Tools (properties, text filter, view text) |
+| 5 | Info (version/credits, help) |
 | 6 | Enter-action sub-menu (Select / Mount / Launch) |
 | 7 | Filter sub-menu (None / .DSK / .TAP / .ROM / .LCE) |
 | 8 | Target drive sub-menu (A / B / C / D) |
@@ -867,7 +867,7 @@ Three layers:
 | 10 | Yes/No dialog |
 
 `pulldown_options[PULLDOWN_NUMBER]` (number of items per pulldown, indices as
-above): `{ 5, 9, 7, 7, 2, 3, 3, 5, 4, 7, 2 }`.
+above): `{ 5, 9, 7, 7, 3, 2, 3, 5, 4, 7, 2 }`.
 
 ### Data structures
 

@@ -347,7 +347,7 @@ extern char    pulldown_titles[PULLDOWN_NUMBER][PULLDOWN_MAXOPTIONS][PULLDOWN_MA
 ```
 
 `PULLDOWN_NUMBER = 11`: indices 0–5 are the six menu-bar pulldowns
-(App/File/Dir/Mounts/Info/Tools); indices 6–10 are popup sub-menus
+(App/File/Dir/Mounts/Tools/Info); indices 6–10 are popup sub-menus
 (Enter-action, Filter, Target-drive, Mount-source, Yes/No) opened via
 `menu_option_select()`/`menu_areyousure()`/`menu_confirm_file()`.
 
@@ -597,7 +597,7 @@ up-to-date metadata (type, selection, name).
 ### 6.3 Menu system (three-layer + LIFO window stack)
 
 1. **Menu bar** (row 1): `menu_main()` runs the bar navigation loop —
-   left/right move between the 6 bar items (App/File/Dir/Mounts/Info/Tools),
+   left/right move between the 6 bar items (App/File/Dir/Mounts/Tools/Info),
    ENTER/down opens that item's **pulldown**. Returns
    `menubarchoice * 10 + menuoptionchoice`, or `99` for ESC/STOP.
 2. **Pulldowns**: `menu_pulldown(xpos, ypos, menunumber, escapable)` draws
