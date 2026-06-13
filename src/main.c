@@ -45,6 +45,7 @@ static void confirm_toggle(void)
     settings.confirm = !settings.confirm;
     sprintf(pulldown_titles[0][0], MSG_MENU_APP_CONFIRM_FMT,
             settings.confirm ? MSG_MENU_VAL_ALL : MSG_MENU_VAL_ONCE);
+    config_save();
 }
 
 static void select_enter_choice(void)
@@ -57,6 +58,7 @@ static void select_enter_choice(void)
     {
         settings.enterchoice = select - 1;
         sprintf(pulldown_titles[0][1], MSG_MENU_APP_RETURN_FMT, vals[settings.enterchoice]);
+        config_save();
     }
 }
 
@@ -72,6 +74,7 @@ static void select_filter(void)
         sprintf(pulldown_titles[0][2], MSG_MENU_APP_FILTER_FMT, vals[settings.filter]);
         dir_draw(0, 1);
         dir_draw(1, 1);
+        config_save();
     }
 }
 

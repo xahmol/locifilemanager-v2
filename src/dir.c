@@ -1213,6 +1213,7 @@ void dir_togglesort(void)
 
     sprintf(pulldown_titles[0][3], MSG_MENU_APP_SORT_FMT,
             settings.sort ? MSG_MENU_VAL_ON : MSG_MENU_VAL_OFF);
+    config_save();
 }
 
 // -------------------------------------------------------------------------

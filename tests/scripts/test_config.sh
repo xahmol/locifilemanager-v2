@@ -28,6 +28,12 @@
 #   3. Pre-seed 0:/idi8b/locifm/locifm.cfg with an invalid magic byte ->
 #      boot -> config_load() rejects it and config_save() rewrites the file
 #      with compiled-in defaults.
+#   4. Fresh sandbox -> boot (creates default locifm.cfg, dirs now exist) ->
+#      press 'o' (S[O]rt toggle, a global hotkey calling dir_togglesort())
+#      -> config_save() is called immediately on the setting change (no
+#      reboot) and locifm.cfg's sort byte reflects the new value right away.
+#      Also exercises config_save()'s loci_mkdir() calls when 0:/idi8b/ and
+#      0:/idi8b/locifm/ already exist (errors ignored intentionally).
 #
 # Boot/menu timing matches test_menus.sh: the app is interactive by
 # 8,000,000 cycles; opening the App pulldown (1x RIGHT + ENTER, with the
@@ -154,6 +160,15 @@ dump="$OUT/config_badmagic.bin"
 run_emu "${BOOT_CYCLES}:\\p1" "$BOOT_CYCLES" "$dump"
 check_found "main interface intact" "LOCI File Manager" "$dump"
 check_cfg_bytes "locifm.cfg rewritten with defaults (bad magic rejected)" "$DEFAULT_BYTES"
+
+# --- 4. runtime sort toggle ('o') -> immediate config_save() --------------
+echo ""
+echo "runtime sort toggle ('o') -> config_save() persists immediately"
+reset_sandbox
+dump="$OUT/config_runtime_sort.bin"
+run_emu "${BOOT_CYCLES}:o\\p1" 12000000 "$dump"
+check_found "main interface intact" "LOCI File Manager" "$dump"
+check_cfg_bytes "locifm.cfg updated immediately after sort toggle" "a500000001"
 
 echo ""
 echo "==========================================================="
