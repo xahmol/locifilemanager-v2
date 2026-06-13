@@ -202,7 +202,7 @@ CYCLES   ?= 8000000
 .PHONY: all all-langs clean run libdemo libdemo-run docs zip check-usb usb \
         check-phosphoric sandbox-reset test test-quick test-menus test-fileops \
         test-libdemo test-recurse test-namefilter test-copycancel \
-        test-viewer test-capture
+        test-viewer test-config test-favourites test-capture
 
 all: build/$(MAIN)$(LANGSUFFIX).tap
 
@@ -348,10 +348,14 @@ usb: check-usb all-langs
 #                      in src/dir.c: FMCONFIG_PATH default-creation, load,
 #                      bad-magic rewrite), verified via tests/sandbox host-fs
 #                      state and the App pulldown menu
+# make test-favourites -- favourite directories test (favourites_add/delete/
+#                      goto/show() in src/dir.c, Tools->Favourites popup,
+#                      hotkey 'y'): empty slots, add/jump/delete a bookmark,
+#                      verified via the popup display and locifm.cfg bytes
 # make test         -- full automated suite (test-quick + test-menus +
 #                      test-fileops + test-libdemo + test-recurse +
 #                      test-namefilter + test-copycancel + test-viewer +
-#                      test-config)
+#                      test-config + test-favourites)
 # make test-capture CYCLES=N TYPEKEYS='...'
 #                   -- calibration helper: fast-loads locifm.tap (-t ... -f)
 #                      under Atmos BASIC 1.1 with --loci-flash tests/sandbox
@@ -449,6 +453,12 @@ test-config: check-phosphoric sandbox-reset
 	    TAPFILE=$(MAIN)$(LANGSUFFIX).tap \
 	    bash tests/scripts/test_config.sh
 
+test-favourites: check-phosphoric sandbox-reset
+	$(MKDIR) tests/out 2>$(NULLDEV) ; true
+	PHOS=$(PHOS) ATMOSROM=$(ATMOSROM) SANDBOX=tests/sandbox OUT=tests/out \
+	    TAPFILE=$(MAIN)$(LANGSUFFIX).tap \
+	    bash tests/scripts/test_favourites.sh
+
 # test_fileops.sh mutates tests/sandbox/ (resetting it before each sub-test),
 # unlike test_boot.sh/test_menus.sh/test_libdemo.sh which are read-only -- so
 # each sub-target gets its own check-phosphoric + sandbox-reset via $(MAKE)
@@ -464,6 +474,7 @@ test:
 	$(MAKE) test-copycancel || status=1; \
 	$(MAKE) test-viewer   || status=1; \
 	$(MAKE) test-config   || status=1; \
+	$(MAKE) test-favourites || status=1; \
 	exit $$status
 
 # -------------------------------------------------------------------------

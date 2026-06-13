@@ -179,7 +179,7 @@ static void help(void)
 
     y = 0;
     cwin_putat_string(&win, 0, y++, MSG_HELP_TITLE1);
-    for (item = 0; item < 23; item++)
+    for (item = 0; item < 24; item++)
     {
         cwin_putat_string(&win, 0, y, helpinfo[item][0]);
         cwin_putat_char(&win, 10, y, ':');
@@ -188,7 +188,7 @@ static void help(void)
     }
 
     cwin_putat_string(&win, 0, y++, MSG_HELP_TITLE2);
-    for (item = 23; item < 25; item++)
+    for (item = 24; item < 25; item++)
     {
         cwin_putat_string(&win, 0, y, helpinfo[item][0]);
         cwin_putat_char(&win, 10, y, ':');
@@ -370,6 +370,10 @@ static void mainmenuloop(void)
                 dir_build_path(pathbuffer, sizeof(pathbuffer), presentdir[activepane].path, presentdirelement.name);
                 viewer_show_text(pathbuffer);
             }
+            break;
+
+        case 54:
+            favourites_show();
             break;
 
         case 61:
@@ -653,6 +657,10 @@ int main(void)
                 dir_build_path(pathbuffer, sizeof(pathbuffer), presentdir[activepane].path, presentdirelement.name);
                 viewer_show_text(pathbuffer);
             }
+            break;
+
+        case 'y':
+            favourites_show();
             break;
 
         case KEY_DEL:

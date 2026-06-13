@@ -88,6 +88,11 @@ extern struct AppSettings settings;
 #define FMCONFIG_DIR2  "0:/idi8b/locifm"
 #define FMCONFIG_PATH  "0:/idi8b/locifm/locifm.cfg"
 #define FMCONFIG_MAGIC 0xA5
+
+// Bookmarked directory paths (global, shared by both panes).
+#define FMCONFIG_FAV_SLOTS   8
+#define FMCONFIG_FAV_PATHLEN 48
+
 struct FmConfig
 {
     uint8_t magic;
@@ -95,6 +100,7 @@ struct FmConfig
     uint8_t filter;
     uint8_t enterchoice;
     uint8_t sort;
+    char    favourites[FMCONFIG_FAV_SLOTS][FMCONFIG_FAV_PATHLEN];
 };
 
 // Application variables
@@ -109,6 +115,10 @@ extern uint8_t  insidetape[2]; // Browser is inside a tape .TAP container file
 // Name filter pattern ('*'/'?' wildcards, case-insensitive, dir_read() only).
 // Empty string = no name filter.
 extern char namefilter[32];
+
+// Bookmarked directory paths, persisted via config_save()/config_load().
+// favourites[i][0] == '\0' marks an unused slot.
+extern char favourites[FMCONFIG_FAV_SLOTS][FMCONFIG_FAV_PATHLEN];
 
 // Buffers for full paths
 extern char pathbuffer[256];
@@ -146,6 +156,10 @@ void dir_parentdir(void);
 void dir_togglesort(void);
 void config_load(void);
 void config_save(void);
+void favourites_add(uint8_t slot);
+void favourites_delete(uint8_t slot);
+void favourites_goto(uint8_t slot);
+void favourites_show(void);
 void dir_newdir(void);
 void dir_deletedir(void);
 void dir_show_properties(void);

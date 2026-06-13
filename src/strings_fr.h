@@ -98,6 +98,7 @@
 #define MSG_MENU_TOOLS0         "[K] Proprietes"
 #define MSG_MENU_TOOLS1         "[L] Texte: Non"
 #define MSG_MENU_TOOLS2         "[J] Voir texte"
+#define MSG_MENU_TOOLS3         "[Y] Favoris"
 
 // Format macros for dynamic App pulldown entries (snprintf label + value → 16 chars max)
 #define MSG_MENU_APP_CONFIRM_FMT    "Confirm.: %s"
@@ -158,6 +159,14 @@
 #define MSG_PROP_TYPE_TAP       ".TAP - Image bande"
 #define MSG_PROP_TYPE_ROM       ".ROM - Image ROM"
 #define MSG_PROP_TYPE_LCE       ".LCE - Executable LOCI"
+
+// Popup favoris (Outils -> Favoris, touche Y)
+#define MSG_FAV_TITLE           "Favoris"
+#define MSG_FAV_SLOT_FMT        "%u: %s"
+#define MSG_FAV_EMPTY           "(vide)"
+#define MSG_FAV_HELP            "1-8:Aller A:Ajout D:Suppr ESC:Fermer"
+#define MSG_FAV_ADD_PROMPT      "Ajouter a emplacement (1-8):"
+#define MSG_FAV_DELETE_PROMPT   "Supprimer emplacement (1-8):"
 
 // ── Drive module strings ──────────────────────────────────────────────────────
 #define MSG_DRIVE_SELECT_TARGET   "Choisir lecteur cible."
@@ -241,7 +250,7 @@
     {"K",          "Proprietes"}, \
     {"L",          "Filtrer fich. par nom"}, \
     {"J",          "Voir fich. texte"}, \
-    {"Curs keys",  "Navigation menu"}, \
-    {"ESC/RETURN", "Annuler / Confirmer"}
+    {"Y",          "Favoris"}, \
+    {"Cur/Esc/Rt", "Naviguer/annuler/confirmer"}
 
 #endif

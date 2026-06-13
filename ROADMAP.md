@@ -241,9 +241,10 @@ the aggregate `test:` target):
 
 ### Progress
 
-- [ ] Implemented
-- [ ] Tests pass
-- [ ] Docs updated (README/ARCHITECTURE/CLAUDE.md as relevant)
+- [x] Implemented
+- [x] Tests pass (`make test-favourites`, 19/19; `make test` 276/276)
+- [x] Docs updated (README.md "Tools: ... favourites" section + keyboard
+      table, in-app Help (`H`) screen)
 
 ---
 

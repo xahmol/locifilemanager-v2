@@ -214,6 +214,7 @@ For details on how to operate your LOCI device, see the
 |**K**|Show properties (type, attributes, size) for the present file or directory
 |**L**|Set or clear a wildcard fi**l**e name filter for both panes
 |**J**|View the present text file in a full-screen, word-wrapped pager
+|**Y**|Open the favourite directories popup
 
 ### In main menu and pulldown menus
 
@@ -447,7 +448,7 @@ This function can be reached also by pressing the **E** key.
 
 ![Dir: New dir](screenshots/LociFM-menu-dir-create-dir.png)
 
-### Tools: Properties, name filter, and text viewer
+### Tools: Properties, name filter, text viewer, and favourites
 
 *Properties*
 
@@ -479,6 +480,17 @@ Any byte that is not printable ASCII (0x20-0x7E) -- e.g. when viewing a non-text
 Press **X** at any pause point to switch to a hex dump of the same file, showing each byte's offset and hex value plus an ASCII column; press **X** again to switch back to the word-wrapped text view. Either way, the file is read from the beginning again in the new view.
 
 This function can be reached also by pressing the **J** key.
+
+*Favourites*
+
+Opens a popup listing 8 bookmark slots, shared by both panes and saved to `0:/idi8b/locifm/locifm.cfg`. Empty slots are shown as "(empty)".
+
+- Press **1**-**8** to jump the active pane to the directory bookmarked in that slot (no effect if the slot is empty).
+- Press **A** then **1**-**8** to bookmark the active pane's current directory into that slot, overwriting any previous entry.
+- Press **D** then **1**-**8** to clear that slot.
+- Press **ESC** to close the popup.
+
+This function can be reached also by pressing the **Y** key.
 
 ### Info: Version information and help
 

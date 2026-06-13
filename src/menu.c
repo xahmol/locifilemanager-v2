@@ -202,7 +202,7 @@ MenuBar menubar = {
 // menunumber < MENUBAR_MAXOPTIONS to pick the "top menu" end colour).
 // Indices 6-10 are popup sub-menus opened via menu_option_select()/
 // menu_areyousure()/menu_confirm_file() with an explicit pulldown index.
-char pulldown_options[PULLDOWN_NUMBER] = { 5, 9, 7, 7, 3, 2, 3, 5, 4, 7, 2 };
+char pulldown_options[PULLDOWN_NUMBER] = { 5, 9, 7, 7, 4, 2, 3, 5, 4, 7, 2 };
 
 char pulldown_titles[PULLDOWN_NUMBER][PULLDOWN_MAXOPTIONS][PULLDOWN_MAXLENGTH] = {
     // 0 — App
@@ -217,7 +217,7 @@ char pulldown_titles[PULLDOWN_NUMBER][PULLDOWN_MAXOPTIONS][PULLDOWN_MAXLENGTH] =
     { MSG_MENU_MNT0, MSG_MENU_MNT1, MSG_MENU_MNT2, MSG_MENU_MNT3,
       MSG_MENU_MNT4, MSG_MENU_MNT5, MSG_MENU_MNT6 },
     // 4 — Tools
-    { MSG_MENU_TOOLS0, MSG_MENU_TOOLS1, MSG_MENU_TOOLS2 },
+    { MSG_MENU_TOOLS0, MSG_MENU_TOOLS1, MSG_MENU_TOOLS2, MSG_MENU_TOOLS3 },
     // 5 — Info
     { MSG_MENU_INFO0, MSG_MENU_INFO1 },
     // 6 — Enter-action sub-menu

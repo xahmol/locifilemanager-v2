@@ -53,7 +53,13 @@ SCREEN=tests/scripts/oric_screen.py
 BOOT_CYCLES=8000000
 OPEN_CYCLES=9800000
 CFGFILE="$SANDBOX/idi8b/locifm/locifm.cfg"
-DEFAULT_BYTES="a500000000"
+
+# struct FmConfig = magic + 4 settings bytes + 8x48 favourites bytes (389
+# bytes total). zero_hex N prints N zero bytes as hex (no separators).
+zero_hex() {
+    python3 -c "print('00' * $1, end='')"
+}
+DEFAULT_BYTES="a5$(zero_hex 388)"
 
 pass=0
 fail=0
@@ -88,7 +94,9 @@ check_cfg_bytes() {
         fail=$((fail+1))
         return
     fi
-    actual=$(od -An -tx1 "$CFGFILE" | tr -d ' \n')
+    # -v: don't collapse repeated lines with '*' (config now has long
+    # all-zero favourites runs).
+    actual=$(od -An -tx1 -v "$CFGFILE" | tr -d ' \n')
     if [ "$actual" = "$expected" ]; then
         echo "  [PASS] $label"
         pass=$((pass+1))
@@ -141,21 +149,21 @@ echo ""
 echo "existing valid config -> config_load() applies settings, file unchanged"
 reset_sandbox
 mkdir -p "$SANDBOX/idi8b/locifm"
-printf '\xa5\x01\x01\x01\x01' > "$CFGFILE"
+python3 -c "import sys; sys.stdout.buffer.write(b'\xa5\x01\x01\x01\x01' + b'\x00' * 384)" > "$CFGFILE"
 dump="$OUT/config_loaded.bin"
 run_emu "${BOOT_CYCLES}:\\r\\p1\\n" "$OPEN_CYCLES" "$dump"
 check_found "Confirm: All (confirm=1 loaded)"   "Confirm: All"   "$dump"
 check_found "Return: Enter (enterchoice=1 loaded)" "Return: Enter" "$dump"
 check_found "[F] Type: .DSK (filter=1 loaded)"  "[F] Type: .DSK" "$dump"
 check_found "S[O]rt: On (sort=1 loaded)"        "S[O]rt: On"     "$dump"
-check_cfg_bytes "locifm.cfg unchanged after load" "a501010101"
+check_cfg_bytes "locifm.cfg unchanged after load" "a501010101$(zero_hex 384)"
 
 # --- 3. existing config with bad magic -> rewritten with defaults ---------
 echo ""
 echo "existing config with bad magic -> config_save() rewrites defaults"
 reset_sandbox
 mkdir -p "$SANDBOX/idi8b/locifm"
-printf '\x00\x01\x01\x01\x01' > "$CFGFILE"
+python3 -c "import sys; sys.stdout.buffer.write(b'\x00\x01\x01\x01\x01' + b'\x00' * 384)" > "$CFGFILE"
 dump="$OUT/config_badmagic.bin"
 run_emu "${BOOT_CYCLES}:\\p1" "$BOOT_CYCLES" "$dump"
 check_found "main interface intact" "LOCI File Manager" "$dump"
@@ -168,7 +176,7 @@ reset_sandbox
 dump="$OUT/config_runtime_sort.bin"
 run_emu "${BOOT_CYCLES}:o\\p1" 12000000 "$dump"
 check_found "main interface intact" "LOCI File Manager" "$dump"
-check_cfg_bytes "locifm.cfg updated immediately after sort toggle" "a500000001"
+check_cfg_bytes "locifm.cfg updated immediately after sort toggle" "a500000001$(zero_hex 384)"
 
 echo ""
 echo "==========================================================="

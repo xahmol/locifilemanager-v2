@@ -45,6 +45,7 @@ uint8_t  targetdrive;
 uint16_t selection[2];
 uint8_t  insidetape[2];
 char     namefilter[32] = "";
+char     favourites[FMCONFIG_FAV_SLOTS][FMCONFIG_FAV_PATHLEN];
 
 char pathbuffer[256];
 char pathbuffer2[256];
@@ -1220,10 +1221,13 @@ void dir_togglesort(void)
 // Persistent settings (FMCONFIG_PATH)
 // -------------------------------------------------------------------------
 
-// Save confirm/filter/enterchoice/sort to FMCONFIG_PATH.
+// Save confirm/filter/enterchoice/sort and favourites to FMCONFIG_PATH.
 void config_save(void)
 {
-    struct FmConfig cfg;
+    // static: struct FmConfig is too large for the 512-byte stack segment
+    // (#pragma stacksize(0x0200), include/oric_crt.c) alongside its callers.
+    static struct FmConfig cfg;
+    uint8_t i;
 
     // Create the parent directories if they don't exist yet. Errors
     // (including "already exists") are ignored -- file_save() below fails
@@ -1237,16 +1241,21 @@ void config_save(void)
     cfg.enterchoice = settings.enterchoice;
     cfg.sort        = settings.sort;
 
+    for (i = 0; i < FMCONFIG_FAV_SLOTS; i++)
+        strncpy(cfg.favourites[i], favourites[i], FMCONFIG_FAV_PATHLEN);
+
     file_save(FMCONFIG_PATH, &cfg, sizeof(cfg));
 }
 
-// Load confirm/filter/enterchoice/sort from FMCONFIG_PATH, if present and
-// valid. On any failure (missing file, short read, bad magic), the
-// compiled-in defaults already set by the caller are written out as a new
-// config file instead.
+// Load confirm/filter/enterchoice/sort and favourites from FMCONFIG_PATH, if
+// present and valid. On any failure (missing file, short read, bad magic),
+// the compiled-in defaults already set by the caller are written out as a
+// new config file instead.
 void config_load(void)
 {
-    struct FmConfig cfg;
+    // static: see config_save() above.
+    static struct FmConfig cfg;
+    uint8_t i;
 
     if (file_load(FMCONFIG_PATH, &cfg, sizeof(cfg)) != sizeof(cfg))
     {
@@ -1264,6 +1273,116 @@ void config_load(void)
     settings.filter      = cfg.filter;
     settings.enterchoice = cfg.enterchoice;
     settings.sort        = cfg.sort;
+
+    for (i = 0; i < FMCONFIG_FAV_SLOTS; i++)
+    {
+        strncpy(favourites[i], cfg.favourites[i], FMCONFIG_FAV_PATHLEN);
+        favourites[i][FMCONFIG_FAV_PATHLEN - 1] = '\0';
+    }
+}
+
+// -------------------------------------------------------------------------
+// Favourite directories (FMCONFIG_PATH)
+// -------------------------------------------------------------------------
+
+// Bookmark the active pane's current path into the given slot (0-based).
+void favourites_add(uint8_t slot)
+{
+    strncpy(favourites[slot], presentdir[activepane].path, FMCONFIG_FAV_PATHLEN - 1);
+    favourites[slot][FMCONFIG_FAV_PATHLEN - 1] = '\0';
+    config_save();
+}
+
+// Clear the given favourite slot (0-based).
+void favourites_delete(uint8_t slot)
+{
+    favourites[slot][0] = '\0';
+    config_save();
+}
+
+// Jump the active pane to the path bookmarked in the given slot (0-based).
+// No-op if the slot is empty.
+void favourites_goto(uint8_t slot)
+{
+    if (!favourites[slot][0])
+        return;
+
+    strncpy(presentdir[activepane].path, favourites[slot], sizeof(presentdir[activepane].path) - 1);
+    presentdir[activepane].path[sizeof(presentdir[activepane].path) - 1] = '\0';
+    presentdir[activepane].drive = (uint8_t)(favourites[slot][0] - '0');
+    insidetape[activepane] = 0;
+
+    dir_draw(activepane, 1);
+}
+
+// Popup: list the 8 favourite slots ("(empty)" for unused ones). Digits
+// 1-8 jump to a populated slot, [A] bookmarks the active pane's current
+// path into a chosen slot, [D] clears a chosen slot, ESC closes.
+void favourites_show(void)
+{
+    OricCharWin popup;
+    uint8_t key;
+    uint8_t i;
+
+    menu_popup_open(0, 6, 13);
+    cwin_init(&popup, 2, 6, 38, 13, A_FWBLACK, A_BGWHITE);
+
+    cwin_putat_string(&popup, 0, 0, MSG_FAV_TITLE);
+
+    for (;;)
+    {
+        for (i = 0; i < FMCONFIG_FAV_SLOTS; i++)
+        {
+            cwin_fill_rect(&popup, 0, 2 + i, 36, 1, CH_SPACE);
+            cwin_putat_printf(&popup, 0, 2 + i, MSG_FAV_SLOT_FMT, (uint16_t)(i + 1),
+                              favourites[i][0] ? favourites[i] : MSG_FAV_EMPTY);
+        }
+
+        cwin_fill_rect(&popup, 0, 11, 36, 1, CH_SPACE);
+        cwin_putat_string(&popup, 0, 11, MSG_FAV_HELP);
+
+        key = cwin_getch();
+
+        if (key == KEY_ESC)
+            break;
+
+        if (key >= '1' && key <= '0' + FMCONFIG_FAV_SLOTS)
+        {
+            i = key - '1';
+            if (favourites[i][0])
+            {
+                // Close the popup before redrawing the panes -- see
+                // select_namefilter() for why (menu_popup_close() restores
+                // the pre-popup screen content for the rows it covers).
+                menu_popup_close();
+                favourites_goto(i);
+                return;
+            }
+            continue;
+        }
+
+        if (key == 'a' || key == 'A')
+        {
+            cwin_fill_rect(&popup, 0, 11, 36, 1, CH_SPACE);
+            cwin_putat_string(&popup, 0, 11, MSG_FAV_ADD_PROMPT);
+            key = cwin_getch();
+            if (key >= '1' && key <= '0' + FMCONFIG_FAV_SLOTS)
+                favourites_add(key - '1');
+            continue;
+        }
+
+        if (key == 'd' || key == 'D')
+        {
+            cwin_fill_rect(&popup, 0, 11, 36, 1, CH_SPACE);
+            cwin_putat_string(&popup, 0, 11, MSG_FAV_DELETE_PROMPT);
+            key = cwin_getch();
+            if (key >= '1' && key <= '0' + FMCONFIG_FAV_SLOTS)
+                favourites_delete(key - '1');
+            continue;
+        }
+    }
+
+    menu_popup_close();
 }
 
 // -------------------------------------------------------------------------
