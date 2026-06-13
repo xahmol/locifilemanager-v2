@@ -422,8 +422,14 @@ int main(void)
     bit_on = 0;
     ald_on = 0;
 
-    // Populate dynamic App pulldown entries, reflecting the settings
-    // defaults set above.
+    // Override confirm/filter/enterchoice/sort defaults above from
+    // FMCONFIG_PATH, if present and valid; otherwise save the compiled-in
+    // defaults there as a new config file.
+    config_load();
+
+    // Populate dynamic App pulldown entries, reflecting settings -- either
+    // the defaults set above or values loaded from FMCONFIG_PATH by
+    // config_load().
     {
         static const char * const filtervals[5] = { MSG_MENU_VAL_NONE, MSG_MENU_VAL_DSK, MSG_MENU_VAL_TAP, MSG_MENU_VAL_ROM, MSG_MENU_VAL_LCE };
         static const char * const entervals[3]  = { MSG_MENU_VAL_SELECT, MSG_MENU_VAL_ENTER, MSG_MENU_VAL_LAUNCH };

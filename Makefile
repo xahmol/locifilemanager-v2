@@ -344,9 +344,14 @@ usb: check-usb all-langs
 #                      file_copy_progress() aborts and removes partial dest)
 # make test-viewer  -- text file viewer test (viewer_show_text() in
 #                      src/viewer.c: word-wrap, forward-only pagination, ESC)
+# make test-config  -- persistent settings test (config_load()/config_save()
+#                      in src/dir.c: FMCONFIG_PATH default-creation, load,
+#                      bad-magic rewrite), verified via tests/sandbox host-fs
+#                      state and the App pulldown menu
 # make test         -- full automated suite (test-quick + test-menus +
 #                      test-fileops + test-libdemo + test-recurse +
-#                      test-namefilter + test-copycancel + test-viewer)
+#                      test-namefilter + test-copycancel + test-viewer +
+#                      test-config)
 # make test-capture CYCLES=N TYPEKEYS='...'
 #                   -- calibration helper: fast-loads locifm.tap (-t ... -f)
 #                      under Atmos BASIC 1.1 with --loci-flash tests/sandbox
@@ -438,6 +443,12 @@ test-viewer: check-phosphoric sandbox-reset
 	    TAPFILE=$(MAIN)$(LANGSUFFIX).tap \
 	    bash tests/scripts/test_viewer.sh
 
+test-config: check-phosphoric sandbox-reset
+	$(MKDIR) tests/out 2>$(NULLDEV) ; true
+	PHOS=$(PHOS) ATMOSROM=$(ATMOSROM) SANDBOX=tests/sandbox OUT=tests/out \
+	    TAPFILE=$(MAIN)$(LANGSUFFIX).tap \
+	    bash tests/scripts/test_config.sh
+
 # test_fileops.sh mutates tests/sandbox/ (resetting it before each sub-test),
 # unlike test_boot.sh/test_menus.sh/test_libdemo.sh which are read-only -- so
 # each sub-target gets its own check-phosphoric + sandbox-reset via $(MAKE)
@@ -452,6 +463,7 @@ test:
 	$(MAKE) test-namefilter || status=1; \
 	$(MAKE) test-copycancel || status=1; \
 	$(MAKE) test-viewer   || status=1; \
+	$(MAKE) test-config   || status=1; \
 	exit $$status
 
 # -------------------------------------------------------------------------

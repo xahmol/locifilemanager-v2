@@ -81,6 +81,22 @@ struct AppSettings
 };
 extern struct AppSettings settings;
 
+// Persistent settings, saved to/loaded from FMCONFIG_PATH (config_save()/
+// config_load()). magic guards against a missing/foreign/corrupt file --
+// on mismatch, config_load() falls back to writing the compiled-in defaults.
+#define FMCONFIG_DIR1  "0:/idi8b"
+#define FMCONFIG_DIR2  "0:/idi8b/locifm"
+#define FMCONFIG_PATH  "0:/idi8b/locifm/locifm.cfg"
+#define FMCONFIG_MAGIC 0xA5
+struct FmConfig
+{
+    uint8_t magic;
+    uint8_t confirm;
+    uint8_t filter;
+    uint8_t enterchoice;
+    uint8_t sort;
+};
+
 // Application variables
 extern uint8_t  activepane;    // Number of active pane: 0 is upper, 1 is lower
 extern uint16_t present;       // Present element (XRAM pointer)
@@ -128,6 +144,8 @@ void dir_select_inverse(void);
 void dir_gotoroot(void);
 void dir_parentdir(void);
 void dir_togglesort(void);
+void config_load(void);
+void config_save(void);
 void dir_newdir(void);
 void dir_deletedir(void);
 void dir_show_properties(void);

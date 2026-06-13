@@ -157,17 +157,19 @@ check_host "DEEP/EMPTY/ present" "[ -d '$SANDBOX/DEEP/EMPTY' ]"
 # Phase 1 -- Recursive directory copy/move
 #
 # Sort order with DEEP/ present (case-insensitive alpha, sort toggled on):
-#   DEEP/(0) DEMO.TAP(1) FIRM.ROM(2) GAME.DSK(3) libdemo.tap(4) locifm.tap(5)
-#   NOTES.TXT(6) SAVE.LCE(7) SUBDIR/(8)
+#   DEEP/(0) DEMO.TAP(1) FIRM.ROM(2) GAME.DSK(3) idi8b/(4) libdemo.tap(5)
+#   locifm.tap(6) NOTES.TXT(7) SAVE.LCE(8) SUBDIR/(9)
+# (idi8b/ is config_load()'s auto-created 0:/idi8b/ dir, sorting in at
+# position 4 -- exactly 10 entries, filling PANE_HEIGHT with no scrolling.)
 #
 # Sequence: o (sort on, resets both panes to pos 0) -> s (select DEEP/ in
-# pane 0) -> / (switch active to pane 1) -> 8x down (pane 1 cursor to
-# SUBDIR/, pos 8) -> ENTER (navigate pane 1 into SUBDIR/) -> / (switch back
+# pane 0) -> / (switch active to pane 1) -> 9x down (pane 1 cursor to
+# SUBDIR/, pos 9) -> ENTER (navigate pane 1 into SUBDIR/) -> / (switch back
 # to pane 0, active again) -> c/v (copy/move the 1 selected item from pane 0
 # into pane 1's path 0:/SUBDIR/) -> ENTER (dismiss final "Press a key" popup).
 # -----------------------------------------------------------------------
 COPYMOVE_CYCLES=30000000
-COPYMOVE_KEYS_TMPL="${BOOT_CYCLES}:o\\p1s\\p1/\\p1\\d\\d\\d\\d\\d\\d\\d\\d\\p1\\n\\p1/\\p1__ACTION__\\p1\\n"
+COPYMOVE_KEYS_TMPL="${BOOT_CYCLES}:o\\p1s\\p1/\\p1\\d\\d\\d\\d\\d\\d\\d\\d\\d\\p1\\n\\p1/\\p1__ACTION__\\p1\\n"
 
 echo ""
 echo "Phase 1 -- Recursive directory copy"
@@ -273,10 +275,10 @@ reset_sandbox
 PROPS_CYCLES=14000000
 
 echo ""
-echo "Phase 7 -- Properties popup, file (NOTES.TXT, sorted pos 6)"
+echo "Phase 7 -- Properties popup, file (NOTES.TXT, sorted pos 7)"
 reset_sandbox
 propsfile_dump="$OUT/recurse_props_file.bin"
-run_emu "${BOOT_CYCLES}:o\\p1\\d\\d\\d\\d\\d\\d\\p1k" $PROPS_CYCLES "$propsfile_dump"
+run_emu "${BOOT_CYCLES}:o\\p1\\d\\d\\d\\d\\d\\d\\d\\p1k" $PROPS_CYCLES "$propsfile_dump"
 if [ ! -f "$propsfile_dump" ]; then
     echo "  [FAIL] emulator did not produce a RAM dump at $propsfile_dump"
     fail=$((fail+1))

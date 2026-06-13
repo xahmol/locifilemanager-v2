@@ -19,7 +19,10 @@
 #
 # Navigation (sort-on, calibrated against test_recurse.sh/test_namefilter.sh):
 # root listing with sort on is DEEP/(0), DEMO.TAP(1), FIRM.ROM(2), GAME.DSK(3),
-# libdemo.tap(4), locifm.tap(5), NOTES.TXT(6), SAVE.LCE(7), SUBDIR/(8).
+# idi8b/(4), libdemo.tap(5), locifm.tap(6), NOTES.TXT(7), SAVE.LCE(8),
+# SUBDIR/(9). idi8b/ is config_load()'s auto-created 0:/idi8b/ dir, sorting
+# in at position 4 -- exactly 10 entries, filling PANE_HEIGHT with no
+# scrolling.
 #
 # tests/fixtures/SUBDIR/LONGTEXT.TXT (30 short lines, "LINE NN OF LONGTEXT
 # FIXTURE FILE") is the only entry in SUBDIR/ -- placed there (not at fixtures
@@ -97,13 +100,13 @@ if [ ! -x "$PHOS" ]; then
 fi
 
 # -----------------------------------------------------------------------
-# Sub-test 1: open NOTES.TXT (sorted pos 6) -- content visible, EOF prompt.
+# Sub-test 1: open NOTES.TXT (sorted pos 7) -- content visible, EOF prompt.
 # -----------------------------------------------------------------------
 echo ""
 echo "View NOTES.TXT"
 notes_dump="$OUT/viewer_notes.bin"
 reset_sandbox
-run_emu "${BOOT_CYCLES}:o\\p1\\d\\d\\d\\d\\d\\d\\p1j" 14000000 "$notes_dump"
+run_emu "${BOOT_CYCLES}:o\\p1\\d\\d\\d\\d\\d\\d\\d\\p1j" 14000000 "$notes_dump"
 if [ ! -f "$notes_dump" ]; then
     echo "  [FAIL] emulator did not produce a RAM dump at $notes_dump"
     fail=$((fail+1))
@@ -119,7 +122,7 @@ echo ""
 echo "ESC exits viewer, restores main interface"
 exit_dump="$OUT/viewer_notes_exit.bin"
 reset_sandbox
-run_emu "${BOOT_CYCLES}:o\\p1\\d\\d\\d\\d\\d\\d\\p1j\\p1\\e" 16000000 "$exit_dump"
+run_emu "${BOOT_CYCLES}:o\\p1\\d\\d\\d\\d\\d\\d\\d\\p1j\\p1\\e" 16000000 "$exit_dump"
 if [ ! -f "$exit_dump" ]; then
     echo "  [FAIL] emulator did not produce a RAM dump at $exit_dump"
     fail=$((fail+1))
@@ -130,14 +133,14 @@ fi
 
 # -----------------------------------------------------------------------
 # Sub-test 3: view LONGTEXT.TXT (SUBDIR/, only entry) -- page 1 (LINE 01-27).
-# Navigation: 8x down to SUBDIR/ (pos 8), ENTER to navigate in (resets cursor
+# Navigation: 9x down to SUBDIR/ (pos 9), ENTER to navigate in (resets cursor
 # to pos 0 on LONGTEXT.TXT), then 'j'.
 # -----------------------------------------------------------------------
 echo ""
 echo "View LONGTEXT.TXT -- page 1"
 page1_dump="$OUT/viewer_longtext_p1.bin"
 reset_sandbox
-run_emu "${BOOT_CYCLES}:o\\p1\\d\\d\\d\\d\\d\\d\\d\\d\\p1\\n\\p1j" 16000000 "$page1_dump"
+run_emu "${BOOT_CYCLES}:o\\p1\\d\\d\\d\\d\\d\\d\\d\\d\\d\\p1\\n\\p1j" 16000000 "$page1_dump"
 if [ ! -f "$page1_dump" ]; then
     echo "  [FAIL] emulator did not produce a RAM dump at $page1_dump"
     fail=$((fail+1))
@@ -155,7 +158,7 @@ echo ""
 echo "View LONGTEXT.TXT -- page 2 (SPACE)"
 page2_dump="$OUT/viewer_longtext_p2.bin"
 reset_sandbox
-run_emu "${BOOT_CYCLES}:o\\p1\\d\\d\\d\\d\\d\\d\\d\\d\\p1\\n\\p1j\\p1 " 18000000 "$page2_dump"
+run_emu "${BOOT_CYCLES}:o\\p1\\d\\d\\d\\d\\d\\d\\d\\d\\d\\p1\\n\\p1j\\p1 " 18000000 "$page2_dump"
 if [ ! -f "$page2_dump" ]; then
     echo "  [FAIL] emulator did not produce a RAM dump at $page2_dump"
     fail=$((fail+1))
@@ -173,7 +176,7 @@ echo ""
 echo "ESC from page 2 restores main interface"
 page2exit_dump="$OUT/viewer_longtext_exit.bin"
 reset_sandbox
-run_emu "${BOOT_CYCLES}:o\\p1\\d\\d\\d\\d\\d\\d\\d\\d\\p1\\n\\p1j\\p1 \\p1\\e" 20000000 "$page2exit_dump"
+run_emu "${BOOT_CYCLES}:o\\p1\\d\\d\\d\\d\\d\\d\\d\\d\\d\\p1\\n\\p1j\\p1 \\p1\\e" 20000000 "$page2exit_dump"
 if [ ! -f "$page2exit_dump" ]; then
     echo "  [FAIL] emulator did not produce a RAM dump at $page2exit_dump"
     fail=$((fail+1))
@@ -199,7 +202,7 @@ echo "View binary file with NUL/control/DEL/high-bit bytes"
 binary_dump="$OUT/viewer_binary.bin"
 reset_sandbox
 printf 'AAAA\000BBBB\nCCCC\001DDDD\nEEEE\177FFFF\nGGGG\200HHHH\n' > "$SANDBOX/SUBDIR/BINARY.BIN"
-run_emu "${BOOT_CYCLES}:o\\p1\\d\\d\\d\\d\\d\\d\\d\\d\\p1\\n\\p1j" 16000000 "$binary_dump"
+run_emu "${BOOT_CYCLES}:o\\p1\\d\\d\\d\\d\\d\\d\\d\\d\\d\\p1\\n\\p1j" 16000000 "$binary_dump"
 if [ ! -f "$binary_dump" ]; then
     echo "  [FAIL] emulator did not produce a RAM dump at $binary_dump"
     fail=$((fail+1))
@@ -220,7 +223,7 @@ echo ""
 echo "Toggle to hex view (X at EOF)"
 hex_dump="$OUT/viewer_notes_hex.bin"
 reset_sandbox
-run_emu "${BOOT_CYCLES}:o\\p1\\d\\d\\d\\d\\d\\d\\p1j\\p1x" 20000000 "$hex_dump"
+run_emu "${BOOT_CYCLES}:o\\p1\\d\\d\\d\\d\\d\\d\\d\\p1j\\p1x" 20000000 "$hex_dump"
 if [ ! -f "$hex_dump" ]; then
     echo "  [FAIL] emulator did not produce a RAM dump at $hex_dump"
     fail=$((fail+1))
@@ -240,7 +243,7 @@ echo ""
 echo "Toggle back to text view (X again)"
 texttoggle_dump="$OUT/viewer_notes_texttoggle.bin"
 reset_sandbox
-run_emu "${BOOT_CYCLES}:o\\p1\\d\\d\\d\\d\\d\\d\\p1j\\p1x\\p1x" 26000000 "$texttoggle_dump"
+run_emu "${BOOT_CYCLES}:o\\p1\\d\\d\\d\\d\\d\\d\\d\\p1j\\p1x\\p1x" 26000000 "$texttoggle_dump"
 if [ ! -f "$texttoggle_dump" ]; then
     echo "  [FAIL] emulator did not produce a RAM dump at $texttoggle_dump"
     fail=$((fail+1))

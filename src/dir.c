@@ -1216,6 +1216,56 @@ void dir_togglesort(void)
 }
 
 // -------------------------------------------------------------------------
+// Persistent settings (FMCONFIG_PATH)
+// -------------------------------------------------------------------------
+
+// Save confirm/filter/enterchoice/sort to FMCONFIG_PATH.
+void config_save(void)
+{
+    struct FmConfig cfg;
+
+    // Create the parent directories if they don't exist yet. Errors
+    // (including "already exists") are ignored -- file_save() below fails
+    // harmlessly if a directory is genuinely unavailable.
+    loci_mkdir(FMCONFIG_DIR1);
+    loci_mkdir(FMCONFIG_DIR2);
+
+    cfg.magic       = FMCONFIG_MAGIC;
+    cfg.confirm     = settings.confirm;
+    cfg.filter      = settings.filter;
+    cfg.enterchoice = settings.enterchoice;
+    cfg.sort        = settings.sort;
+
+    file_save(FMCONFIG_PATH, &cfg, sizeof(cfg));
+}
+
+// Load confirm/filter/enterchoice/sort from FMCONFIG_PATH, if present and
+// valid. On any failure (missing file, short read, bad magic), the
+// compiled-in defaults already set by the caller are written out as a new
+// config file instead.
+void config_load(void)
+{
+    struct FmConfig cfg;
+
+    if (file_load(FMCONFIG_PATH, &cfg, sizeof(cfg)) != sizeof(cfg))
+    {
+        config_save();
+        return;
+    }
+
+    if (cfg.magic != FMCONFIG_MAGIC)
+    {
+        config_save();
+        return;
+    }
+
+    settings.confirm     = cfg.confirm;
+    settings.filter      = cfg.filter;
+    settings.enterchoice = cfg.enterchoice;
+    settings.sort        = cfg.sort;
+}
+
+// -------------------------------------------------------------------------
 // Directory creation / deletion
 // -------------------------------------------------------------------------
 

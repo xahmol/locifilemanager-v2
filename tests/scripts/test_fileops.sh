@@ -11,8 +11,10 @@
 # the freshly built .tap), so cursor positions are deterministic:
 #   - 'o' toggles sort on, which re-sorts both panes case-insensitively and
 #     resets the cursor to position 0 -- DEEP/ for the fixture set
-#     (DEEP/, DEMO.TAP, FIRM.ROM, GAME.DSK, locifm.tap, NOTES.TXT, SAVE.LCE,
-#     SUBDIR/). An extra \d\p1 moves the cursor to DEMO.TAP at position 1.
+#     (DEEP/, DEMO.TAP, FIRM.ROM, GAME.DSK, idi8b/, locifm.tap, NOTES.TXT,
+#     SAVE.LCE, SUBDIR/ -- idi8b/ is config_load()'s auto-created 0:/idi8b/
+#     dir, sorting in at position 4). An extra \d\p1 moves the cursor to
+#     DEMO.TAP at position 1 (unchanged by idi8b/, which sorts after it).
 #   - Result is verified primarily via tests/sandbox/ host-filesystem state
 #     (ground truth, no screen-scraping needed for the actual outcome), plus
 #     a screen-dump sanity check that the main interface is intact and no
@@ -141,7 +143,7 @@ echo ""
 echo "copy (DEMO.TAP -> SUBDIR/)"
 reset_sandbox
 dump="$OUT/fileops_copy.bin"
-run_emu "${BOOT_CYCLES}:o\\p1\\d\\p1/\\p1\\d\\d\\d\\d\\d\\d\\d\\p1\\n\\p1/\\p1c\\p1\\n" 17000000 "$dump"
+run_emu "${BOOT_CYCLES}:o\\p1\\d\\p1/\\p1\\d\\d\\d\\d\\d\\d\\d\\d\\p1\\n\\p1/\\p1c\\p1\\n" 17000000 "$dump"
 check_found     "main interface intact"  "LOCI File Manager" "$dump"
 check_not_found "no file error popup"    "File error"        "$dump"
 check_host "DEMO.TAP copied to SUBDIR/, original retained" \
@@ -152,7 +154,7 @@ echo ""
 echo "move (DEMO.TAP -> SUBDIR/)"
 reset_sandbox
 dump="$OUT/fileops_move.bin"
-run_emu "${BOOT_CYCLES}:o\\p1\\d\\p1/\\p1\\d\\d\\d\\d\\d\\d\\d\\p1\\n\\p1/\\p1v\\p1\\n" 17000000 "$dump"
+run_emu "${BOOT_CYCLES}:o\\p1\\d\\p1/\\p1\\d\\d\\d\\d\\d\\d\\d\\d\\p1\\n\\p1/\\p1v\\p1\\n" 17000000 "$dump"
 check_found     "main interface intact"  "LOCI File Manager" "$dump"
 check_not_found "no file error popup"    "File error"        "$dump"
 check_host "DEMO.TAP moved to SUBDIR/" \

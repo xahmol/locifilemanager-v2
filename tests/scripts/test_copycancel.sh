@@ -30,12 +30,14 @@
 #
 # Navigation sequence (sort-on, calibrated against test_recurse.sh/
 # test_namefilter.sh): with sort on, root listing is BIGFILE.BIN(0), DEEP/(1),
-# DEMO.TAP(2), FIRM.ROM(3), GAME.DSK(4), libdemo.tap(5), locifm.tap(6),
-# NOTES.TXT(7), SAVE.LCE(8), SUBDIR/(9) -- exactly 10 entries (PANE_HEIGHT).
+# DEMO.TAP(2), FIRM.ROM(3), GAME.DSK(4), idi8b/(5, config_load()'s
+# auto-created 0:/idi8b/ dir), libdemo.tap(6), locifm.tap(7), NOTES.TXT(8),
+# SAVE.LCE(9), SUBDIR/(10) -- 11 entries, one more than PANE_HEIGHT, so
+# SUBDIR/ is off-screen until scrolled into view.
 #   o        -- sort on (resets both panes to pos 0)
 #   s        -- select BIGFILE.BIN (pane 0, pos 0)
 #   /        -- switch to pane 1
-#   9x down  -- move to SUBDIR/ (pos 9)
+#   b        -- jump to last entry, SUBDIR/ (pos 10)
 #   ENTER    -- navigate pane 1 into SUBDIR/
 #   /        -- switch back to pane 0
 #   c        -- copy selected file(s) to pane 1's directory (SUBDIR/)
@@ -51,7 +53,7 @@ set -u
 cd "$(dirname "$0")/../.." || exit 1
 
 SCREEN=tests/scripts/oric_screen.py
-NAV="8000000:o\\p1s\\p1/\\p1\\d\\d\\d\\d\\d\\d\\d\\d\\d\\p1\\n\\p1/\\p1c"
+NAV="8000000:o\\p1s\\p1/\\p1b\\p1\\n\\p1/\\p1c"
 
 pass=0
 fail=0
