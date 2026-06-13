@@ -92,7 +92,7 @@ static int8_t file_copy_move_cb(RecurseEvent ev, const LociDirent *entry,
     // Check if destination file exists
     if (file_exists(pathbuffer3))
     {
-        if (confirm || !ctx->confirmed)
+        if (settings.confirm || !ctx->confirmed)
         {
             if (!menu_confirm_file(MSG_FILE_OVERWRITE_Q, entry->d_name))
                 return RECURSE_ABORT;
@@ -276,7 +276,7 @@ void file_copy_move_selected(uint8_t move)
                     // Check if file exists
                     if (file_exists(pathbuffer))
                     {
-                        if (confirm || !confirmed)
+                        if (settings.confirm || !confirmed)
                         {
                             if (!menu_confirm_file(MSG_FILE_OVERWRITE_Q, presentdirelement.name))
                                 break;
@@ -391,7 +391,7 @@ void file_delete(void)
                 cwin_putat_string(&popup, 0, 3, presentdirelement.name);
 
                 // Confirm delete
-                if (confirm || !confirmed)
+                if (settings.confirm || !confirmed)
                 {
                     if (!menu_confirm_file(MSG_FILE_DELETE_Q, presentdirelement.name))
                         break;

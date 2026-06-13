@@ -161,14 +161,16 @@ unchanged. No new test needed.
 
 ### Progress
 
-- [ ] Implemented
-- [ ] Tests pass
-- [ ] Docs updated (`ARCHITECTURE.md` state table, `CLAUDE.md` if relevant)
+- [x] Implemented
+- [x] Tests pass
+- [x] Docs updated (`ARCHITECTURE.md` state table, `CLAUDE.md` if relevant)
 
-**Status: plan only, not started.** This refactor has no real-HW dependency
-and could be done independently, but is deferred until the persistent-storage
-research task concludes, to avoid restructuring code for a feature that may
-not return.
+**Status: done.** `struct AppSettings { confirm; filter; enterchoice; sort; }`
+plus a single `extern struct AppSettings settings;` now hold these four
+fields throughout `src/main.c`, `src/dir.c`, `src/file.c`, and `src/dir.h`.
+`make test` 245/245 unchanged (pure refactor, no behaviour change). When
+persistent storage (task #14) is reintroduced, save/load becomes a single
+`loci_write`/`loci_read` of `settings`.
 
 ### Adding a new plan
 

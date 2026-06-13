@@ -42,9 +42,9 @@ static const char * const helpinfo[25][2] = { MSG_HELP_TABLE };
 static void confirm_toggle(void)
 // Toggle confirm once or all
 {
-    confirm = !confirm;
+    settings.confirm = !settings.confirm;
     sprintf(pulldown_titles[0][0], MSG_MENU_APP_CONFIRM_FMT,
-            confirm ? MSG_MENU_VAL_ALL : MSG_MENU_VAL_ONCE);
+            settings.confirm ? MSG_MENU_VAL_ALL : MSG_MENU_VAL_ONCE);
 }
 
 static void select_enter_choice(void)
@@ -55,8 +55,8 @@ static void select_enter_choice(void)
 
     if (select)
     {
-        enterchoice = select - 1;
-        sprintf(pulldown_titles[0][1], MSG_MENU_APP_RETURN_FMT, vals[enterchoice]);
+        settings.enterchoice = select - 1;
+        sprintf(pulldown_titles[0][1], MSG_MENU_APP_RETURN_FMT, vals[settings.enterchoice]);
     }
 }
 
@@ -68,8 +68,8 @@ static void select_filter(void)
 
     if (select)
     {
-        filter = select - 1;
-        sprintf(pulldown_titles[0][2], MSG_MENU_APP_FILTER_FMT, vals[filter]);
+        settings.filter = select - 1;
+        sprintf(pulldown_titles[0][2], MSG_MENU_APP_FILTER_FMT, vals[settings.filter]);
         dir_draw(0, 1);
         dir_draw(1, 1);
     }
@@ -406,32 +406,32 @@ int main(void)
     menu_init();   // also calls ijk_detect()
 
     // Reset application state
-    activepane    = 0;
-    filter        = 0;
-    enterchoice   = 0;
-    confirm       = 0;
-    sort          = 0;
-    targetdrive   = 0;
-    selection[0]  = 0;
-    selection[1]  = 0;
-    insidetape[0] = 0;
-    insidetape[1] = 0;
+    activepane           = 0;
+    settings.confirm     = 0;
+    settings.filter      = 0;
+    settings.enterchoice = 0;
+    settings.sort        = 0;
+    targetdrive          = 0;
+    selection[0]         = 0;
+    selection[1]         = 0;
+    insidetape[0]        = 0;
+    insidetape[1]        = 0;
     fdc_on = 0;
     tap_on = 0;
     b11_on = 0;
     bit_on = 0;
     ald_on = 0;
 
-    // Populate dynamic App pulldown entries, reflecting the confirm/filter/
-    // enterchoice/sort defaults set above.
+    // Populate dynamic App pulldown entries, reflecting the settings
+    // defaults set above.
     {
         static const char * const filtervals[5] = { MSG_MENU_VAL_NONE, MSG_MENU_VAL_DSK, MSG_MENU_VAL_TAP, MSG_MENU_VAL_ROM, MSG_MENU_VAL_LCE };
         static const char * const entervals[3]  = { MSG_MENU_VAL_SELECT, MSG_MENU_VAL_ENTER, MSG_MENU_VAL_LAUNCH };
 
-        sprintf(pulldown_titles[0][0], MSG_MENU_APP_CONFIRM_FMT, confirm ? MSG_MENU_VAL_ALL : MSG_MENU_VAL_ONCE);
-        sprintf(pulldown_titles[0][1], MSG_MENU_APP_RETURN_FMT,  entervals[enterchoice]);
-        sprintf(pulldown_titles[0][2], MSG_MENU_APP_FILTER_FMT,  filtervals[filter]);
-        sprintf(pulldown_titles[0][3], MSG_MENU_APP_SORT_FMT,    sort ? MSG_MENU_VAL_ON : MSG_MENU_VAL_OFF);
+        sprintf(pulldown_titles[0][0], MSG_MENU_APP_CONFIRM_FMT, settings.confirm ? MSG_MENU_VAL_ALL : MSG_MENU_VAL_ONCE);
+        sprintf(pulldown_titles[0][1], MSG_MENU_APP_RETURN_FMT,  entervals[settings.enterchoice]);
+        sprintf(pulldown_titles[0][2], MSG_MENU_APP_FILTER_FMT,  filtervals[settings.filter]);
+        sprintf(pulldown_titles[0][3], MSG_MENU_APP_SORT_FMT,    settings.sort ? MSG_MENU_VAL_ON : MSG_MENU_VAL_OFF);
     }
     sprintf(pulldown_titles[3][5], MSG_MENU_MNT_TARGET_FMT,  MSG_MENU_DRV0);
 
@@ -487,7 +487,7 @@ int main(void)
             }
             else
             {
-                switch (enterchoice)
+                switch (settings.enterchoice)
                 {
                 case 0:
                     if (insidetape[activepane])

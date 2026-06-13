@@ -35,14 +35,12 @@ char dir_entry_types[8][4] =
     "BIN"
 };
 
+struct AppSettings settings;
+
 uint8_t  activepane;
 uint16_t present;
 uint16_t previous;
 uint16_t next;
-uint8_t  filter;
-uint8_t  enterchoice;
-uint8_t  confirm;
-uint8_t  sort;
 uint8_t  targetdrive;
 uint16_t selection[2];
 uint8_t  insidetape[2];
@@ -417,7 +415,7 @@ void dir_read(uint8_t dirnr, uint8_t filterval)
             else
             {
                 // Does the list need to be sorted?
-                if (sort)
+                if (settings.sort)
                 {
                     inserted = 0;
                     element = presentdir[dirnr].firstelement;
@@ -602,7 +600,7 @@ void dir_tape_parse(uint8_t dirnr)
         else
         {
             // Does the list need to be sorted?
-            if (sort)
+            if (settings.sort)
             {
                 inserted = 0;
                 element = presentdir[dirnr].firstelement;
@@ -765,7 +763,7 @@ void dir_draw(uint8_t dirnr, uint8_t readdir)
         }
         else
         {
-            dir_read(dirnr, filter);
+            dir_read(dirnr, settings.filter);
         }
 
         presentdir[dirnr].present = presentdir[dirnr].firstprint;
@@ -1209,12 +1207,12 @@ void dir_parentdir(void)
 
 void dir_togglesort(void)
 {
-    sort = !sort;
+    settings.sort = !settings.sort;
     dir_draw(0, 1);
     dir_draw(1, 1);
 
     sprintf(pulldown_titles[0][3], MSG_MENU_APP_SORT_FMT,
-            sort ? MSG_MENU_VAL_ON : MSG_MENU_VAL_OFF);
+            settings.sort ? MSG_MENU_VAL_ON : MSG_MENU_VAL_OFF);
 }
 
 // -------------------------------------------------------------------------

@@ -70,15 +70,22 @@ extern LociDir    *dir;
 extern LociDirent *file;
 extern char dir_entry_types[8][4]; // Directory entry type name text strings
 
+// User-configurable app settings, grouped in one struct so that persistent
+// storage (if reintroduced) can save/load it in a single read/write.
+struct AppSettings
+{
+    uint8_t confirm;     // Confirm once (0) or all (1)
+    uint8_t filter;      // Filter for file type, 0: None, 1: DSK, 2: TAP, 3: ROM, 4: LCE
+    uint8_t enterchoice; // Choice for enter action: 0: Select, 1: Mount or 2: Launch
+    uint8_t sort;        // Sort on (1) or off (0)
+};
+extern struct AppSettings settings;
+
 // Application variables
 extern uint8_t  activepane;    // Number of active pane: 0 is upper, 1 is lower
 extern uint16_t present;       // Present element (XRAM pointer)
 extern uint16_t previous;      // Previous element (XRAM pointer)
 extern uint16_t next;          // Next element (XRAM pointer)
-extern uint8_t  filter;        // Filter for file type, 0: None, 1: DSK, 2: TAP, 3: ROM, 4: LCE
-extern uint8_t  enterchoice;   // Choice for enter action: 0: Select, 1: Mount or 2: Launch
-extern uint8_t  confirm;       // Confirm once (0) or all (1)
-extern uint8_t  sort;          // Sort on (1) or off (0)
 extern uint8_t  targetdrive;   // Target drive for mount: 0: A, 1: B, 2: C, 3: D
 extern uint16_t selection[2];  // Number of selected entries per pane
 extern uint8_t  insidetape[2]; // Browser is inside a tape .TAP container file

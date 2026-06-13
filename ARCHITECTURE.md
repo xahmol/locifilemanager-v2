@@ -385,19 +385,30 @@ struct Directory {
 extern struct Directory presentdir[2];   // [0]=top pane, [1]=bottom pane
 ```
 
+User-configurable settings are grouped in one struct, `settings`, so that
+persistent storage (if reintroduced) can save/load them in a single
+read/write:
+
+```c
+struct AppSettings
+{
+    uint8_t confirm;     // 0=confirm once, 1=confirm all (skip subsequent prompts)
+    uint8_t filter;      // Type filter: 0=None, 1=DSK, 2=TAP, 3=ROM, 4=LCE
+    uint8_t enterchoice; // ENTER action: 0=Select, 1=Mount, 2=Mount+Launch
+    uint8_t sort;        // 0=unsorted, 1=sorted directory listing
+};
+extern struct AppSettings settings;
+```
+
 Other global application state in `dir.h`/`dir.c`:
 
 | Variable | Meaning |
 |---|---|
 | `activepane` | 0 = top pane active, 1 = bottom pane active |
-| `filter` | Type filter: 0=None, 1=DSK, 2=TAP, 3=ROM, 4=LCE |
-| `enterchoice` | ENTER action: 0=Select, 1=Mount, 2=Mount+Launch |
-| `confirm` | 0=confirm once, 1=confirm all (skip subsequent prompts) |
-| `sort` | 0=unsorted, 1=sorted directory listing |
 | `targetdrive` | Mount target: 0=A,1=B,2=C,3=D |
 | `selection[2]` | Count of selected entries per pane |
 | `insidetape[2]` | Non-zero if that pane is browsing inside a `.TAP` container |
-| `namefilter[32]` | Wildcard (`*`/`?`) name filter, case-insensitive |
+| `namefilter[32]` | Wildcard (`*`/`?`) name filter, case-insensitive -- session-only, not part of `settings` |
 | `pathbuffer[256]`, `pathbuffer2[256]`, `pathbuffer3[256]` | Scratch full-path buffers shared across modules |
 
 ### 4.4 LOCI API structures (`include/loci.h`)
@@ -522,9 +533,9 @@ implementation into the build (Oscar64 whole-program compilation).
      `cwin_push`) requires LOCI.
    - `menu_init()` — reset the window-save stack, set the overlay pointer,
      call `ijk_detect()`.
-   - Reset application state to defaults (`activepane=0`, `filter=0`,
-     `enterchoice=0`, `confirm=0`, `sort=0`, `targetdrive=0`, selections and
-     `insidetape` cleared, all boot-mode flags cleared).
+   - Reset application state to defaults (`activepane=0`, `settings`
+     zeroed (`confirm`/`filter`/`enterchoice`/`sort`), `targetdrive=0`,
+     selections and `insidetape` cleared, all boot-mode flags cleared).
    - Populate the dynamic **App** pulldown labels (confirm/return-action/
      filter/sort) and the **Mounts → target drive** label from these
      defaults.
@@ -544,7 +555,7 @@ for (;;) {
     dir_refresh_present();
     switch (fm_getkey()) {
         case KEY_RIGHT: mainmenuloop(); break;   // open menu bar
-        case KEY_ENTER: /* enter dir, or act per enterchoice */ break;
+        case KEY_ENTER: /* enter dir, or act per settings.enterchoice */ break;
         case KEY_ESC:   /* "are you sure?" -> boot() */ break;
         case '.'/',':   dir_get_next_drive / dir_get_prev_drive
         case '/':       dir_switch_pane
@@ -615,9 +626,9 @@ Return-code convention from `mainmenuloop()`'s `switch`:
 Each pane (`presentdir[0]`/`presentdir[1]`) maintains an independent
 **doubly-linked list of `struct DirElement`** stored in **XRAM**
 (`DIR1BASE`/`DIR2BASE`, §2.5) — built by `dir_read()` from
-`loci_opendir`/`loci_readdir`/`loci_closedir`, applying the active `filter`
-and `namefilter` (via `dir_wildcard_match`), and optionally sorted
-(`dir_togglesort`/`sort`).
+`loci_opendir`/`loci_readdir`/`loci_closedir`, applying the active
+`settings.filter` and `namefilter` (via `dir_wildcard_match`), and optionally
+sorted (`dir_togglesort`/`settings.sort`).
 
 - `dir_get_element(addr)` / `dir_save_element(addr)` — read/write a
   `struct DirElement` to/from an XRAM address via `xram_memcpy_from`/`_to`.
@@ -662,7 +673,7 @@ and `namefilter` (via `dir_wildcard_match`), and optionally sorted
     `RECURSE_FILE` copies each file, `RECURSE_LEAVE_DIR` (on `move`) removes
     the now-empty source directory.
   - Overwrite and per-item confirmation use `menu_confirm_file()`, gated by
-    `confirm` (once vs. all).
+    `settings.confirm` (once vs. all).
 - `file_delete()` — deletes selected file(s); for a non-empty directory with
   no selection, `main.c` instead calls `dir_deletedir()` (recursive).
 - `file_rename()` — text-input popup + `loci_rename()`.
@@ -685,8 +696,8 @@ and `namefilter` (via `dir_wildcard_match`), and optionally sorted
   On success this reboots the Oric directly into the mounted media in
   **disk > tape > ROM** preference order and never returns. On failure,
   shows `MSG_MAIN_BOOT_FAILED`. This is triggered by ESC→Yes, the App menu's
-  Exit option, or (if `enterchoice==2`, "Launch") by pressing ENTER on a
-  non-directory entry.
+  Exit option, or (if `settings.enterchoice==2`, "Launch") by pressing ENTER
+  on a non-directory entry.
 
 ### 6.7 IJK joystick (`ijk.c`, independent of LOCI)
 
