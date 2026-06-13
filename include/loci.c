@@ -223,11 +223,20 @@ static int16_t read_xstack(void *buf, uint16_t count, int16_t fildes)
 }
 
 // Write up to count bytes from buf to an open file via XSTACK (≤256 per call).
+//
+// Unlike read_xstack(), count is NOT pushed onto XSTACK -- matches v1's
+// write_xstack.c (libsrc/write_xstack.c) and the real firmware's
+// std_api_write_xstack (sodiumlb/loci-firmware src/mia/api/std.c), which
+// derives the byte count from XSTACK_SIZE - xstack_ptr (i.e. how many bytes
+// are currently pushed), not from an explicit count value. A previous
+// version of this function additionally called mia_push_int(count) after
+// the buffer-byte loop, leaving 2 stray bytes on XSTACK that the firmware
+// would write to the file as if they were data -- the suspected cause of a
+// full firmware wedge (survives RESET, needs power-cycle) on config_save().
 static int16_t write_xstack(const void *buf, uint16_t count, int16_t fildes)
 {
     uint16_t i = count;
     while (i) mia_push_char(((const uint8_t *)buf)[--i]);
-    mia_push_int(count);
     mia_set_ax((uint16_t)fildes);
     return mia_call_int_errno(MIA_OP_WRITE_XSTACK);
 }
