@@ -52,17 +52,25 @@ below is new or substantially changed relative to v1.
 - New **headless automated test harness** via the
   [Phosphoric](https://github.com/xahmol/Phosphoric) emulator
   (`--loci-flash` sandbox, `--type-keys` auto-typing,
-  `--dump-ram-at`/`tests/scripts/oric_screen.py` screen capture) — 8 suites
+  `--dump-ram-at`/`tests/scripts/oric_screen.py` screen capture) — 9 suites
   (quick boot, menus, file ops, libdemo, recursive ops, name filter,
-  copy-cancel, viewer) totalling 245 assertions, run via `make test`.
-  v1 had no automated tests.
+  copy-cancel, viewer, persistent settings) totalling 257 assertions, run via
+  `make test`. v1 had no automated tests.
 - App settings (`confirm`/`filter`/`enterchoice`/`sort`) consolidated from 4
   standalone globals into one `struct AppSettings settings` (`src/dir.h`/
-  `src/dir.c`), used throughout `main.c`/`dir.c`/`file.c` — prep for
-  persistent storage, so save/load can become a single struct read/write if
-  persistent storage is ever reintroduced (it was removed earlier after
-  wedging the real LOCI firmware on writes to `"0:"` — see git history for
-  `config_save`/`config_load`/`LOCIFM.CFG`).
+  `src/dir.c`), used throughout `main.c`/`dir.c`/`file.c`.
+- **Persistent settings** (`src/dir.c` `config_load()`/`config_save()`,
+  `struct FmConfig`) — `settings` is saved to `0:/idi8b/locifm/locifm.cfg`
+  (directory and file created on first run) and loaded at startup, with a
+  magic byte to detect and recover from a missing or corrupt file. Every
+  change to sort/confirm/filter/enterchoice — via direct hotkeys or the App
+  pulldown menu — immediately writes the updated config, so settings persist
+  across power cycles with no explicit "save" step. Confirmed on real LOCI
+  hardware: the boot-time load/fallback-save round trip and repeated runtime
+  saves both work without issue. (An earlier flat-file attempt,
+  `0:/LOCIFM.CFG`, wedged the LOCI firmware on writes and was removed — see
+  git history; the nested `0:/idi8b/locifm/` path does not have this
+  problem.)
 
 ### 2. New file-management features
 
