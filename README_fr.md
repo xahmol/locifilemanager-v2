@@ -35,13 +35,16 @@ appels ROM. La version 1 CC65 est disponible sur
 
 Disponible en anglais et en français.
 
-**État actuel :** L'infrastructure des bibliothèques (bibliothèque de fenêtres
-charwin, scanner de clavier, API LOCI complète) est finalisée et testée. La
-reconstruction de l'application est en cours. Les commandes clavier, la
-visite de l'interface et les captures d'écran plus loin dans ce manuel sont
-reprises de la version 1 (CC65) à titre de référence provisoire pour le
-comportement prévu de la v2, et seront remplacées par des captures d'écran de
-la v2 au fur et à mesure de l'avancement de la reconstruction.
+**État actuel :** L'application v2 est fonctionnellement complète : elle
+couvre l'ensemble des fonctionnalités de la v1, ainsi que les nouvelles
+fonctionnalités v2 listées ci-dessus (copie/déplacement/suppression
+récursifs, annulation de copie en cours, filtres par nom et par type,
+visionneuse de texte, fenêtre de propriétés, réglages persistants), et est
+couverte par une suite de tests automatisés (`make test`). Les captures
+d'écran plus loin dans ce manuel proviennent d'une version antérieure de la
+v2 et datent d'avant l'ajout du menu « Tools » (Propriétés/Filtre par
+nom/Voir le texte) ; elles seront mises à jour pour montrer la barre de menu
+actuelle à 6 éléments.
 
 Pour plus d'informations sur le périphérique LOCI lui-même, voir le
 [manuel utilisateur du LOCI](https://github.com/sodiumlb/loci-hardware/wiki/LOCI-User-Manual)
@@ -208,7 +211,7 @@ Pour savoir comment utiliser votre périphérique LOCI, voir le
 |**F**|Choisir le **f**iltre à appliquer pour l'affichage des entrées du répertoire, ou désactiver le filtrage.
 |**C**|**C**opier le fichier présent ou tous les fichiers sélectionnés du répertoire du volet actif vers le répertoire du volet non actif
 |**V**|Déplacer (mo**v**e) le fichier présent ou tous les fichiers sélectionnés du répertoire du volet actif vers le répertoire du volet non actif
-|**DEL**|Supprimer (**del**ete) le fichier ou répertoire présent (si vide)
+|**DEL**|Supprimer (**del**ete) le fichier ou répertoire présent (récursivement pour les répertoires non vides, après confirmation)
 |**G**|Choisir le lecteur cible (**g**) pour le montage des images disque
 |**R**|**R**enommer le fichier ou répertoire présent
 |**M**|**M**onter le fichier présent comme disque, bande ou ROM
@@ -604,6 +607,31 @@ Cette fonction est aussi accessible avec la touche **J**.
 | Version | Date | Notes |
 |---|---|---|
 | 2.0.0 | 2026 | Reconstruction Oscar64 — en développement |
+
+### Nouveautés de la v1 à la v2
+
+La v2 est une reconstruction complète (Oscar64, bare-metal) de la version 1
+(CC65). Pour les utilisateurs venant de la v1, les principaux changements
+sont :
+
+- Les répertoires (et plus seulement les fichiers) peuvent désormais être
+  copiés et déplacés, avec tout leur contenu
+- La suppression d'un répertoire non vide propose désormais de supprimer
+  récursivement tout son contenu, au lieu d'être refusée
+- Une copie ou un déplacement peut être annulé en cours de transfert avec
+  **ESC** ; tout fichier de destination partiel est automatiquement supprimé
+- Un nouveau filtre par motif de nom de fichier (**L**) complète le filtre
+  par type existant
+- Une nouvelle visionneuse de fichiers texte plein écran et avec retour à la
+  ligne automatique (**J**)
+- Une nouvelle fenêtre de propriétés (**K**) affichant le type, les attributs
+  et la taille, avec une taille totale calculée récursivement pour les
+  répertoires
+- Les réglages de l'application (Confirmer, Retour, Filtre, Tri) sont
+  désormais mémorisés entre les redémarrages
+- Disponible en anglais et en français
+- Nouveaux écrans de démarrage affichant les informations de version et un
+  QR code GitHub
 
 ### Versions précédentes (v1, CC65)
 

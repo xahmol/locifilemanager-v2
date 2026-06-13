@@ -34,12 +34,14 @@ This is version 2 — a complete rewrite using the
 
 Available in English and French.
 
-**Current status:** Library infrastructure (charwin window library, keyboard
-scanner, full LOCI API) is complete and tested. The application rebuild is in
-progress. The keyboard commands, interface walkthrough and screenshots
-further down in this manual are ported from the v1 (CC65) version as a
-placeholder reference for the planned v2 behaviour, and will be replaced with
-v2 screenshots as the rebuild progresses.
+**Current status:** The v2 application is feature-complete — it covers the
+full v1 feature set plus the new v2 features listed above (recursive
+copy/move/delete, mid-copy cancellation, name and type filters, text viewer,
+properties popup, persistent settings), and is covered by an automated test
+suite (`make test`). The screenshots further down in this manual were
+captured from an earlier v2 build and predate the "Tools" menu
+(Properties/Filter by name/View text); they will be refreshed to show the
+current 6-item menu bar.
 
 For more information about the LOCI device itself, see the
 [LOCI User Manual](https://github.com/sodiumlb/loci-hardware/wiki/LOCI-User-Manual).
@@ -202,7 +204,7 @@ For details on how to operate your LOCI device, see the
 |**F**|Select which **F**ilter to apply for showing directory entries or disable filtering.
 |**C**|**C**opy present file or all selected files from directory in active pane to directory in non-active pane
 |**V**|Mo**v**e present file or all selected files from directory in active pane to directory in non-active pane
-|**DEL**|**Del**ete present file or directory (if empty)
+|**DEL**|**Del**ete present file or directory (recursively for non-empty directories, after confirmation)
 |**G**|Select tar**g**et disk drive for disk images to mount to.
 |**R**|**R**ename present file or directory
 |**M**|**M**ount present file to disk, tape or ROM.
@@ -501,6 +503,26 @@ This function can be reached also by pressing the **J** key.
 | Version | Date | Notes |
 |---|---|---|
 | 2.0.0 | 2026 | Oscar64 rebuild — in development |
+
+### Changes from v1 to v2
+
+v2 is a ground-up rewrite (Oscar64, bare-metal) of the v1 (CC65)
+implementation. For users coming from v1, the main differences are:
+
+- Directories (not just files) can now be copied and moved, including all
+  their contents
+- Deleting a non-empty directory now offers to recursively delete its entire
+  contents, instead of refusing
+- A copy or move can be cancelled mid-transfer with **ESC**; any partial
+  destination file is removed automatically
+- A new wildcard filename filter (**L**) complements the existing type filter
+- A new full-screen, word-wrapped text file viewer (**J**)
+- A new properties popup (**K**) showing type, attributes and size,
+  including a recursively calculated total size for directories
+- Application settings (Confirm, Return, Filter, Sort) are now remembered
+  across restarts
+- Available in English and French
+- New splash screens showing version info and a GitHub QR code
 
 ### Previous versions (v1, CC65)
 
