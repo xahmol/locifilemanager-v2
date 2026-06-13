@@ -39,7 +39,7 @@ Disponible en anglais et en français.
 couvre l'ensemble des fonctionnalités de la v1, ainsi que les nouvelles
 fonctionnalités v2 listées ci-dessus (copie/déplacement/suppression
 récursifs, annulation de copie en cours, filtres par nom et par type,
-visionneuse de texte, fenêtre de propriétés, réglages persistants), et est
+visionneuse de texte, fenêtre de propriétés), et est
 couverte par une suite de tests automatisés (`make test`). Les captures
 d'écran plus loin dans ce manuel proviennent d'une version antérieure de la
 v2 et datent d'avant l'ajout du menu « Tools » (Propriétés/Filtre de
@@ -61,7 +61,6 @@ Fonctionnalités :
 - Filtrer la liste des répertoires par type de fichier, ou par un motif de nom de fichier avec caractères génériques
 - Afficher le contenu des fichiers texte dans une visionneuse plein écran, paginée et avec retour à la ligne automatique
 - Afficher les propriétés (type, attributs, taille) d'un fichier ou répertoire, y compris une taille totale calculée récursivement pour les répertoires
-- Les réglages de l'application (confirmation, action de RETURN, filtre de type, tri) sont mémorisés entre les redémarrages
 - Monter des images de disque, de bande et de ROM
 - À la sortie, démarrer en fonction des images montées (disque > bande > ROM)
 - Parcourir l'intérieur d'une image de bande pour sélectionner un fichier à monter/démarrer
@@ -288,12 +287,6 @@ utiliser, classées par option du menu principal.
 ### App : Options de l'application
 
 ![Menu Application](screenshots/LociFM-menu-app.png)
-
-Les réglages ci-dessous (Confirm., Retour, Filtre de type, Tri) sont enregistrés dans
-`LOCIFM.CFG` sur le stockage interne du LOCI à chaque modification, et sont
-restaurés automatiquement au démarrage suivant de l'application. Si aucun
-fichier de configuration n'est trouvé (par exemple au premier démarrage), les
-valeurs par défaut décrites ci-dessous sont utilisées.
 
 *Confirm.*
 
@@ -567,8 +560,8 @@ nom de fichier. Les répertoires sont toujours affichés quel que soit le motif,
 afin que la navigation ne soit jamais bloquée.
 
 Saisir un motif vide pour effacer le filtre. Appuyer sur **RETURN** pour
-appliquer, **ESC** pour annuler sans modification. Contrairement aux réglages
-App, ce filtre n'est pas mémorisé entre les redémarrages.
+appliquer, **ESC** pour annuler sans modification. Ce filtre n'est pas
+mémorisé entre les redémarrages.
 
 Le menu Outils affiche `[L] Texte: Oui` ou `[L] Texte: Non` selon qu'un motif
 est actif ou non ; le motif lui-même est affiché sur la ligne « Actuel: » de
@@ -632,8 +625,6 @@ sont :
 - Une nouvelle fenêtre de propriétés (**K**) affichant le type, les attributs
   et la taille, avec une taille totale calculée récursivement pour les
   répertoires
-- Les réglages de l'application (Confirmer, Retour, Filtre de type, Tri) sont
-  désormais mémorisés entre les redémarrages
 - Disponible en anglais et en français
 - Nouveaux écrans de démarrage affichant les informations de version et un
   QR code GitHub

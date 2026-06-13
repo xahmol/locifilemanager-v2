@@ -11,8 +11,7 @@ LOCI API, and EN/FR localisation infrastructure are complete and exercised by
 `libdemo`. The application itself (`main.c` plus the
 menu/dir/file/drive/recurse/viewer modules) is implemented and under active
 refinement; see `ROADMAP.md` for the feature history (recursive copy/move/
-delete, persistent settings, name filter, mid-copy cancellation, text viewer,
-properties popup).
+delete, name filter, mid-copy cancellation, text viewer, properties popup).
 
 ## Compiler Toolchain
 

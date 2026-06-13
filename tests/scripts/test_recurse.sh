@@ -268,9 +268,7 @@ reset_sandbox
 # Phase 7 -- Properties popup + recursive directory size
 #
 # 'k' (direct hotkey) / Tools->[K] Properties (case 61) -> dir_show_properties().
-# Both sub-tests press 'o' (sort on, also calls config_save() -- see
-# test_viewer.sh's LOCIFM.CFG discovery), so each gets its own
-# reset_sandbox() first.
+# Both sub-tests press 'o' (sort on) and start from a fresh sandbox.
 # -----------------------------------------------------------------------
 PROPS_CYCLES=14000000
 

@@ -132,7 +132,7 @@ make test
 
 runs the full automated suite under Phosphoric:
 `test-quick`, `test-menus`, `test-fileops`, `test-libdemo`, `test-recurse`,
-`test-settings`, `test-namefilter`, `test-copycancel`, `test-viewer`.
+`test-namefilter`, `test-copycancel`, `test-viewer`.
 
 **A pull request will not be merged if `make test` does not pass cleanly.**
 If a change legitimately alters expected behaviour that an existing test
@@ -217,7 +217,7 @@ Update documentation in the same PR as the code change it describes:
 
 Before submitting, confirm:
 
-- [ ] `make test` passes (all 9 suites).
+- [ ] `make test` passes (all 8 suites).
 - [ ] New features/fixes have new or extended tests under `tests/scripts/`.
 - [ ] All user-visible strings are `MSG_*` macros, added to both
       `strings_en.h` and `strings_fr.h`.

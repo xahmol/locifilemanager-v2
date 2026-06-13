@@ -52,9 +52,9 @@ below is new or substantially changed relative to v1.
 - New **headless automated test harness** via the
   [Phosphoric](https://github.com/xahmol/Phosphoric) emulator
   (`--loci-flash` sandbox, `--type-keys` auto-typing,
-  `--dump-ram-at`/`tests/scripts/oric_screen.py` screen capture) — 9 suites
-  (quick boot, menus, file ops, libdemo, recursive ops, settings, name
-  filter, copy-cancel, viewer) totalling 236 assertions, run via `make test`.
+  `--dump-ram-at`/`tests/scripts/oric_screen.py` screen capture) — 8 suites
+  (quick boot, menus, file ops, libdemo, recursive ops, name filter,
+  copy-cancel, viewer) totalling 234 assertions, run via `make test`.
   v1 had no automated tests.
 
 ### 2. New file-management features
@@ -89,27 +89,20 @@ inside tape images. v2 adds:
   calculation — needed because the software stack is only 512 bytes and
   shared by the whole call chain.
 
-### 3. Application behaviour & settings
-
-- **Persistent settings** — Confirm, Return-action, type Filter, and Sort
-  are saved to `0:/LOCIFM.CFG` on the internal LOCI storage and restored
-  automatically on the next boot. v1 always reset to its compiled-in
-  defaults.
-
-### 4. Localisation
+### 3. Localisation
 
 - v1 was English-only. v2 builds **English and French** binaries from one
   codebase (`make`, `make LANG=FR`, `make all-langs`), with every
   user-visible string as an `MSG_*` macro in `src/strings_en.h` /
   `src/strings_fr.h`.
 
-### 5. Branding & presentation
+### 4. Branding & presentation
 
 - New versioned splash screens (startup and Info menu): the "I Dream in 8
   Bits" logo with build version (`vMAJOR.MINOR.PATCH-YYYYMMDD-HHMMSS`) and
   credits, followed by a GitHub QR-code screen.
 
-### 6. Build, testing & documentation infrastructure
+### 5. Build, testing & documentation infrastructure
 
 - `make docs` — regenerates the README and library-manual PDFs via pandoc
   (EN+FR).
@@ -156,7 +149,7 @@ What `make test-<name>` (new or extended) will check.
 **Large, multi-session effort** — break it into numbered phases, each with
 its own Context/Plan/Test scenario/Progress, plus a top-level "Hard
 constraints" section for cross-cutting design decisions discovered during
-research (the kind of structure used for the recursive-ops/settings/filter/
+research (the kind of structure used for the recursive-ops/filter/
 viewer/properties work above is the model — see git history for that
 document in full).
 

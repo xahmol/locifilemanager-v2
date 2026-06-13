@@ -73,13 +73,8 @@ run_emu() {
         --dump-ram-at "$cycles":"$dump" >/dev/null 2>&1
 }
 
-# Every sub-test below presses 'o' (sort toggle), which now calls
-# config_save() and writes 0:/LOCIFM.CFG to the sandbox root (Phase 3).
-# That file doesn't change the listing *within* the run that creates it
-# (dir listing is read once at boot, not rescanned), but it WOULD add a
-# 10th root-level entry -- shifting the sorted positions of NOTES.TXT/
-# SUBDIR/ -- for any later run in this script. So each sub-test gets its
-# own fresh sandbox, same as tests/scripts/test_copycancel.sh.
+# Restore a pristine sandbox between sub-tests, same as
+# tests/scripts/test_copycancel.sh.
 reset_sandbox() {
     rm -rf "$SANDBOX"
     mkdir -p "$SANDBOX"

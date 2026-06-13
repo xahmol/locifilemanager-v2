@@ -1215,45 +1215,6 @@ void dir_togglesort(void)
 
     sprintf(pulldown_titles[0][3], MSG_MENU_APP_SORT_FMT,
             sort ? MSG_MENU_VAL_ON : MSG_MENU_VAL_OFF);
-
-    config_save();
-}
-
-// -------------------------------------------------------------------------
-// Persistent settings (0:/LOCIFM.CFG)
-// -------------------------------------------------------------------------
-
-// Load confirm/filter/enterchoice/sort from 0:/LOCIFM.CFG, if present and
-// valid. On any failure (missing file, short read, bad magic), the
-// compiled-in defaults already set by the caller are left untouched.
-void config_load(void)
-{
-    struct FmConfig cfg;
-
-    if (file_load("0:/LOCIFM.CFG", &cfg, sizeof(cfg)) != sizeof(cfg))
-        return;
-
-    if (cfg.magic != FMCONFIG_MAGIC)
-        return;
-
-    confirm     = cfg.confirm;
-    filter      = cfg.filter;
-    enterchoice = cfg.enterchoice;
-    sort        = cfg.sort;
-}
-
-// Save confirm/filter/enterchoice/sort to 0:/LOCIFM.CFG.
-void config_save(void)
-{
-    struct FmConfig cfg;
-
-    cfg.magic       = FMCONFIG_MAGIC;
-    cfg.confirm     = confirm;
-    cfg.filter      = filter;
-    cfg.enterchoice = enterchoice;
-    cfg.sort        = sort;
-
-    file_save("0:/LOCIFM.CFG", &cfg, sizeof(cfg));
 }
 
 // -------------------------------------------------------------------------

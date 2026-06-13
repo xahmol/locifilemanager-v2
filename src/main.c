@@ -45,7 +45,6 @@ static void confirm_toggle(void)
     confirm = !confirm;
     sprintf(pulldown_titles[0][0], MSG_MENU_APP_CONFIRM_FMT,
             confirm ? MSG_MENU_VAL_ALL : MSG_MENU_VAL_ONCE);
-    config_save();
 }
 
 static void select_enter_choice(void)
@@ -58,7 +57,6 @@ static void select_enter_choice(void)
     {
         enterchoice = select - 1;
         sprintf(pulldown_titles[0][1], MSG_MENU_APP_RETURN_FMT, vals[enterchoice]);
-        config_save();
     }
 }
 
@@ -74,12 +72,11 @@ static void select_filter(void)
         sprintf(pulldown_titles[0][2], MSG_MENU_APP_FILTER_FMT, vals[filter]);
         dir_draw(0, 1);
         dir_draw(1, 1);
-        config_save();
     }
 }
 
 static void select_namefilter(void)
-// Set/clear the filename wildcard filter (*, ? -- not persisted)
+// Set/clear the filename wildcard filter (*, ?)
 {
     char input[32] = "";
     OricCharWin popup;
@@ -425,13 +422,8 @@ int main(void)
     bit_on = 0;
     ald_on = 0;
 
-    // Override confirm/filter/enterchoice/sort defaults above from
-    // 0:/LOCIFM.CFG, if present and valid (no-op otherwise).
-    config_load();
-
-    // Populate dynamic App pulldown entries, reflecting confirm/filter/
-    // enterchoice/sort -- either the defaults set above or values loaded
-    // from 0:/LOCIFM.CFG by config_load().
+    // Populate dynamic App pulldown entries, reflecting the confirm/filter/
+    // enterchoice/sort defaults set above.
     {
         static const char * const filtervals[5] = { MSG_MENU_VAL_NONE, MSG_MENU_VAL_DSK, MSG_MENU_VAL_TAP, MSG_MENU_VAL_ROM, MSG_MENU_VAL_LCE };
         static const char * const entervals[3]  = { MSG_MENU_VAL_SELECT, MSG_MENU_VAL_ENTER, MSG_MENU_VAL_LAUNCH };

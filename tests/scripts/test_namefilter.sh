@@ -13,8 +13,8 @@
 #  - clears the filter when ENTER is pressed on an empty input, restoring
 #    the full listing.
 #
-# namefilter is NOT persisted (separate from LOCIFM.CFG / Phase 3), so both
-# the "set" and "set then clear" cases are exercised within a single boot.
+# namefilter is not persisted across boots, so both the "set" and "set then
+# clear" cases are exercised within a single boot.
 #
 # Required env vars (set by `make test-namefilter`):
 #   PHOS      path to oric1-emu

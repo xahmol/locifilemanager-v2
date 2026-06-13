@@ -201,7 +201,7 @@ CYCLES   ?= 8000000
 
 .PHONY: all all-langs clean run libdemo libdemo-run docs zip check-usb usb \
         check-phosphoric sandbox-reset test test-quick test-menus test-fileops \
-        test-libdemo test-recurse test-settings test-namefilter test-copycancel \
+        test-libdemo test-recurse test-namefilter test-copycancel \
         test-viewer test-capture
 
 all: build/$(MAIN)$(LANGSUFFIX).tap
@@ -338,8 +338,6 @@ usb: check-usb all-langs
 # make test-libdemo -- libdemo boot smoke test (build status checks, LOCI
 #                      detection, overlay RAM push/pop)
 # make test-recurse -- Tools pulldown + recursive-feature regression test
-# make test-settings -- persistent settings test (save/reload/fallback of
-#                      0:/LOCIFM.CFG via config_save()/config_load())
 # make test-namefilter -- filename wildcard filter test (set/clear via 'l',
 #                      dir_wildcard_match() in dir_read())
 # make test-copycancel -- mid-file copy cancellation test (ESC during
@@ -348,8 +346,7 @@ usb: check-usb all-langs
 #                      src/viewer.c: word-wrap, forward-only pagination, ESC)
 # make test         -- full automated suite (test-quick + test-menus +
 #                      test-fileops + test-libdemo + test-recurse +
-#                      test-settings + test-namefilter + test-copycancel +
-#                      test-viewer)
+#                      test-namefilter + test-copycancel + test-viewer)
 # make test-capture CYCLES=N TYPEKEYS='...'
 #                   -- calibration helper: fast-loads locifm.tap (-t ... -f)
 #                      under Atmos BASIC 1.1 with --loci-flash tests/sandbox
@@ -423,12 +420,6 @@ test-recurse: check-phosphoric sandbox-reset
 	    TAPFILE=$(MAIN)$(LANGSUFFIX).tap \
 	    bash tests/scripts/test_recurse.sh
 
-test-settings: check-phosphoric sandbox-reset
-	$(MKDIR) tests/out 2>$(NULLDEV) ; true
-	PHOS=$(PHOS) ATMOSROM=$(ATMOSROM) SANDBOX=tests/sandbox OUT=tests/out \
-	    TAPFILE=$(MAIN)$(LANGSUFFIX).tap \
-	    bash tests/scripts/test_settings.sh
-
 test-namefilter: check-phosphoric sandbox-reset
 	$(MKDIR) tests/out 2>$(NULLDEV) ; true
 	PHOS=$(PHOS) ATMOSROM=$(ATMOSROM) SANDBOX=tests/sandbox OUT=tests/out \
@@ -458,7 +449,6 @@ test:
 	$(MAKE) test-fileops  || status=1; \
 	$(MAKE) test-libdemo  || status=1; \
 	$(MAKE) test-recurse  || status=1; \
-	$(MAKE) test-settings || status=1; \
 	$(MAKE) test-namefilter || status=1; \
 	$(MAKE) test-copycancel || status=1; \
 	$(MAKE) test-viewer   || status=1; \

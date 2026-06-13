@@ -385,19 +385,6 @@ struct Directory {
 extern struct Directory presentdir[2];   // [0]=top pane, [1]=bottom pane
 ```
 
-```c
-#define FMCONFIG_MAGIC 0xA5
-struct FmConfig {
-    uint8_t magic;        // 0xA5 -- guards against missing/foreign/corrupt file
-    uint8_t confirm;
-    uint8_t filter;
-    uint8_t enterchoice;
-    uint8_t sort;
-};
-```
-Saved/loaded as `0:/LOCIFM.CFG` by `config_save()`/`config_load()`. On a
-magic mismatch, compiled-in defaults are left untouched.
-
 Other global application state in `dir.h`/`dir.c`:
 
 | Variable | Meaning |
@@ -410,7 +397,7 @@ Other global application state in `dir.h`/`dir.c`:
 | `targetdrive` | Mount target: 0=A,1=B,2=C,3=D |
 | `selection[2]` | Count of selected entries per pane |
 | `insidetape[2]` | Non-zero if that pane is browsing inside a `.TAP` container |
-| `namefilter[32]` | Wildcard (`*`/`?`) name filter, case-insensitive, not persisted |
+| `namefilter[32]` | Wildcard (`*`/`?`) name filter, case-insensitive |
 | `pathbuffer[256]`, `pathbuffer2[256]`, `pathbuffer3[256]` | Scratch full-path buffers shared across modules |
 
 ### 4.4 LOCI API structures (`include/loci.h`)
@@ -538,11 +525,9 @@ implementation into the build (Oscar64 whole-program compilation).
    - Reset application state to defaults (`activepane=0`, `filter=0`,
      `enterchoice=0`, `confirm=0`, `sort=0`, `targetdrive=0`, selections and
      `insidetape` cleared, all boot-mode flags cleared).
-   - `config_load()` — overrides the above from `0:/LOCIFM.CFG` if present
-     and valid (checked via `FMCONFIG_MAGIC`).
    - Populate the dynamic **App** pulldown labels (confirm/return-action/
-     filter/sort) and the **Mounts → target drive** label from the
-     (possibly loaded) state.
+     filter/sort) and the **Mounts → target drive** label from these
+     defaults.
    - `get_locicfg()` — query device count, valid devices, firmware version,
      `uname`.
    - `drive_unmount_all()` — force a known unmounted state.
@@ -661,8 +646,6 @@ and `namefilter` (via `dir_wildcard_match`), and optionally sorted
   directories, size is computed recursively via `recurse_walk`
   (`RECURSE_FILE` events accumulate `d_size` into a `uint32_t`, formatted by
   `dir_dec10()`).
-- `config_load()`/`config_save()` — `0:/LOCIFM.CFG` persistence of
-  `confirm`/`filter`/`enterchoice`/`sort` (`struct FmConfig`, §4.3).
 
 ### 6.5 File operations (`file.c`)
 
@@ -751,7 +734,6 @@ make test-menus      # pulldown menu regression (5 menus, open + close)
 make test-fileops    # mkdir/rename/delete/copy/move, via tests/sandbox state
 make test-libdemo    # full libdemo walkthrough (sections A-P + completion screen)
 make test-recurse    # Tools pulldown + recursive copy/move/delete
-make test-settings   # LOCIFM.CFG save/reload/fallback
 make test-namefilter # wildcard name filter set/clear
 make test-copycancel # ESC mid-copy cancellation + partial-file cleanup
 make test-viewer     # text file viewer

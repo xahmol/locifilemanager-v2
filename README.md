@@ -37,7 +37,7 @@ Available in English and French.
 **Current status:** The v2 application is feature-complete — it covers the
 full v1 feature set plus the new v2 features listed above (recursive
 copy/move/delete, mid-copy cancellation, name and type filters, text viewer,
-properties popup, persistent settings), and is covered by an automated test
+properties popup), and is covered by an automated test
 suite (`make test`). The screenshots further down in this manual were
 captured from an earlier v2 build and predate the "Tools" menu
 (Properties/Text filter/View text); they will be refreshed to show the
@@ -57,7 +57,6 @@ Features:
 - Filter the directory listing by file type, or by a wildcard filename pattern
 - View the contents of text files in a full-screen, word-wrapped, paged viewer
 - Show properties (type, attributes, size) for a file or directory, including a recursively calculated total size for directories
-- Application settings (confirm, RETURN action, type filter, sort) are remembered across restarts
 - Mount disk, tape, and ROM images
 - On exit, boot based on mounted images (disk > tape > ROM)
 - Browse inside a tape image to select a file on the tape to mount/boot
@@ -265,8 +264,6 @@ Reference is made to the [Keyboard commands](#keyboard-commands) section above f
 
 ![Application menu](screenshots/LociFM-menu-app.png)
 
-The settings below (Confirm, Return, Type filter, Sort) are saved to `LOCIFM.CFG` on the internal LOCI storage whenever they are changed, and are restored automatically the next time the application starts. If no configuration file is found (e.g. on first run), the defaults described below are used.
-
 *Confirm*
 
 Confirm is a toggle that decides if an 'are you sure' popup is shown, to confirm either a delete or a copy with overwrite action, once or on every individual file separately. Default is Once.
@@ -467,7 +464,7 @@ This function can be reached also by pressing the **K** key.
 
 Opens a popup to enter a wildcard pattern (using `*` and `?`, case-insensitive) that filters the directory listing in both panes by file name. Directories are always shown regardless of the pattern, so navigation is never blocked.
 
-Enter an empty pattern to clear the filter. Press **RETURN** to apply, **ESC** to cancel without changes. Unlike the App settings, this filter is not remembered across restarts.
+Enter an empty pattern to clear the filter. Press **RETURN** to apply, **ESC** to cancel without changes. This filter is not remembered across restarts.
 
 The Tools menu shows `[L] Text: On` or `[L] Text: Off` depending on whether a pattern is currently active; the pattern itself is shown in this popup's "Current:" line.
 
@@ -522,8 +519,6 @@ implementation. For users coming from v1, the main differences are:
 - A new full-screen, word-wrapped text file viewer (**J**)
 - A new properties popup (**K**) showing type, attributes and size,
   including a recursively calculated total size for directories
-- Application settings (Confirm, Return, Type filter, Sort) are now remembered
-  across restarts
 - Available in English and French
 - New splash screens showing version info and a GitHub QR code
 
