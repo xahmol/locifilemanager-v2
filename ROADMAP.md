@@ -118,7 +118,54 @@ inside tape images. v2 adds:
 
 ## Planned / Future Work
 
-_No active plans at this time._
+## Consolidate app settings into one struct (prep for persistent storage)
+
+### Context
+
+Persistent settings (`config_save()`/`config_load()`, `0:/LOCIFM.CFG`) were
+removed entirely after both App > Filter Type and App > Sort were found to
+wedge the real LOCI firmware solid (survives RESET, needs power-cycle) when
+writing to `"0:"` internal flash/LittleFS -- see the "Completed: v1 to v2"
+section above. A separate research task investigates whether persistent
+storage can be made to work at all on `"0:"`. If/when it is reintroduced,
+saving/loading should be a single struct write/read rather than juggling
+several independent globals.
+
+### Plan
+
+- Define `struct AppSettings { uint8_t confirm; uint8_t filter; uint8_t
+  enterchoice; uint8_t sort; };` in `src/dir.h`, with a single global
+  `extern struct AppSettings settings;` defined in `src/dir.c`. These are
+  exactly the 4 fields the old (removed) `struct FmConfig` held.
+- Replace the 4 standalone `uint8_t` globals `confirm`, `filter`,
+  `enterchoice`, `sort` with fields of `settings` (`settings.confirm`,
+  `settings.filter`, `settings.enterchoice`, `settings.sort`) throughout
+  `src/main.c`, `src/dir.c`, `src/file.c`, and the `extern` declarations in
+  `src/dir.h`.
+- `namefilter[32]` is intentionally NOT included -- it was an explicitly
+  transient, session-only filter even when `FmConfig` existed, and stays
+  that way.
+- Once persistent storage is confirmed viable, `config_save()`/
+  `config_load()` become a single `loci_write(fd, &settings,
+  sizeof(settings))` / `loci_read(fd, &settings, sizeof(settings))` call
+  each, plus a leading magic/version byte for forward compatibility (as
+  `FMCONFIG_MAGIC` did).
+
+### Test scenario
+
+Pure refactor, no behaviour change -- `make test` (234/234) must remain
+unchanged. No new test needed.
+
+### Progress
+
+- [ ] Implemented
+- [ ] Tests pass
+- [ ] Docs updated (`ARCHITECTURE.md` state table, `CLAUDE.md` if relevant)
+
+**Status: plan only, not started.** This refactor has no real-HW dependency
+and could be done independently, but is deferred until the persistent-storage
+research task concludes, to avoid restructuring code for a feature that may
+not return.
 
 ### Adding a new plan
 
