@@ -136,8 +136,9 @@ inside tape images. v2 adds:
 
 ## Planned / Future Work
 
-Empty right now; see [Adding a new plan](#adding-a-new-plan) for the format
-to use when that changes.
+Two contained features are planned below, building on the persistent-settings
+mechanism completed above. See [Adding a new plan](#adding-a-new-plan) for the
+format used for these and any future entries.
 
 ### Adding a new plan
 
@@ -176,3 +177,162 @@ Once a plan's items are all complete, move its summary into the
 [Completed: v1 to v2](#completed-v1-to-v2) section above (or a future
 "Completed: vX → vY" section if a new major version line has started), and
 remove the detailed plan from this section.
+
+---
+
+## Favourite directories
+
+### Context
+
+Users navigate to deeply-nested directories repeatedly. A bounded, global
+list of bookmarked directory paths lets either pane jump straight to a
+favourite, persisted via the existing `config_save()`/`config_load()`
+mechanism (`0:/idi8b/locifm/locifm.cfg`).
+
+### Plan
+
+- `src/dir.h`: add `FMCONFIG_FAV_SLOTS=8`, `FMCONFIG_FAV_PATHLEN=48`, and
+  `extern char favourites[FMCONFIG_FAV_SLOTS][FMCONFIG_FAV_PATHLEN]` (defined
+  in `dir.c` next to `settings`; empty string = unused slot). Add the same
+  array to `struct FmConfig` (+384 bytes, total 389 bytes). The existing
+  `file_load(...) != sizeof(cfg)` size check in `config_load()` already gives
+  old (5-byte) config files a safe fallback to compiled-in defaults — no
+  magic-byte bump required.
+- `src/dir.c` `config_save()`/`config_load()` (~lines 1224/1247): loop over
+  `FMCONFIG_FAV_SLOTS`, `strncpy` each slot to/from `cfg.favourites[i]`,
+  NUL-terminating on load.
+- New functions in `dir.c` (prototypes in `dir.h`): `favourites_add(slot)`
+  (copies `presentdir[activepane].path` into `favourites[slot]`, calls
+  `config_save()`), `favourites_delete(slot)` (zeroes the slot, calls
+  `config_save()`), `favourites_goto(slot)` (sets
+  `presentdir[activepane].path`/`.drive` from the slot, clears
+  `insidetape[activepane]`, calls `dir_draw(activepane, 1)`), and
+  `favourites_show(void)` — the popup entry point, modeled on
+  `dir_show_properties()` (`dir.c:1481`).
+- UI: a 4th Tools-menu item `MSG_MENU_TOOLS3` ("[Y] Favourites"),
+  `pulldown_options[4]` 3→4 (`menu.c:205`, within `PULLDOWN_MAXOPTIONS=9`).
+  New global hotkey `'y'` (unused in `main.c`'s key-loop switch) plus a
+  matching `mainmenuloop()` dispatch case (`54`), both calling
+  `favourites_show()`.
+- `favourites_show()`: `menu_popup_open()` + `OricCharWin`, lists all 8 slots
+  (`"N: path"` or `"(empty)"`). `cwin_getch()` loop: digits `1`-`8` jump via
+  `favourites_goto()` (ignored if the slot is empty), `'a'`/`'A'` prompts for
+  a slot then `favourites_add()`, `'d'`/`'D'` prompts for a slot then
+  `favourites_delete()`, `KEY_ESC` closes via `menu_popup_close()`.
+- New `MSG_*` macros (both `strings_en.h`/`strings_fr.h`): `MSG_MENU_TOOLS3`,
+  `MSG_FAV_TITLE`, `MSG_FAV_SLOT_FMT`, `MSG_FAV_EMPTY`, `MSG_FAV_HELP`,
+  `MSG_FAV_ADD_PROMPT`, `MSG_FAV_DELETE_PROMPT`.
+
+### Test scenario
+
+New `tests/scripts/test_favourites.sh` / `make test-favourites` (wired into
+the aggregate `test:` target):
+
+1. Fresh boot, open Favourites (`y`, then ESC) → screen shows the title and 8
+   "(empty)" rows; `locifm.cfg` is 389 bytes, favourites region all zero.
+2. Boot, navigate into a subdirectory, open Favourites, `a` then `1` → slot 1
+   redraws with the current path; `locifm.cfg` bytes for slot 1 match the
+   path + NUL padding.
+3. Boot with a pre-seeded `locifm.cfg` containing one populated slot → open
+   Favourites → slot shows the seeded path → press `1` → active pane's
+   path/listing updates to that directory.
+4. Delete a populated slot (`d` then slot number) → slot shows "(empty)"
+   again; `locifm.cfg` bytes for that slot are zeroed, rest unchanged.
+
+### Progress
+
+- [ ] Implemented
+- [ ] Tests pass
+- [ ] Docs updated (README/ARCHITECTURE/CLAUDE.md as relevant)
+
+---
+
+## Remember last path/pane state
+
+### Context
+
+Every boot currently starts both panes at the drive root (`0:/`). Persisting
+each pane's current path/drive and the active pane lets the app reopen
+exactly where the user left off, building on the now-confirmed
+`config_save()`/`config_load()` mechanism. This is **automatic** — saved on
+every navigation, not via an explicit "remember" action — a deliberate choice
+accepting higher write frequency than the current toggle-only saves.
+
+### Plan
+
+- `src/dir.h`: add to `struct FmConfig`: `char lastpath[2][FMCONFIG_FAV_PATHLEN]`,
+  `uint8_t lastdrive[2]`, `uint8_t lastactivepane` (+99 bytes; 488 bytes total
+  combined with Favourites above — reuses `FMCONFIG_FAV_PATHLEN`, same
+  size-check fallback applies, no magic bump required).
+- `src/dir.c` `config_save()`: `strncpy` `presentdir[0/1].path` into
+  `cfg.lastpath[0/1]` (NUL-terminate at `FMCONFIG_FAV_PATHLEN-1`), copy
+  `presentdir[0/1].drive` into `cfg.lastdrive[0/1]`, copy `activepane` into
+  `cfg.lastactivepane`.
+- `src/dir.c` `config_load()`: reverse — restore `presentdir[0/1].path`/
+  `.drive` and `activepane` (clamp `lastactivepane` to 0/1).
+- `src/main.c` boot sequence: move the `presentdir[0/1].path = "0:/"` /
+  `.drive = 0` defaults into the existing "Reset application state" block
+  (~line 412), i.e. *before* `config_load()` (line 431) — so a fresh/fallback
+  config saves and reloads these defaults correctly, while an existing config
+  overwrites them with the restored values. Replace the current
+  post-`config_load()` block (lines 471-475: `strcpy(presentdir[0].path,
+  "0:/")`, the two drive resets, and `dir_get_next_drive(1)`) with just
+  `dir_draw(0, 1); dir_draw(1, 1);`. **Decide during implementation**: should
+  a brand-new config still default pane 2 to drive `1:` for the "out of the
+  box" feel like today (a one-line special case, not a blocker either way)?
+- New `config_save()` call sites (one extra line after the existing
+  `dir_draw(...)` call in each): `dir_gotoroot()` (`dir.c:1170`),
+  `dir_parentdir()` — both the inside-tape branch (`dir.c:1182`) and the
+  normal path-trim branch (`dir.c:1200`), `dir_get_next_drive()`
+  (`dir.c:834`), `dir_get_prev_drive()` (`dir.c:864`), `dir_switch_pane()`
+  (`dir.c:876`, persists `lastactivepane`), and the ENTER-key directory
+  descent in `main.c` (`main.c:495`).
+- No new `MSG_*` macros — fully automatic/silent, no new UI.
+
+### Test scenario
+
+New `tests/scripts/test_laststate.sh` / `make test-laststate` (wired into the
+aggregate `test:` target):
+
+1. Fresh boot, navigate pane 0 into a subdirectory (one ENTER keypress), then
+   re-launch the emulator from the *same* sandbox (no `reset_sandbox`) →
+   second boot's screen shows the subdirectory's path/listing in pane 0, not
+   `0:/`.
+2. Switch the active pane and change pane 1's drive, re-launch → second boot
+   restores pane 1's drive and `activepane`.
+3. `od -An -tx1` on `locifm.cfg` after step 1's first run confirms
+   `lastpath[0]` bytes match the subdirectory path + NUL padding, confirming
+   the write happens on navigation itself.
+4. Update `test_config.sh`'s `DEFAULT_BYTES`/expected-byte constants for the
+   new (larger) `FmConfig` layout so its existing assertions still pass.
+
+### Progress
+
+- [ ] Implemented
+- [ ] Tests pass
+- [ ] Real-HW verification of per-navigation `config_save()` write frequency
+      — toggle-frequency saves are proven safe on `0:/idi8b/locifm/locifm.cfg`,
+      but this feature increases write frequency to every directory/drive
+      change and must be confirmed not to wedge or cause issues on real LOCI
+      hardware
+- [ ] Docs updated (README/ARCHITECTURE/CLAUDE.md as relevant)
+
+---
+
+## Backlog: other persistence ideas (raise with user first)
+
+- **Persist `namefilter[32]`** — the active wildcard filter resets every
+  boot; a 32-byte `FmConfig` addition plus a `config_save()` hook in the
+  name-filter handler would be straightforward, but a filter silently
+  surviving reboot could surprise a user who forgets it's set — confirm the
+  desired UX first.
+- **Favourites with custom labels** — the planned design above shows the raw
+  path per slot; per-favourite labels would need `char label[N]` per slot
+  (≈+128 bytes for 8×16), only worth it if raw-path display proves
+  insufficient in practice.
+- **Persist `targetdrive`** (mount target A-D) — resets to drive A on boot
+  today; a 1-byte addition like the existing scalar settings, but low value
+  unless reported as friction.
+- **Per-pane sort/filter overrides** — `settings.sort`/`settings.filter` are
+  currently global across both panes; would need `[2]` arrays if/when
+  per-pane settings are ever introduced.
