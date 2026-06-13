@@ -224,6 +224,12 @@ typedef struct
 extern uint8_t  loci_errno;
 extern LociCfg  locicfg;
 
+// loci_errno value for "not empty" returned by MIA_OP_UNLINK on a
+// non-empty directory (FatFs FR_DENIED / POSIX ENOTEMPTY, mapped to
+// EACCES by Phosphoric's loci_fs.c op_unlink -- confirmed via that
+// emulation; revisit against real LOCI firmware if it differs).
+#define LOCI_EACCES 3
+
 // ─────────────────────────────────────────────────────────────────────────────
 // MIA helpers — macros and function prototypes
 //

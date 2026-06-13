@@ -685,8 +685,8 @@ int main(void)
     uint8_t ans = menu_areyousure(MSG_DEMO_MENU_POPUP_ASK);
     cwin_putat_printf(&scr, 0, 4, MSG_DEMO_MENU_POPUP_RES, (uint16_t)ans);
 
-    // 3. Option select (Enter-action sub-menu = pulldown 5)
-    uint8_t sel = menu_option_select(MSG_DEMO_SECTION_K, 5);
+    // 3. Option select (Enter-action sub-menu = pulldown 6)
+    uint8_t sel = menu_option_select(MSG_DEMO_SECTION_K, 6);
     cwin_putat_printf(&scr, 0, 6, MSG_DEMO_MENU_SEL_RES, (uint16_t)sel);
 
     // 4. File error popup (simulated errno=42)

@@ -21,6 +21,7 @@
 #define MSG_MENU_BAR_DIR        "Rep"
 #define MSG_MENU_BAR_MOUNTS     "Monts"
 #define MSG_MENU_BAR_INFO       "Info"
+#define MSG_MENU_BAR_TOOLS      "Outils"
 
 // Pulldown 0 — App (items 0-3 overwritten at runtime via snprintf + _FMT macros)
 #define MSG_MENU_APP0           "Confirm.: 1x"
@@ -93,6 +94,11 @@
 #define MSG_MENU_YN0            "Oui"
 #define MSG_MENU_YN1            "Non"
 
+// Pulldown 10 — Tools
+#define MSG_MENU_TOOLS0         "[K] Proprietes"
+#define MSG_MENU_TOOLS1         "[L] Filtre nom"
+#define MSG_MENU_TOOLS2         "[J] Voir texte"
+
 // Format macros for dynamic App pulldown entries (snprintf label + value → 16 chars max)
 #define MSG_MENU_APP_CONFIRM_FMT    "Confirm.: %s"
 #define MSG_MENU_APP_RETURN_FMT     "Retour: %s"
@@ -128,8 +134,25 @@
 #define MSG_DIR_EMPTY           "Repertoire vide."
 #define MSG_DIR_CREATE_TITLE    "Creer repertoire."
 #define MSG_DIR_ENTER_NAME      "Nom du repertoire:"
-#define MSG_DIR_NOT_EMPTY       "Repertoire non vide."
 #define MSG_DIR_DELETE_Q        "Effacer rep.?"
+#define MSG_DIR_DELETE_RECURSE_Q "Rep. non vide. Tout effacer?"
+#define MSG_DIR_DELETING        "Suppression:"
+#define MSG_DIR_RECURSE_TRUNCATED "Arbre trop profond, suppr. incompl."
+#define MSG_DIR_NAMEFILTER_TITLE  "Filtre par nom."
+#define MSG_DIR_NAMEFILTER_CURRENT_FMT "Actuel: %s"
+#define MSG_DIR_NAMEFILTER_PROMPT "Motif (* ?), vide=non:"
+
+// Popup proprietes (Outils -> Proprietes, touche K)
+#define MSG_PROP_TITLE          "Proprietes"
+#define MSG_PROP_NAME_FMT       "Nom: %s"
+#define MSG_PROP_TYPE_FMT       "Type: %s"
+#define MSG_PROP_PATH_FMT       "Chemin: %s"
+#define MSG_PROP_ATTR_FMT       "Attr: %s"
+#define MSG_PROP_SIZE_FMT       "Taille: %s %s"
+#define MSG_PROP_BYTES          "octets"
+#define MSG_PROP_BYTES_APPROX   "octets+"
+#define MSG_PROP_CALCULATING    "Calcul en cours..."
+#define MSG_PROP_CANCELLED      "Annule."
 
 // ── Drive module strings ──────────────────────────────────────────────────────
 #define MSG_DRIVE_SELECT_TARGET   "Choisir lecteur cible."
@@ -152,6 +175,7 @@
 #define MSG_FILE_PROCESSING     "Traitement fichier:"
 #define MSG_FILE_ESC_CANCEL     "ESC pour annuler apres ce fich."
 #define MSG_FILE_PATH_TOO_LONG  "Chemin trop long."
+#define MSG_FILE_COPY_CANCELLED "Copie annulee."
 #define MSG_FILE_NOTHING_COPY   "Rien a copier."
 #define MSG_FILE_OVERWRITE_Q    "Fichier existe. Ecraser?"
 #define MSG_FILE_DELETE_FMT     "Effacer %u fichiers:"
@@ -159,6 +183,8 @@
 #define MSG_FILE_DELETE_Q       "Effacer fichier?"
 #define MSG_FILE_RENAME_TITLE   "Renommer fichier."
 #define MSG_FILE_RENAME_PROMPT  "Nouveau nom:"
+#define MSG_FILE_RECURSE_TRUNCATED "Arbre trop profond, incomplet."
+#define MSG_FILE_MKDIR_FAILED   "Creation repertoire echouee."
 
 // ── Main module strings ───────────────────────────────────────────────────────
 #define MSG_MAIN_EXIT_Q         "Quitter l'application."
@@ -167,6 +193,10 @@
 #define MSG_MAIN_ENTER_PROMPT   "Action pour Entree"
 #define MSG_MAIN_FILTER_PROMPT  "Appliquer filtre"
 #define MSG_MAIN_PRESS_CONTINUE "Appuyer touche pour continuer"
+#define MSG_MAIN_TODO           "Pas encore implemente."
+
+// Lecteur de fichiers texte
+#define MSG_VIEWER_PRESS_KEY    "ESPACE: page suiv.  ESC: sortir"
 
 // Version/credits popup
 #define MSG_VERSION_TITLE       "Informations de version et credits"
@@ -201,6 +231,9 @@
     {"W",          "Lire la bande"}, \
     {"E",          "Creer nouv. repertoire"}, \
     {"H",          "Afficher cette aide"}, \
+    {"K",          "Proprietes"}, \
+    {"L",          "Filtrer fich. par nom"}, \
+    {"J",          "Voir fich. texte"}, \
     {"Curs keys",  "Navigation menu"}, \
     {"ESC/RETURN", "Annuler / Confirmer"}
 

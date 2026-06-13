@@ -65,6 +65,19 @@ struct Directory
 };
 extern struct Directory presentdir[2];
 
+// Persistent settings, saved to/loaded from 0:/LOCIFM.CFG (config_save()/
+// config_load()). magic guards against a missing/foreign/corrupt file --
+// on mismatch, config_load() leaves the compiled-in defaults untouched.
+#define FMCONFIG_MAGIC 0xA5
+struct FmConfig
+{
+    uint8_t magic;
+    uint8_t confirm;
+    uint8_t filter;
+    uint8_t enterchoice;
+    uint8_t sort;
+};
+
 // Directory reading variables
 extern LociDir    *dir;
 extern LociDirent *file;
@@ -83,9 +96,14 @@ extern uint8_t  targetdrive;   // Target drive for mount: 0: A, 1: B, 2: C, 3: D
 extern uint16_t selection[2];  // Number of selected entries per pane
 extern uint8_t  insidetape[2]; // Browser is inside a tape .TAP container file
 
+// Name filter pattern ('*'/'?' wildcards, case-insensitive, dir_read() only).
+// Empty string = no name filter. Not persisted to LOCIFM.CFG.
+extern char namefilter[32];
+
 // Buffers for full paths
 extern char pathbuffer[256];
 extern char pathbuffer2[256];
+extern char pathbuffer3[256];
 
 // -------------------------------------------------------------------------
 // Function prototypes
@@ -116,8 +134,11 @@ void dir_select_inverse(void);
 void dir_gotoroot(void);
 void dir_parentdir(void);
 void dir_togglesort(void);
+void config_load(void);
+void config_save(void);
 void dir_newdir(void);
 void dir_deletedir(void);
+void dir_show_properties(void);
 
 #pragma compile("dir.c")
 

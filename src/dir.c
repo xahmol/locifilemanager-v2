@@ -10,6 +10,7 @@
 #include "loci.h"
 #include "menu.h"
 #include "drive.h"
+#include "recurse.h"
 #include "strings.h"
 #include "dir.h"
 
@@ -45,9 +46,11 @@ uint8_t  sort;
 uint8_t  targetdrive;
 uint16_t selection[2];
 uint8_t  insidetape[2];
+char     namefilter[32] = "";
 
 char pathbuffer[256];
 char pathbuffer2[256];
+char pathbuffer3[256];
 
 // -------------------------------------------------------------------------
 // Local state and helpers
@@ -79,6 +82,41 @@ static int16_t dir_stricmp(const char *a, const char *b)
         cb = (char)tolower((unsigned char)*b++);
     } while (ca && ca == cb);
     return (int16_t)ca - (int16_t)cb;
+}
+
+// Case-insensitive '*'/'?' glob match. Small bounded recursion only -- not
+// directory-depth recursion (namefilter is <=31 chars, names <=63 chars).
+static uint8_t dir_wildcard_match(const char *pattern, const char *name)
+{
+    while (*pattern)
+    {
+        if (*pattern == '*')
+        {
+            while (*pattern == '*') pattern++;
+            if (!*pattern) return 1;
+
+            while (*name)
+            {
+                if (dir_wildcard_match(pattern, name)) return 1;
+                name++;
+            }
+            return 0;
+        }
+        else if (*pattern == '?')
+        {
+            if (!*name) return 0;
+            pattern++;
+            name++;
+        }
+        else
+        {
+            if (!*name || tolower((unsigned char)*pattern) != tolower((unsigned char)*name))
+                return 0;
+            pattern++;
+            name++;
+        }
+    }
+    return !*name;
 }
 
 // Format a directory entry name + 3-char type into a fixed 36-char field
@@ -127,6 +165,31 @@ static void dir_dec6(char *out, uint16_t v)
     }
     for (j = 0; j < i; j++) out[j] = ' ';
     for (j = i; j < 6; j++) out[j] = tmp[j];
+}
+
+// Format a uint32_t as a 10-char space-padded right-justified decimal,
+// NUL-terminated ("%10lu" -- cwin_printf has no uint32 support, see dir_dec6).
+static void dir_dec10(char *out, uint32_t v)
+{
+    char    tmp[10];
+    uint8_t i = 10;
+    uint8_t j;
+
+    if (v == 0)
+    {
+        tmp[--i] = '0';
+    }
+    else
+    {
+        while (v)
+        {
+            tmp[--i] = (char)('0' + v % 10);
+            v /= 10;
+        }
+    }
+    for (j = 0; j < i; j++) out[j] = ' ';
+    for (j = i; j < 10; j++) out[j] = tmp[j];
+    out[10] = '\0';
 }
 
 // Format a tape entry as "%-12.12s       $%04X %6db" (32 chars + NUL).
@@ -319,6 +382,14 @@ void dir_read(uint8_t dirnr, uint8_t filterval)
             {
                 presenttype = 0;
             }
+        }
+
+        // Filter out non-matching file names if a name filter is set.
+        // Directories (presenttype 1) are always shown so navigation isn't
+        // blocked by the filter.
+        if (namefilter[0] && presenttype > 1 && !dir_wildcard_match(namefilter, file->d_name))
+        {
+            presenttype = 0;
         }
 
         if (presenttype)
@@ -1144,6 +1215,45 @@ void dir_togglesort(void)
 
     sprintf(pulldown_titles[0][3], MSG_MENU_APP_SORT_FMT,
             sort ? MSG_MENU_VAL_ON : MSG_MENU_VAL_OFF);
+
+    config_save();
+}
+
+// -------------------------------------------------------------------------
+// Persistent settings (0:/LOCIFM.CFG)
+// -------------------------------------------------------------------------
+
+// Load confirm/filter/enterchoice/sort from 0:/LOCIFM.CFG, if present and
+// valid. On any failure (missing file, short read, bad magic), the
+// compiled-in defaults already set by the caller are left untouched.
+void config_load(void)
+{
+    struct FmConfig cfg;
+
+    if (file_load("0:/LOCIFM.CFG", &cfg, sizeof(cfg)) != sizeof(cfg))
+        return;
+
+    if (cfg.magic != FMCONFIG_MAGIC)
+        return;
+
+    confirm     = cfg.confirm;
+    filter      = cfg.filter;
+    enterchoice = cfg.enterchoice;
+    sort        = cfg.sort;
+}
+
+// Save confirm/filter/enterchoice/sort to 0:/LOCIFM.CFG.
+void config_save(void)
+{
+    struct FmConfig cfg;
+
+    cfg.magic       = FMCONFIG_MAGIC;
+    cfg.confirm     = confirm;
+    cfg.filter      = filter;
+    cfg.enterchoice = enterchoice;
+    cfg.sort        = sort;
+
+    file_save("0:/LOCIFM.CFG", &cfg, sizeof(cfg));
 }
 
 // -------------------------------------------------------------------------
@@ -1198,6 +1308,62 @@ void dir_newdir(void)
     }
 }
 
+// recurse_walk() callback for dir_delete_recursive(): removes files as they
+// are visited, and now-empty subdirectories on RECURSE_LEAVE_DIR.
+static int8_t dir_delete_cb(RecurseEvent ev, const LociDirent *entry,
+                             const char *fullpath, void *userdata)
+{
+    OricCharWin *popup = (OricCharWin *)userdata;
+
+    if (ev == RECURSE_ENTER_DIR)
+        return RECURSE_CONTINUE;
+
+    cwin_fill_rect(popup, 0, 3, 36, 1, CH_SPACE);
+    cwin_putat_string(popup, 0, 3, (ev == RECURSE_FILE) ? entry->d_name : fullpath);
+
+    if (loci_unlink(fullpath) < 0)
+    {
+        menu_fileerrormessage();
+        return RECURSE_ABORT;
+    }
+
+    if (keyb_check() == KEY_ESC)
+        return RECURSE_ABORT;
+
+    return RECURSE_CONTINUE;
+}
+
+// Recursively delete everything inside path, then path itself. Caller has
+// already confirmed via menu_confirm_file(MSG_DIR_DELETE_RECURSE_Q, ...).
+static void dir_delete_recursive(const char *path)
+{
+    OricCharWin popup;
+
+    menu_popup_open(0, 8, 15);
+    cwin_init(&popup, 2, 8, 38, 15, A_FWBLACK, A_BGWHITE);
+    cwin_putat_string(&popup, 0, 1, MSG_DIR_DELETING);
+    cwin_putat_string(&popup, 0, 5, MSG_FILE_ESC_CANCEL);
+
+    if (recurse_walk(path, dir_delete_cb, &popup) == RECURSE_CONTINUE)
+    {
+        if (recurse_truncated)
+        {
+            cwin_fill_rect(&popup, 0, 3, 36, 1, CH_SPACE);
+            cwin_putat_string(&popup, 0, 3, MSG_DIR_RECURSE_TRUNCATED);
+        }
+        else if (loci_unlink(path) < 0)
+        {
+            menu_fileerrormessage();
+        }
+    }
+
+    cwin_fill_rect(&popup, 0, 5, 36, 1, CH_SPACE);
+    cwin_putat_string(&popup, 0, 7, MSG_MENU_PRESSAKEY);
+    cwin_getch();
+
+    menu_popup_close();
+}
+
 void dir_deletedir(void)
 {
     if (presentdir[activepane].firstelement && !insidetape[activepane] && presentdirelement.meta.type == 1)
@@ -1219,8 +1385,13 @@ void dir_deletedir(void)
             file = loci_readdir(dir);
             if (file && file->d_name[0] != '\0')
             {
-                menu_messagepopup(MSG_DIR_NOT_EMPTY);
                 loci_closedir(dir);
+
+                if (menu_confirm_file(MSG_DIR_DELETE_RECURSE_Q, presentdirelement.name))
+                {
+                    dir_delete_recursive(pathbuffer);
+                    dir_draw(activepane, 1);
+                }
                 return;
             }
             loci_closedir(dir);
@@ -1233,6 +1404,18 @@ void dir_deletedir(void)
 
         if (loci_unlink(pathbuffer) < 0)
         {
+            // Drive 0 (internal storage) can't be pre-checked for emptiness
+            // above -- a non-empty directory surfaces here as an unlink
+            // failure instead.
+            if (!presentdir[activepane].drive && loci_errno == LOCI_EACCES)
+            {
+                if (menu_confirm_file(MSG_DIR_DELETE_RECURSE_Q, presentdirelement.name))
+                {
+                    dir_delete_recursive(pathbuffer);
+                    dir_draw(activepane, 1);
+                }
+                return;
+            }
             menu_fileerrormessage();
         }
         else
@@ -1240,4 +1423,109 @@ void dir_deletedir(void)
             dir_draw(activepane, 1);
         }
     }
+}
+
+// -------------------------------------------------------------------------
+// Properties popup
+// -------------------------------------------------------------------------
+
+// recurse_walk() callback for dir_show_properties(): accumulates the total
+// size of every file under a directory. ESC aborts the calculation early
+// (the running total at that point is shown as MSG_PROP_CANCELLED instead).
+static int8_t dir_size_cb(RecurseEvent ev, const LociDirent *entry,
+                           const char *fullpath, void *userdata)
+{
+    if (ev == RECURSE_FILE)
+        *(uint32_t *)userdata += entry->d_size;
+
+    if (keyb_check() == KEY_ESC)
+        return RECURSE_ABORT;
+
+    return RECURSE_CONTINUE;
+}
+
+// Show name/type/path/attributes for the entry under the cursor, and its
+// size in bytes -- recursively computed for directories.
+void dir_show_properties(void)
+{
+    OricCharWin popup;
+    char     namebuf[64];
+    char     sizebuf[11];
+    char     attrstr[3];
+    uint8_t  namelen;
+    uint8_t  attrib = 0;
+    uint32_t filesize = 0;
+
+    if (!presentdir[activepane].firstelement || insidetape[activepane])
+        return;
+
+    // Strip the trailing '/' that dir_read() appends to directory names --
+    // loci_readdir() returns names without it.
+    strcpy(namebuf, presentdirelement.name);
+    namelen = (uint8_t)strlen(namebuf);
+    if (namelen && namebuf[namelen - 1] == '/')
+        namebuf[--namelen] = '\0';
+
+    // Re-fetch d_attrib/d_size for the selected entry -- not stored in
+    // DirElement/DirMeta.
+    dir = loci_opendir(presentdir[activepane].path);
+    if (dir)
+    {
+        while ((file = loci_readdir(dir)) != 0 && file->d_name[0] != '\0')
+        {
+            if (strcmp(file->d_name, namebuf) == 0)
+            {
+                attrib   = file->d_attrib;
+                filesize = file->d_size;
+                break;
+            }
+        }
+        loci_closedir(dir);
+    }
+
+    menu_popup_open(0, 8, 12);
+    cwin_init(&popup, 2, 8, 38, 12, A_FWBLACK, A_BGWHITE);
+
+    cwin_putat_string(&popup, 0, 0, MSG_PROP_TITLE);
+    cwin_putat_printf(&popup, 0, 2, MSG_PROP_NAME_FMT, presentdirelement.name);
+    cwin_putat_printf(&popup, 0, 3, MSG_PROP_TYPE_FMT, dir_entry_types[presentdirelement.meta.type - 1]);
+    cwin_putat_printf(&popup, 0, 4, MSG_PROP_PATH_FMT, presentdir[activepane].path);
+
+    attrstr[0] = (attrib & DIR_ATTR_RDO) ? 'R' : '-';
+    attrstr[1] = (attrib & DIR_ATTR_SYS) ? 'S' : '-';
+    attrstr[2] = '\0';
+    cwin_putat_printf(&popup, 0, 5, MSG_PROP_ATTR_FMT, attrstr);
+
+    if (presentdirelement.meta.type == 1)
+    {
+        uint32_t total = 0;
+        int8_t   walkresult;
+
+        cwin_putat_string(&popup, 0, 7, MSG_PROP_CALCULATING);
+
+        dir_build_path(pathbuffer, sizeof(pathbuffer), presentdir[activepane].path, presentdirelement.name);
+        walkresult = recurse_walk(pathbuffer, dir_size_cb, &total);
+
+        cwin_fill_rect(&popup, 0, 7, 36, 1, CH_SPACE);
+
+        if (walkresult == RECURSE_ABORT)
+        {
+            cwin_putat_string(&popup, 0, 7, MSG_PROP_CANCELLED);
+        }
+        else
+        {
+            dir_dec10(sizebuf, total);
+            cwin_putat_printf(&popup, 0, 7, MSG_PROP_SIZE_FMT, sizebuf,
+                              recurse_truncated ? MSG_PROP_BYTES_APPROX : MSG_PROP_BYTES);
+        }
+    }
+    else
+    {
+        dir_dec10(sizebuf, filesize);
+        cwin_putat_printf(&popup, 0, 7, MSG_PROP_SIZE_FMT, sizebuf, MSG_PROP_BYTES);
+    }
+
+    cwin_putat_string(&popup, 0, 11, MSG_MAIN_PRESS_CONTINUE);
+    cwin_getch();
+    menu_popup_close();
 }

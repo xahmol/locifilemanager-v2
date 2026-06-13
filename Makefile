@@ -124,6 +124,10 @@ MAIN_SRCS = \
   src/file.c            \
   src/drive.h           \
   src/drive.c           \
+  src/recurse.h         \
+  src/recurse.c         \
+  src/viewer.h          \
+  src/viewer.c          \
   $(IJK_SRCS)           \
   $(LOCI_SRCS)
 
@@ -197,7 +201,8 @@ CYCLES   ?= 8000000
 
 .PHONY: all all-langs clean run libdemo libdemo-run docs zip check-usb usb \
         check-phosphoric sandbox-reset test test-quick test-menus test-fileops \
-        test-libdemo test-capture
+        test-libdemo test-recurse test-settings test-namefilter test-copycancel \
+        test-viewer test-capture
 
 all: build/$(MAIN)$(LANGSUFFIX).tap
 
@@ -332,8 +337,19 @@ usb: check-usb all-langs
 #                      copy/move), verified via tests/sandbox host-fs state
 # make test-libdemo -- libdemo boot smoke test (build status checks, LOCI
 #                      detection, overlay RAM push/pop)
+# make test-recurse -- Tools pulldown + recursive-feature regression test
+# make test-settings -- persistent settings test (save/reload/fallback of
+#                      0:/LOCIFM.CFG via config_save()/config_load())
+# make test-namefilter -- filename wildcard filter test (set/clear via 'l',
+#                      dir_wildcard_match() in dir_read())
+# make test-copycancel -- mid-file copy cancellation test (ESC during
+#                      file_copy_progress() aborts and removes partial dest)
+# make test-viewer  -- text file viewer test (viewer_show_text() in
+#                      src/viewer.c: word-wrap, forward-only pagination, ESC)
 # make test         -- full automated suite (test-quick + test-menus +
-#                      test-fileops + test-libdemo)
+#                      test-fileops + test-libdemo + test-recurse +
+#                      test-settings + test-namefilter + test-copycancel +
+#                      test-viewer)
 # make test-capture CYCLES=N TYPEKEYS='...'
 #                   -- calibration helper: fast-loads locifm.tap (-t ... -f)
 #                      under Atmos BASIC 1.1 with --loci-flash tests/sandbox
@@ -353,10 +369,16 @@ check-phosphoric:
 
 # Reset the LOCI sandbox from checked-in fixtures + freshly built taps, so
 # every test run (including file-operation tests) starts from a known state.
+# .gitkeep placeholders (needed so git tracks otherwise-empty fixture dirs,
+# e.g. tests/fixtures/DEEP/EMPTY/) are stripped from the sandbox copy so
+# such directories are genuinely empty on the host filesystem, matching what
+# a real LOCI device's empty directory looks like (dotfiles are hidden from
+# the app's listing but still count toward rmdir()'s "not empty" check).
 sandbox-reset: build/$(MAIN)$(LANGSUFFIX).tap build/$(DEMO)$(LANGSUFFIX).tap
 	$(RMDIR) tests/sandbox 2>$(NULLDEV) ; true
 	$(MKDIR) tests/sandbox 2>$(NULLDEV) ; true
 	cp -r tests/fixtures/. tests/sandbox/
+	find tests/sandbox -name '.gitkeep' -delete
 	cp build/$(MAIN)$(LANGSUFFIX).tap tests/sandbox/
 	cp build/$(DEMO)$(LANGSUFFIX).tap tests/sandbox/
 
@@ -395,16 +417,51 @@ test-libdemo: check-phosphoric sandbox-reset
 	    TAPFILE=$(DEMO)$(LANGSUFFIX).tap \
 	    bash tests/scripts/test_libdemo.sh
 
+test-recurse: check-phosphoric sandbox-reset
+	$(MKDIR) tests/out 2>$(NULLDEV) ; true
+	PHOS=$(PHOS) ATMOSROM=$(ATMOSROM) SANDBOX=tests/sandbox OUT=tests/out \
+	    TAPFILE=$(MAIN)$(LANGSUFFIX).tap \
+	    bash tests/scripts/test_recurse.sh
+
+test-settings: check-phosphoric sandbox-reset
+	$(MKDIR) tests/out 2>$(NULLDEV) ; true
+	PHOS=$(PHOS) ATMOSROM=$(ATMOSROM) SANDBOX=tests/sandbox OUT=tests/out \
+	    TAPFILE=$(MAIN)$(LANGSUFFIX).tap \
+	    bash tests/scripts/test_settings.sh
+
+test-namefilter: check-phosphoric sandbox-reset
+	$(MKDIR) tests/out 2>$(NULLDEV) ; true
+	PHOS=$(PHOS) ATMOSROM=$(ATMOSROM) SANDBOX=tests/sandbox OUT=tests/out \
+	    TAPFILE=$(MAIN)$(LANGSUFFIX).tap \
+	    bash tests/scripts/test_namefilter.sh
+
+test-copycancel: check-phosphoric sandbox-reset
+	$(MKDIR) tests/out 2>$(NULLDEV) ; true
+	PHOS=$(PHOS) ATMOSROM=$(ATMOSROM) SANDBOX=tests/sandbox OUT=tests/out \
+	    TAPFILE=$(MAIN)$(LANGSUFFIX).tap \
+	    bash tests/scripts/test_copycancel.sh
+
+test-viewer: check-phosphoric sandbox-reset
+	$(MKDIR) tests/out 2>$(NULLDEV) ; true
+	PHOS=$(PHOS) ATMOSROM=$(ATMOSROM) SANDBOX=tests/sandbox OUT=tests/out \
+	    TAPFILE=$(MAIN)$(LANGSUFFIX).tap \
+	    bash tests/scripts/test_viewer.sh
+
 # test_fileops.sh mutates tests/sandbox/ (resetting it before each sub-test),
 # unlike test_boot.sh/test_menus.sh/test_libdemo.sh which are read-only -- so
 # each sub-target gets its own check-phosphoric + sandbox-reset via $(MAKE)
 # rather than sharing one sandbox-reset.
 test:
 	@status=0; \
-	$(MAKE) test-quick   || status=1; \
-	$(MAKE) test-menus   || status=1; \
-	$(MAKE) test-fileops || status=1; \
-	$(MAKE) test-libdemo || status=1; \
+	$(MAKE) test-quick    || status=1; \
+	$(MAKE) test-menus    || status=1; \
+	$(MAKE) test-fileops  || status=1; \
+	$(MAKE) test-libdemo  || status=1; \
+	$(MAKE) test-recurse  || status=1; \
+	$(MAKE) test-settings || status=1; \
+	$(MAKE) test-namefilter || status=1; \
+	$(MAKE) test-copycancel || status=1; \
+	$(MAKE) test-viewer   || status=1; \
 	exit $$status
 
 # -------------------------------------------------------------------------

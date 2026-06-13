@@ -33,7 +33,7 @@ static char drivebuffer[40];
 void drive_targetdrive(void)
 // Select which drive is the target for mount operations
 {
-    uint8_t select = menu_option_select(MSG_DRIVE_SELECT_TARGET, 7);
+    uint8_t select = menu_option_select(MSG_DRIVE_SELECT_TARGET, 8);
 
     if (select)
     {
@@ -151,7 +151,7 @@ void drive_unmount(void)
     uint8_t drive;
     uint8_t mountcount;
 
-    select = menu_option_select(MSG_DRIVE_SELECT_UNMOUNT, 8);
+    select = menu_option_select(MSG_DRIVE_SELECT_UNMOUNT, 9);
 
     if (select > 0 && select < 7)
     {

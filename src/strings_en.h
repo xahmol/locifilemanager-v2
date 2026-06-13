@@ -20,6 +20,7 @@
 #define MSG_MENU_BAR_DIR        "Dir"
 #define MSG_MENU_BAR_MOUNTS     "Mounts"
 #define MSG_MENU_BAR_INFO       "Info"
+#define MSG_MENU_BAR_TOOLS      "Tools"
 
 // Pulldown 0 — App (items 0-3 overwritten at runtime via snprintf + _FMT macros)
 #define MSG_MENU_APP0           "Confirm:  Once"
@@ -92,6 +93,11 @@
 #define MSG_MENU_YN0            "Yes"
 #define MSG_MENU_YN1            "No"
 
+// Pulldown 10 — Tools
+#define MSG_MENU_TOOLS0         "[K] Properties"
+#define MSG_MENU_TOOLS1         "Fi[l]ter by name"
+#define MSG_MENU_TOOLS2         "[J] View text"
+
 // Format macros for dynamic App pulldown entries (snprintf label + value → 16 chars max)
 #define MSG_MENU_APP_CONFIRM_FMT    "Confirm: %s"
 #define MSG_MENU_APP_RETURN_FMT     "Return: %s"
@@ -127,8 +133,25 @@
 #define MSG_DIR_EMPTY           "Empty directory."
 #define MSG_DIR_CREATE_TITLE    "Create directory."
 #define MSG_DIR_ENTER_NAME      "Enter dir name:"
-#define MSG_DIR_NOT_EMPTY       "Directory is not empty."
 #define MSG_DIR_DELETE_Q        "Delete dir?"
+#define MSG_DIR_DELETE_RECURSE_Q "Dir not empty. Delete ALL?"
+#define MSG_DIR_DELETING        "Deleting:"
+#define MSG_DIR_RECURSE_TRUNCATED "Tree too deep, delete incomplete."
+#define MSG_DIR_NAMEFILTER_TITLE  "Filter by name."
+#define MSG_DIR_NAMEFILTER_CURRENT_FMT "Current: %s"
+#define MSG_DIR_NAMEFILTER_PROMPT "Pattern (* ?), empty=off:"
+
+// Properties popup (Tools -> Properties, hotkey K)
+#define MSG_PROP_TITLE          "Properties"
+#define MSG_PROP_NAME_FMT       "Name: %s"
+#define MSG_PROP_TYPE_FMT       "Type: %s"
+#define MSG_PROP_PATH_FMT       "Path: %s"
+#define MSG_PROP_ATTR_FMT       "Attr: %s"
+#define MSG_PROP_SIZE_FMT       "Size: %s %s"
+#define MSG_PROP_BYTES          "bytes"
+#define MSG_PROP_BYTES_APPROX   "bytes+"
+#define MSG_PROP_CALCULATING    "Calculating..."
+#define MSG_PROP_CANCELLED      "Cancelled."
 
 // ── Drive module strings ──────────────────────────────────────────────────────
 #define MSG_DRIVE_SELECT_TARGET   "Select target drive."
@@ -151,6 +174,7 @@
 #define MSG_FILE_PROCESSING     "Processing file:"
 #define MSG_FILE_ESC_CANCEL     "Press ESC to cancel after next file."
 #define MSG_FILE_PATH_TOO_LONG  "Path gets too long."
+#define MSG_FILE_COPY_CANCELLED "Copy cancelled."
 #define MSG_FILE_NOTHING_COPY   "Nothing to copy."
 #define MSG_FILE_OVERWRITE_Q    "File exists. Overwrite?"
 #define MSG_FILE_DELETE_FMT     "Delete %u files:"
@@ -158,6 +182,8 @@
 #define MSG_FILE_DELETE_Q       "Delete file?"
 #define MSG_FILE_RENAME_TITLE   "Rename file."
 #define MSG_FILE_RENAME_PROMPT  "Enter new name:"
+#define MSG_FILE_RECURSE_TRUNCATED "Tree too deep, copy incomplete."
+#define MSG_FILE_MKDIR_FAILED   "Could not create directory."
 
 // ── Main module strings ───────────────────────────────────────────────────────
 #define MSG_MAIN_EXIT_Q         "Exit application."
@@ -166,6 +192,10 @@
 #define MSG_MAIN_ENTER_PROMPT   "Action for enter"
 #define MSG_MAIN_FILTER_PROMPT  "Apply filter"
 #define MSG_MAIN_PRESS_CONTINUE "Press a key to continue"
+#define MSG_MAIN_TODO           "Not implemented yet."
+
+// Text file viewer
+#define MSG_VIEWER_PRESS_KEY    "SPACE: next page  ESC: exit"
 
 // Version/credits popup
 #define MSG_VERSION_TITLE       "Version information and credits"
@@ -200,6 +230,9 @@
     {"W",          "Browse tape"}, \
     {"E",          "Create new directory"}, \
     {"H",          "Show this help screen"}, \
+    {"K",          "Properties"}, \
+    {"L",          "Filter files by name"}, \
+    {"J",          "View text file"}, \
     {"Curs keys",  "Menu navigation"}, \
     {"ESC/RETURN", "Cancel / Confirm"}
 

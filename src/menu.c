@@ -192,12 +192,17 @@ static uint8_t menu_getkey(void)
 
 MenuBar menubar = {
     { MSG_MENU_BAR_APP, MSG_MENU_BAR_FILE, MSG_MENU_BAR_DIR,
-      MSG_MENU_BAR_MOUNTS, MSG_MENU_BAR_INFO },
-    { 0, 0, 0, 0, 0 },
+      MSG_MENU_BAR_MOUNTS, MSG_MENU_BAR_INFO, MSG_MENU_BAR_TOOLS },
+    { 0, 0, 0, 0, 0, 0 },
     0
 };
 
-char pulldown_options[PULLDOWN_NUMBER] = { 5, 9, 7, 7, 2, 3, 5, 4, 7, 2 };
+// Indices 0-5 are the top menu-bar pulldowns (App/File/Dir/Mounts/Info/Tools,
+// matching MENUBAR_MAXOPTIONS=6 — menu_pulldown() uses
+// menunumber < MENUBAR_MAXOPTIONS to pick the "top menu" end colour).
+// Indices 6-10 are popup sub-menus opened via menu_option_select()/
+// menu_areyousure()/menu_confirm_file() with an explicit pulldown index.
+char pulldown_options[PULLDOWN_NUMBER] = { 5, 9, 7, 7, 2, 3, 3, 5, 4, 7, 2 };
 
 char pulldown_titles[PULLDOWN_NUMBER][PULLDOWN_MAXOPTIONS][PULLDOWN_MAXLENGTH] = {
     // 0 — App
@@ -213,16 +218,18 @@ char pulldown_titles[PULLDOWN_NUMBER][PULLDOWN_MAXOPTIONS][PULLDOWN_MAXLENGTH] =
       MSG_MENU_MNT4, MSG_MENU_MNT5, MSG_MENU_MNT6 },
     // 4 — Info
     { MSG_MENU_INFO0, MSG_MENU_INFO1 },
-    // 5 — Enter-action sub-menu
+    // 5 — Tools
+    { MSG_MENU_TOOLS0, MSG_MENU_TOOLS1, MSG_MENU_TOOLS2 },
+    // 6 — Enter-action sub-menu
     { MSG_MENU_ENT0, MSG_MENU_ENT1, MSG_MENU_ENT2 },
-    // 6 — Filter
+    // 7 — Filter
     { MSG_MENU_FLT0, MSG_MENU_FLT1, MSG_MENU_FLT2, MSG_MENU_FLT3, MSG_MENU_FLT4 },
-    // 7 — Target drive
+    // 8 — Target drive
     { MSG_MENU_DRV0, MSG_MENU_DRV1, MSG_MENU_DRV2, MSG_MENU_DRV3 },
-    // 8 — Mount source
+    // 9 — Mount source
     { MSG_MENU_SRC0, MSG_MENU_SRC1, MSG_MENU_SRC2, MSG_MENU_SRC3,
       MSG_MENU_SRC4, MSG_MENU_SRC5, MSG_MENU_SRC6 },
-    // 9 — Yes/No
+    // 10 — Yes/No
     { MSG_MENU_YN0, MSG_MENU_YN1 }
 };
 

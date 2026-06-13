@@ -29,10 +29,11 @@
 #include "dir.h"
 #include "drive.h"
 #include "file.h"
+#include "viewer.h"
 #include "splash_data.h"
 
 // Help text — key, description (see strings_en/fr.h MSG_HELP_TABLE)
-static const char * const helpinfo[22][2] = { MSG_HELP_TABLE };
+static const char * const helpinfo[25][2] = { MSG_HELP_TABLE };
 
 // -------------------------------------------------------------------------
 // App pulldown dynamic entries
@@ -44,18 +45,20 @@ static void confirm_toggle(void)
     confirm = !confirm;
     sprintf(pulldown_titles[0][0], MSG_MENU_APP_CONFIRM_FMT,
             confirm ? MSG_MENU_VAL_ALL : MSG_MENU_VAL_ONCE);
+    config_save();
 }
 
 static void select_enter_choice(void)
 // Select what to do on enter
 {
     static const char * const vals[3] = { MSG_MENU_VAL_SELECT, MSG_MENU_VAL_ENTER, MSG_MENU_VAL_LAUNCH };
-    uint8_t select = menu_option_select(MSG_MAIN_ENTER_PROMPT, 5);
+    uint8_t select = menu_option_select(MSG_MAIN_ENTER_PROMPT, 6);
 
     if (select)
     {
         enterchoice = select - 1;
         sprintf(pulldown_titles[0][1], MSG_MENU_APP_RETURN_FMT, vals[enterchoice]);
+        config_save();
     }
 }
 
@@ -63,12 +66,63 @@ static void select_filter(void)
 // Select which filter to apply
 {
     static const char * const vals[5] = { MSG_MENU_VAL_NONE, MSG_MENU_VAL_DSK, MSG_MENU_VAL_TAP, MSG_MENU_VAL_ROM, MSG_MENU_VAL_LCE };
-    uint8_t select = menu_option_select(MSG_MAIN_FILTER_PROMPT, 6);
+    uint8_t select = menu_option_select(MSG_MAIN_FILTER_PROMPT, 7);
 
     if (select)
     {
         filter = select - 1;
         sprintf(pulldown_titles[0][2], MSG_MENU_APP_FILTER_FMT, vals[filter]);
+        dir_draw(0, 1);
+        dir_draw(1, 1);
+        config_save();
+    }
+}
+
+static void select_namefilter(void)
+// Set/clear the filename wildcard filter (*, ? -- not persisted)
+{
+    char input[32] = "";
+    OricCharWin popup;
+    signed int result;
+
+    menu_popup_open(0, 8, 15);
+    cwin_init(&popup, 2, 8, 38, 15, A_FWBLACK, A_BGWHITE);
+
+    cwin_putat_string(&popup, 0, 1, MSG_DIR_NAMEFILTER_TITLE);
+    cwin_putat_printf(&popup, 0, 2, MSG_DIR_NAMEFILTER_CURRENT_FMT, namefilter[0] ? namefilter : MSG_MENU_VAL_NONE);
+    cwin_putat_string(&popup, 0, 4, MSG_DIR_NAMEFILTER_PROMPT);
+
+    result = cwin_textinput(&popup, 0, 5, 35, input, sizeof(input) - 1, VINPUT_ALL);
+
+    // Close the popup before redrawing the panes -- menu_popup_close()
+    // (menu_winrestore()) restores the pre-popup screen content for the
+    // rows it covers, which would clobber a dir_draw() done first since
+    // the popup overlaps most of both panes.
+    menu_popup_close();
+
+    if (result >= 0)
+    {
+        strcpy(namefilter, input);
+
+        // Tools pulldown label: show the active pattern, or revert to the
+        // static "filter by name" hint when cleared. Bounded to fit
+        // pulldown_titles[5][1] (PULLDOWN_MAXLENGTH=17: 16 chars + NUL).
+        if (namefilter[0])
+        {
+            char buf[17];
+            uint8_t i = 0, j;
+
+            for (j = 0; MSG_MENU_VAL_NAME[j]; j++) buf[i++] = MSG_MENU_VAL_NAME[j];
+            buf[i++] = ':';
+            for (j = 0; namefilter[j] && i < 16; j++) buf[i++] = namefilter[j];
+            buf[i] = '\0';
+            strcpy(pulldown_titles[5][1], buf);
+        }
+        else
+        {
+            strcpy(pulldown_titles[5][1], MSG_MENU_TOOLS1);
+        }
+
         dir_draw(0, 1);
         dir_draw(1, 1);
     }
@@ -132,12 +186,12 @@ static void help(void)
     OricCharWin win;
     uint8_t item, y;
 
-    menu_popup_open(0, 1, 27);
-    cwin_init(&win, 2, 1, 38, 27, A_FWBLACK, A_BGWHITE);
+    menu_popup_open(0, 0, 28);
+    cwin_init(&win, 2, 0, 38, 28, A_FWBLACK, A_BGWHITE);
 
-    y = 1;
+    y = 0;
     cwin_putat_string(&win, 0, y++, MSG_HELP_TITLE1);
-    for (item = 0; item < 20; item++)
+    for (item = 0; item < 23; item++)
     {
         cwin_putat_string(&win, 0, y, helpinfo[item][0]);
         cwin_putat_char(&win, 10, y, ':');
@@ -146,7 +200,7 @@ static void help(void)
     }
 
     cwin_putat_string(&win, 0, y++, MSG_HELP_TITLE2);
-    for (item = 20; item < 22; item++)
+    for (item = 23; item < 25; item++)
     {
         cwin_putat_string(&win, 0, y, helpinfo[item][0]);
         cwin_putat_char(&win, 10, y, ':');
@@ -154,7 +208,6 @@ static void help(void)
         y++;
     }
 
-    y++;
     cwin_putat_string(&win, 0, y, MSG_MAIN_PRESS_CONTINUE);
 
     cwin_getch();
@@ -322,6 +375,23 @@ static void mainmenuloop(void)
             help();
             break;
 
+        case 61:
+            dir_show_properties();
+            break;
+
+        case 62:
+            select_namefilter();
+            break;
+
+        case 63:
+            if (presentdir[activepane].firstelement && !insidetape[activepane] &&
+                presentdirelement.meta.type != 1)
+            {
+                dir_build_path(pathbuffer, sizeof(pathbuffer), presentdir[activepane].path, presentdirelement.name);
+                viewer_show_text(pathbuffer);
+            }
+            break;
+
         default:
             break;
         }
@@ -367,11 +437,22 @@ int main(void)
     bit_on = 0;
     ald_on = 0;
 
-    // Populate dynamic App pulldown entries (initial state)
-    sprintf(pulldown_titles[0][0], MSG_MENU_APP_CONFIRM_FMT, MSG_MENU_VAL_ONCE);
-    sprintf(pulldown_titles[0][1], MSG_MENU_APP_RETURN_FMT,  MSG_MENU_VAL_SELECT);
-    sprintf(pulldown_titles[0][2], MSG_MENU_APP_FILTER_FMT,  MSG_MENU_VAL_NONE);
-    sprintf(pulldown_titles[0][3], MSG_MENU_APP_SORT_FMT,    MSG_MENU_VAL_OFF);
+    // Override confirm/filter/enterchoice/sort defaults above from
+    // 0:/LOCIFM.CFG, if present and valid (no-op otherwise).
+    config_load();
+
+    // Populate dynamic App pulldown entries, reflecting confirm/filter/
+    // enterchoice/sort -- either the defaults set above or values loaded
+    // from 0:/LOCIFM.CFG by config_load().
+    {
+        static const char * const filtervals[5] = { MSG_MENU_VAL_NONE, MSG_MENU_VAL_DSK, MSG_MENU_VAL_TAP, MSG_MENU_VAL_ROM, MSG_MENU_VAL_LCE };
+        static const char * const entervals[3]  = { MSG_MENU_VAL_SELECT, MSG_MENU_VAL_ENTER, MSG_MENU_VAL_LAUNCH };
+
+        sprintf(pulldown_titles[0][0], MSG_MENU_APP_CONFIRM_FMT, confirm ? MSG_MENU_VAL_ALL : MSG_MENU_VAL_ONCE);
+        sprintf(pulldown_titles[0][1], MSG_MENU_APP_RETURN_FMT,  entervals[enterchoice]);
+        sprintf(pulldown_titles[0][2], MSG_MENU_APP_FILTER_FMT,  filtervals[filter]);
+        sprintf(pulldown_titles[0][3], MSG_MENU_APP_SORT_FMT,    sort ? MSG_MENU_VAL_ON : MSG_MENU_VAL_OFF);
+    }
     sprintf(pulldown_titles[3][5], MSG_MENU_MNT_TARGET_FMT,  MSG_MENU_DRV0);
 
     get_locicfg();
@@ -566,6 +647,23 @@ int main(void)
 
         case 'h':
             help();
+            break;
+
+        case 'k':
+            dir_show_properties();
+            break;
+
+        case 'l':
+            select_namefilter();
+            break;
+
+        case 'j':
+            if (presentdir[activepane].firstelement && !insidetape[activepane] &&
+                presentdirelement.meta.type != 1)
+            {
+                dir_build_path(pathbuffer, sizeof(pathbuffer), presentdir[activepane].path, presentdirelement.name);
+                viewer_show_text(pathbuffer);
+            }
             break;
 
         case KEY_DEL:

@@ -604,6 +604,8 @@ int16_t file_copy_progress(const char *dst, const char *src,
     for (x = 0; x < progl; x++) row[progx + 1 + x] = 0x20;
 
     do {
+        if (keyb_check() == KEY_ESC) { result = -2; break; }
+
         if ((cnt >> 2) > (uint8_t)(progl - 2))
         {
             cnt = 0;
@@ -627,6 +629,10 @@ int16_t file_copy_progress(const char *dst, const char *src,
 
     loci_close(fd_src);
     loci_close(fd_dst);
+
+    // -2 = cancelled mid-copy (ESC) -- remove the partial destination file.
+    if (result == -2)
+        loci_unlink(dst);
 
     for (x = 0; x < progl; x++) row[progx + x] = 0x20;
 

@@ -30,9 +30,9 @@
 // Menu window saves start after that region.
 #define MENU_OVERLAY_BASE   ((uint16_t)(OVERLAY_BASE + 0x2300U))  // 0xE300
 
-#define MENUBAR_MAXOPTIONS   5
+#define MENUBAR_MAXOPTIONS   6
 #define MENUBAR_MAXLENGTH   12   // char[] size for each bar title
-#define PULLDOWN_NUMBER     10
+#define PULLDOWN_NUMBER     11
 #define PULLDOWN_MAXOPTIONS  9
 #define PULLDOWN_MAXLENGTH  17   // 16 visible chars + NUL
 
@@ -44,7 +44,7 @@
 #define MENU_RIGHT_ARROW    19   // right arrow → caller should open next bar item
 
 // Pulldown index for Yes/No dialog
-#define MENU_YESNO           9
+#define MENU_YESNO          10
 
 // -------------------------------------------------------------------------
 // Structs

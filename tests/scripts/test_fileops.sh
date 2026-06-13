@@ -10,8 +10,9 @@
 # Each operation gets its own fresh sandbox (reset from tests/fixtures/ +
 # the freshly built .tap), so cursor positions are deterministic:
 #   - 'o' toggles sort on, which re-sorts both panes case-insensitively and
-#     resets the cursor to position 0 -- always DEMO.TAP for the fixture set
-#     (DEMO.TAP, FIRM.ROM, GAME.DSK, locifm.tap, NOTES.TXT, SAVE.LCE, SUBDIR/).
+#     resets the cursor to position 0 -- DEEP/ for the fixture set
+#     (DEEP/, DEMO.TAP, FIRM.ROM, GAME.DSK, locifm.tap, NOTES.TXT, SAVE.LCE,
+#     SUBDIR/). An extra \d\p1 moves the cursor to DEMO.TAP at position 1.
 #   - Result is verified primarily via tests/sandbox/ host-filesystem state
 #     (ground truth, no screen-scraping needed for the actual outcome), plus
 #     a screen-dump sanity check that the main interface is intact and no
@@ -119,7 +120,7 @@ echo ""
 echo "rename (DEMO.TAP -> DEMO.TAP1)"
 reset_sandbox
 dump="$OUT/fileops_rename.bin"
-run_emu "${BOOT_CYCLES}:o\\p1r\\p11\\p1\\n" 12000000 "$dump"
+run_emu "${BOOT_CYCLES}:o\\p1\\d\\p1r\\p11\\p1\\n" 14000000 "$dump"
 check_found     "main interface intact"  "LOCI File Manager" "$dump"
 check_not_found "no file error popup"    "File error"        "$dump"
 check_host "DEMO.TAP renamed to DEMO.TAP1" \
@@ -130,7 +131,7 @@ echo ""
 echo "delete (DEMO.TAP via File > [DEL]ete)"
 reset_sandbox
 dump="$OUT/fileops_delete.bin"
-run_emu "${BOOT_CYCLES}:o\\p1\\r\\r\\p1\\n\\p1\\d\\d\\d\\d\\p1\\n\\p1\\n\\p1\\n" 16000000 "$dump"
+run_emu "${BOOT_CYCLES}:o\\p1\\d\\p1\\r\\r\\p1\\n\\p1\\d\\d\\d\\d\\p1\\n\\p1\\n\\p1\\n" 16000000 "$dump"
 check_found     "main interface intact"  "LOCI File Manager" "$dump"
 check_not_found "no file error popup"    "File error"        "$dump"
 check_host "DEMO.TAP deleted" "[ ! -e '$SANDBOX/DEMO.TAP' ]"
@@ -140,7 +141,7 @@ echo ""
 echo "copy (DEMO.TAP -> SUBDIR/)"
 reset_sandbox
 dump="$OUT/fileops_copy.bin"
-run_emu "${BOOT_CYCLES}:o\\p1/\\p1\\d\\d\\d\\d\\d\\d\\p1\\n\\p1/\\p1c\\p1\\n" 17000000 "$dump"
+run_emu "${BOOT_CYCLES}:o\\p1\\d\\p1/\\p1\\d\\d\\d\\d\\d\\d\\d\\p1\\n\\p1/\\p1c\\p1\\n" 17000000 "$dump"
 check_found     "main interface intact"  "LOCI File Manager" "$dump"
 check_not_found "no file error popup"    "File error"        "$dump"
 check_host "DEMO.TAP copied to SUBDIR/, original retained" \
@@ -151,7 +152,7 @@ echo ""
 echo "move (DEMO.TAP -> SUBDIR/)"
 reset_sandbox
 dump="$OUT/fileops_move.bin"
-run_emu "${BOOT_CYCLES}:o\\p1/\\p1\\d\\d\\d\\d\\d\\d\\p1\\n\\p1/\\p1v\\p1\\n" 17000000 "$dump"
+run_emu "${BOOT_CYCLES}:o\\p1\\d\\p1/\\p1\\d\\d\\d\\d\\d\\d\\d\\p1\\n\\p1/\\p1v\\p1\\n" 17000000 "$dump"
 check_found     "main interface intact"  "LOCI File Manager" "$dump"
 check_not_found "no file error popup"    "File error"        "$dump"
 check_host "DEMO.TAP moved to SUBDIR/" \
