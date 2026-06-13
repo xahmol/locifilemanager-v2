@@ -580,6 +580,11 @@ Ouvre le fichier présent dans une visionneuse de texte plein écran avec retour
 passer à la page suivante, ou **ESC** pour revenir au navigateur de fichiers.
 La pagination se fait uniquement vers l'avant.
 
+Tout octet qui n'est pas un caractère ASCII imprimable (0x20-0x7E) -- par
+exemple lors de l'affichage d'un fichier binaire/non-texte -- est affiché
+comme un caractère de remplacement `.`, afin que le contenu binaire
+s'affiche sans corrompre l'écran ni tronquer la ligne.
+
 Cette fonction est aussi accessible avec la touche **J**.
 
 ### Info : Informations sur la version et aide

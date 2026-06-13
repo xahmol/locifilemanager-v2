@@ -19,6 +19,12 @@
 #define VIEWER_CHUNK_SIZE 512
 #define VIEWER_LINE_MAX   128
 
+// Bytes outside printable ASCII are shown as this placeholder -- raw control
+// bytes (0x00-0x1F) are charwin screen attributes, not characters (see "Oric
+// Screen Model" in CLAUDE.md), and an embedded NUL would truncate
+// cwin_printwrap()'s string early, silently dropping the rest of the line.
+#define VIEWER_PLACEHOLDER_CHAR '.'
+
 static char viewer_chunk[VIEWER_CHUNK_SIZE];
 static char viewer_line[VIEWER_LINE_MAX];
 
@@ -86,6 +92,8 @@ void viewer_show_text(const char *path)
             {
                 if (viewer_flush_line(&content, &footer, &linelen)) { aborted = true; break; }
             }
+            if (ch < 0x20 || ch > 0x7E)
+                ch = VIEWER_PLACEHOLDER_CHAR;
             viewer_line[linelen++] = (char)ch;
         }
     }

@@ -179,6 +179,34 @@ else
     check_found "listing restored"      "LONGTEXT.TXT"      "$page2exit_dump"
 fi
 
+# -----------------------------------------------------------------------
+# Sub-test 6: view a binary file containing a NUL byte, a control byte, a
+# DEL byte and a high-bit byte. Each byte outside printable ASCII
+# (0x20-0x7E) must be shown as a '.' placeholder -- otherwise an embedded
+# NUL truncates cwin_printwrap() mid-line (losing the rest of the line) and
+# control/high-bit bytes are misinterpreted as charwin screen attributes
+# (ink/paper/charset changes), both of which corrupt the display.
+#
+# Written into SUBDIR/ (alongside LONGTEXT.TXT) only for this sub-test;
+# "BINARY.BIN" sorts before "LONGTEXT.TXT" so it lands at position 0 after
+# entering SUBDIR/, same navigation as sub-test 3.
+# -----------------------------------------------------------------------
+echo ""
+echo "View binary file with NUL/control/DEL/high-bit bytes"
+binary_dump="$OUT/viewer_binary.bin"
+reset_sandbox
+printf 'AAAA\000BBBB\nCCCC\001DDDD\nEEEE\177FFFF\nGGGG\200HHHH\n' > "$SANDBOX/SUBDIR/BINARY.BIN"
+run_emu "${BOOT_CYCLES}:o\\p1\\d\\d\\d\\d\\d\\d\\d\\d\\p1\\n\\p1j" 16000000 "$binary_dump"
+if [ ! -f "$binary_dump" ]; then
+    echo "  [FAIL] emulator did not produce a RAM dump at $binary_dump"
+    fail=$((fail+1))
+else
+    check_found "embedded NUL sanitized"  "AAAA.BBBB" "$binary_dump"
+    check_found "control byte sanitized"  "CCCC.DDDD" "$binary_dump"
+    check_found "DEL byte sanitized"      "EEEE.FFFF" "$binary_dump"
+    check_found "high-bit byte sanitized" "GGGG.HHHH" "$binary_dump"
+fi
+
 echo ""
 echo "==========================================================="
 echo "  Results: $pass passed, $fail failed, $skipped skipped"

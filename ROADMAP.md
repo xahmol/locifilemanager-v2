@@ -54,7 +54,7 @@ below is new or substantially changed relative to v1.
   (`--loci-flash` sandbox, `--type-keys` auto-typing,
   `--dump-ram-at`/`tests/scripts/oric_screen.py` screen capture) — 8 suites
   (quick boot, menus, file ops, libdemo, recursive ops, name filter,
-  copy-cancel, viewer) totalling 234 assertions, run via `make test`.
+  copy-cancel, viewer) totalling 239 assertions, run via `make test`.
   v1 had no automated tests.
 
 ### 2. New file-management features
@@ -153,7 +153,7 @@ several independent globals.
 
 ### Test scenario
 
-Pure refactor, no behaviour change -- `make test` (234/234) must remain
+Pure refactor, no behaviour change -- `make test` (239/239) must remain
 unchanged. No new test needed.
 
 ### Progress

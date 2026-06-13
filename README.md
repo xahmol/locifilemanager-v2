@@ -474,6 +474,8 @@ This function can be reached also by pressing the **L** key.
 
 Opens the present file in a full-screen, word-wrapped text viewer. Press **SPACE** (or any other key) to advance to the next page, or **ESC** to exit back to the file browser. Paging is forward-only.
 
+Any byte that is not printable ASCII (0x20-0x7E) -- e.g. when viewing a non-text/binary file -- is shown as a `.` placeholder, so binary content displays safely instead of corrupting the screen or truncating the line.
+
 This function can be reached also by pressing the **J** key.
 
 ### Info: Version information and help
