@@ -210,8 +210,11 @@
 #define MSG_MAIN_PRESS_CONTINUE "Press a key to continue"
 
 // Text file viewer
-#define MSG_VIEWER_PRESS_KEY_FMT "SPACE: next  X: %s  ESC: exit"
-#define MSG_VIEWER_EOF_FMT      "X: %s view  other: exit"
+// Footer prompts: key names default to the window's ink (cyan); embedded
+// ASTR_INK_YELLOW/ASTR_INK_CYAN switch to the explanation/key colour. Requires
+// oric.h to be included before strings.h (true for viewer.c).
+#define MSG_VIEWER_PRESS_KEY_FMT "SPACE" ASTR_INK_YELLOW ": next  " ASTR_INK_CYAN "X" ASTR_INK_YELLOW ": %s  " ASTR_INK_CYAN "ESC" ASTR_INK_YELLOW ": exit"
+#define MSG_VIEWER_EOF_FMT      "X" ASTR_INK_YELLOW ": %s view  " ASTR_INK_CYAN "other" ASTR_INK_YELLOW ": exit"
 #define MSG_VIEWER_MODE_HEX     "hex"
 #define MSG_VIEWER_MODE_TEXT    "text"
 

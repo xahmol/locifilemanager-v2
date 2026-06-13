@@ -211,8 +211,13 @@
 #define MSG_MAIN_PRESS_CONTINUE "Appuyer touche pour continuer"
 
 // Lecteur de fichiers texte
-#define MSG_VIEWER_PRESS_KEY_FMT "ESPACE: suiv.  X: %s  ESC: sortir"
-#define MSG_VIEWER_EOF_FMT      "X: voir %s  autre: sortir"
+// Messages du bas : les touches gardent l'encre par defaut (cyan) ; les
+// ASTR_INK_YELLOW/ASTR_INK_CYAN integres changent vers la couleur
+// explication/touche. Necessite oric.h inclus avant strings.h (viewer.c).
+// "suiv" sans point final : la version avec point depasse 38 colonnes
+// une fois les octets de couleur ajoutes.
+#define MSG_VIEWER_PRESS_KEY_FMT "ESPACE" ASTR_INK_YELLOW ": suiv " ASTR_INK_CYAN "X" ASTR_INK_YELLOW ": %s " ASTR_INK_CYAN "ESC" ASTR_INK_YELLOW ": sortir"
+#define MSG_VIEWER_EOF_FMT      "X" ASTR_INK_YELLOW ": voir %s  " ASTR_INK_CYAN "autre" ASTR_INK_YELLOW ": sortir"
 #define MSG_VIEWER_MODE_HEX     "hex"
 #define MSG_VIEWER_MODE_TEXT    "texte"
 

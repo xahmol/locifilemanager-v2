@@ -48,14 +48,75 @@ static uint8_t viewer_wait_key(OricCharWin *footer, const char *fmt, const char 
     return VIEWER_KEY_CONTINUE;
 }
 
-// Word-wrap the buffered line into content, then either advance to the next
-// line or, if the page is now full, pause for a keypress and start a fresh
-// page.
+// Count the row-advances cwin_printwrap() would perform when word-wrapping
+// str into a window of the given width, starting at column 0 (always true
+// here: viewer_flush_line() is only called right after cwin_clear() or a
+// '\n', both of which leave cx==0). Mirrors cwin_printwrap()'s chunking
+// (runs of up to maxBuf=41 non-space chars, optionally with one trailing
+// space) and its column bookkeeping, including the hard-split case for
+// chunks longer than wx and a chunk that ends exactly on the right edge.
+static uint8_t viewer_wrapped_rows(const char *str, uint8_t wx)
+{
+    uint8_t len = 0;
+    while (str[len]) len++;
+
+    const uint8_t maxBuf = 41;
+    uint8_t i = 0, col = 0, rows = 0;
+
+    while (i < len)
+    {
+        uint8_t chunklen = 0;
+        while (i + chunklen < len && chunklen < maxBuf)
+        {
+            bool isspace = (str[i + chunklen] == ' ');
+            chunklen++;
+            if (isspace) break;
+        }
+        i += chunklen;
+
+        uint8_t wordLen = chunklen;
+        while (wordLen > wx)
+        {
+            rows++;
+            wordLen -= wx;
+            col = wx;
+        }
+
+        if ((uint8_t)(col + wordLen) > wx)
+        {
+            rows++;
+            col = 0;
+        }
+        col += wordLen;
+
+        if (col >= wx)
+        {
+            rows++;
+            col = 0;
+        }
+    }
+    return rows;
+}
+
+// Word-wrap the buffered line into content. If the line would not fit on
+// the current page, pause for a keypress and start a fresh page BEFORE
+// printing, so cwin_printwrap() never has to scroll the page mid-line.
+// Then either advance to the next line or, if the page is now exactly full,
+// pause for a keypress and start a fresh page.
 static uint8_t viewer_flush_line(OricCharWin *content, OricCharWin *footer, uint8_t *linelen, const char *togglemode)
 {
     viewer_line[*linelen] = 0;
-    cwin_printwrap(content, viewer_line);
     *linelen = 0;
+
+    if ((uint8_t)(content->cy + viewer_wrapped_rows(viewer_line, content->wx)) >= content->wy)
+    {
+        uint8_t result = viewer_wait_key(footer, MSG_VIEWER_PRESS_KEY_FMT, togglemode);
+        if (result != VIEWER_KEY_CONTINUE) return result;
+        cwin_clear(content);
+        cwin_clear(footer);
+    }
+
+    cwin_printwrap(content, viewer_line);
 
     if (content->cy >= content->wy - 1)
     {
@@ -196,8 +257,8 @@ void viewer_show_text(const char *path)
     }
 
     menu_popup_open(0, 0, 28);
-    cwin_init(&content, 2, 0, 38, 27, A_FWBLACK, A_BGWHITE);
-    cwin_init(&footer, 2, 27, 38, 1, A_FWBLACK, A_BGWHITE);
+    cwin_init(&content, 2, 0, 38, 27, A_FWWHITE, A_BGBLACK);
+    cwin_init(&footer, 2, 27, 38, 1, A_FWCYAN, A_BGBLACK);
 
     do
     {
