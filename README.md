@@ -476,6 +476,8 @@ Opens the present file in a full-screen, word-wrapped text viewer. Press **SPACE
 
 Any byte that is not printable ASCII (0x20-0x7E) -- e.g. when viewing a non-text/binary file -- is shown as a `.` placeholder, so binary content displays safely instead of corrupting the screen or truncating the line.
 
+Press **X** at any pause point to switch to a hex dump of the same file, showing each byte's offset and hex value plus an ASCII column; press **X** again to switch back to the word-wrapped text view. Either way, the file is read from the beginning again in the new view.
+
 This function can be reached also by pressing the **J** key.
 
 ### Info: Version information and help

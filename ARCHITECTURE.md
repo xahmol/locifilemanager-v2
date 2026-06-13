@@ -700,14 +700,27 @@ short and known-safe by construction).
 
 ### 6.8 Text viewer (`viewer.c`)
 
-`viewer_show_text(path)` opens the file read-only via `loci_open`, reads it
-in chunks, word-wraps it into an in-memory page buffer, and uses an
-`OricViewport` (§4.1) over a full-screen `OricCharWin` to display it one
-page at a time — pausing for a keypress when the page fills (forward-only;
-no scroll-back). ESC exits at any time;
-`menu_fileerrormessage()` is shown if the file can't be opened. Invoked from
-the main loop (`j`) or menu (`Tools → View file`, case 63) when the cursor is
-on a non-directory entry outside a tape browse.
+`viewer_show_text(path)` opens the file read-only via `loci_open`;
+`menu_fileerrormessage()` is shown and the function returns if it can't be
+opened. Otherwise it opens a full-screen popup with two `OricCharWin`s — a
+38x27 content window and a 38x1 footer — and reads the file in
+`VIEWER_CHUNK_SIZE` chunks, in one of two modes:
+
+- **Text mode** (`viewer_run_text`): splits on `'\n'` (ignoring `'\r'`) and
+  word-wraps each line into the content window via `cwin_printwrap()`.
+- **Hex mode** (`viewer_run_hex`): renders `VIEWER_HEX_PER_LINE` (8) bytes per
+  row as `"OFFS: b0 b1 .. b7"` plus an ASCII column.
+
+In both modes, any byte outside printable ASCII (0x20-0x7E) is shown as a
+`.` placeholder (`VIEWER_PLACEHOLDER_CHAR`) — raw control bytes are charwin
+screen attributes, not characters, and an embedded NUL would truncate
+`cwin_printwrap()`'s string early. Pagination is forward-only: once the
+content window's last row is used, the footer shows a prompt and pauses for
+a keypress before clearing for the next page. At any pause point, ESC exits
+back to the main interface, and `X` toggles between text and hex mode,
+seeking the file back to offset 0 and restarting in the new mode. Invoked
+from the main loop (`j`) or menu (`Tools → View text file`, case 63) when the
+cursor is on a non-directory entry outside a tape browse.
 
 ### 6.9 `libdemo.c`
 

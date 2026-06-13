@@ -200,7 +200,10 @@
 #define MSG_MAIN_PRESS_CONTINUE "Appuyer touche pour continuer"
 
 // Lecteur de fichiers texte
-#define MSG_VIEWER_PRESS_KEY    "ESPACE: page suiv.  ESC: sortir"
+#define MSG_VIEWER_PRESS_KEY_FMT "ESPACE: suiv.  X: %s  ESC: sortir"
+#define MSG_VIEWER_EOF_FMT      "X: voir %s  autre: sortir"
+#define MSG_VIEWER_MODE_HEX     "hex"
+#define MSG_VIEWER_MODE_TEXT    "texte"
 
 // Version/credits popup
 #define MSG_VERSION_TITLE       "Informations de version et credits"

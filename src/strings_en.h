@@ -199,7 +199,10 @@
 #define MSG_MAIN_PRESS_CONTINUE "Press a key to continue"
 
 // Text file viewer
-#define MSG_VIEWER_PRESS_KEY    "SPACE: next page  ESC: exit"
+#define MSG_VIEWER_PRESS_KEY_FMT "SPACE: next  X: %s  ESC: exit"
+#define MSG_VIEWER_EOF_FMT      "X: %s view  other: exit"
+#define MSG_VIEWER_MODE_HEX     "hex"
+#define MSG_VIEWER_MODE_TEXT    "text"
 
 // Version/credits popup
 #define MSG_VERSION_TITLE       "Version information and credits"

@@ -585,6 +585,12 @@ exemple lors de l'affichage d'un fichier binaire/non-texte -- est affiché
 comme un caractère de remplacement `.`, afin que le contenu binaire
 s'affiche sans corrompre l'écran ni tronquer la ligne.
 
+Appuyer sur **X** à n'importe quelle pause pour passer à un affichage
+hexadécimal du même fichier, montrant la position et la valeur hexadécimale
+de chaque octet ainsi qu'une colonne ASCII ; appuyer de nouveau sur **X**
+pour revenir à l'affichage texte avec retour à la ligne automatique. Dans
+les deux cas, le fichier est relu depuis le début dans la nouvelle vue.
+
 Cette fonction est aussi accessible avec la touche **J**.
 
 ### Info : Informations sur la version et aide

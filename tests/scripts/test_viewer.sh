@@ -8,11 +8,14 @@
 # case 63) opens viewer_show_text() (src/viewer.c), which:
 #   - reads the selected file in chunks, splits on '\n' and word-wraps each
 #     line into a full-screen content window via cwin_printwrap();
-#   - shows "Press a key to continue" at EOF;
+#   - shows "X: hex view  other: exit" at EOF;
 #   - paginates forward-only: once the content window's last row has been
-#     used, shows "SPACE: next page  ESC: exit" and waits for a keypress
+#     used, shows "SPACE: next  X: hex  ESC: exit" and waits for a keypress
 #     before clearing for the next page;
-#   - ESC at any pause exits back to the main interface.
+#   - ESC at any pause exits back to the main interface;
+#   - X at any pause toggles to a hex dump of the same file (and back),
+#     restarting from the beginning -- the toggle target name in the prompts
+#     flips between "hex" and "text" accordingly (sub-tests 7-8).
 #
 # Navigation (sort-on, calibrated against test_recurse.sh/test_namefilter.sh):
 # root listing with sort on is DEEP/(0), DEMO.TAP(1), FIRM.ROM(2), GAME.DSK(3),
@@ -105,8 +108,8 @@ if [ ! -f "$notes_dump" ]; then
     echo "  [FAIL] emulator did not produce a RAM dump at $notes_dump"
     fail=$((fail+1))
 else
-    check_found "NOTES.TXT content visible" "PHOSPHORIC TEST FIXTURE"  "$notes_dump"
-    check_found "EOF prompt shown"          "Press a key to continue" "$notes_dump"
+    check_found "NOTES.TXT content visible" "PHOSPHORIC TEST FIXTURE" "$notes_dump"
+    check_found "EOF prompt shown"          "X: hex view"            "$notes_dump"
 fi
 
 # -----------------------------------------------------------------------
@@ -142,7 +145,7 @@ else
     check_found     "LINE 01 visible on page 1" "LINE 01 OF LONGTEXT" "$page1_dump"
     check_found     "LINE 27 visible on page 1" "LINE 27 OF LONGTEXT" "$page1_dump"
     check_not_found "LINE 28 not yet visible"   "LINE 28 OF LONGTEXT" "$page1_dump"
-    check_found     "pagination prompt shown"   "next page"           "$page1_dump"
+    check_found     "pagination prompt shown"   "SPACE: next"         "$page1_dump"
 fi
 
 # -----------------------------------------------------------------------
@@ -160,7 +163,7 @@ else
     check_not_found "LINE 01 no longer visible" "LINE 01 OF LONGTEXT"     "$page2_dump"
     check_found     "LINE 28 visible on page 2" "LINE 28 OF LONGTEXT"     "$page2_dump"
     check_found     "LINE 30 visible on page 2" "LINE 30 OF LONGTEXT"     "$page2_dump"
-    check_found     "EOF prompt shown"          "Press a key to continue" "$page2_dump"
+    check_found     "EOF prompt shown"          "X: hex view"             "$page2_dump"
 fi
 
 # -----------------------------------------------------------------------
@@ -205,6 +208,45 @@ else
     check_found "control byte sanitized"  "CCCC.DDDD" "$binary_dump"
     check_found "DEL byte sanitized"      "EEEE.FFFF" "$binary_dump"
     check_found "high-bit byte sanitized" "GGGG.HHHH" "$binary_dump"
+fi
+
+# -----------------------------------------------------------------------
+# Sub-test 7: from the NOTES.TXT EOF prompt, press X to switch to hex mode.
+# The hex dump restarts from offset 0 -- row 0 shows "0000: 50 48 4F 53 50
+# 48 4F 52 PHOSPHOR" (the file's first 8 bytes, "PHOSPHOR"), and the EOF
+# prompt now offers to switch back ("X: text view  other: exit").
+# -----------------------------------------------------------------------
+echo ""
+echo "Toggle to hex view (X at EOF)"
+hex_dump="$OUT/viewer_notes_hex.bin"
+reset_sandbox
+run_emu "${BOOT_CYCLES}:o\\p1\\d\\d\\d\\d\\d\\d\\p1j\\p1x" 20000000 "$hex_dump"
+if [ ! -f "$hex_dump" ]; then
+    echo "  [FAIL] emulator did not produce a RAM dump at $hex_dump"
+    fail=$((fail+1))
+else
+    check_found "hex offset column shown" "0000:"                  "$hex_dump"
+    check_found "hex bytes for PHOSPHOR"  "50 48 4F 53 50 48 4F 52" "$hex_dump"
+    check_found "ASCII column shown"      "PHOSPHOR"               "$hex_dump"
+    check_found "toggle prompt now text"  "X: text view"           "$hex_dump"
+fi
+
+# -----------------------------------------------------------------------
+# Sub-test 8: pressing X again from the hex EOF prompt switches back to text
+# mode, restarting from the beginning -- NOTES.TXT's content is visible again
+# and the EOF prompt again offers the hex view ("X: hex view  other: exit").
+# -----------------------------------------------------------------------
+echo ""
+echo "Toggle back to text view (X again)"
+texttoggle_dump="$OUT/viewer_notes_texttoggle.bin"
+reset_sandbox
+run_emu "${BOOT_CYCLES}:o\\p1\\d\\d\\d\\d\\d\\d\\p1j\\p1x\\p1x" 26000000 "$texttoggle_dump"
+if [ ! -f "$texttoggle_dump" ]; then
+    echo "  [FAIL] emulator did not produce a RAM dump at $texttoggle_dump"
+    fail=$((fail+1))
+else
+    check_found "NOTES.TXT content restarted" "PHOSPHORIC TEST FIXTURE" "$texttoggle_dump"
+    check_found "toggle prompt back to hex"   "X: hex view"             "$texttoggle_dump"
 fi
 
 echo ""

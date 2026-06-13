@@ -54,7 +54,7 @@ below is new or substantially changed relative to v1.
   (`--loci-flash` sandbox, `--type-keys` auto-typing,
   `--dump-ram-at`/`tests/scripts/oric_screen.py` screen capture) — 8 suites
   (quick boot, menus, file ops, libdemo, recursive ops, name filter,
-  copy-cancel, viewer) totalling 239 assertions, run via `make test`.
+  copy-cancel, viewer) totalling 245 assertions, run via `make test`.
   v1 had no automated tests.
 
 ### 2. New file-management features
@@ -76,7 +76,10 @@ inside tape images. v2 adds:
   directories are always shown so navigation is never blocked.
 - **Full-screen text file viewer** (Tools menu / `J` key) — word-wrapped,
   paged viewer for any non-directory entry (forward-only paging in this
-  version).
+  version). Non-printable bytes are shown as `.` placeholders, so binary
+  files display safely. Pressing `X` at any pause point toggles to a hex
+  dump of the same file (offset, hex bytes, ASCII column) and back,
+  restarting the file from the beginning in the new view.
 - **Properties popup** (Tools menu / `K` key) — shows name, type, path,
   attributes (read-only/system), and size; for directories the size is
   calculated recursively, with a "Calculating…" / ESC-cancel flow and a `+`
@@ -153,7 +156,7 @@ several independent globals.
 
 ### Test scenario
 
-Pure refactor, no behaviour change -- `make test` (239/239) must remain
+Pure refactor, no behaviour change -- `make test` (245/245) must remain
 unchanged. No new test needed.
 
 ### Progress
