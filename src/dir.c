@@ -1265,7 +1265,12 @@ void dir_newdir(void)
     char input[64] = "";
     OricCharWin popup;
 
-    if (presentdir[activepane].firstelement && !insidetape[activepane])
+    // Note: deliberately NOT gated on presentdir[activepane].firstelement --
+    // an empty directory (firstprint == 0, "Directory empty" shown) is still
+    // a valid place to create a subdirectory. Requiring an existing entry
+    // made it impossible to create a subdir inside a freshly-created (and
+    // therefore empty) one.
+    if (!insidetape[activepane])
     {
         menu_popup_open(0, 8, 15);
         cwin_init(&popup, 2, 8, 38, 15, A_FWBLACK, A_BGWHITE);
@@ -1281,6 +1286,7 @@ void dir_newdir(void)
             if (loci_mkdir(pathbuffer) < 0)
             {
                 menu_fileerrormessage();
+                menu_popup_close();
             }
             else
             {
@@ -1296,15 +1302,27 @@ void dir_newdir(void)
                 if (!dir)
                 {
                     menu_fileerrormessage();
+                    menu_popup_close();
                 }
                 else
                 {
                     loci_closedir(dir);
+
+                    // Close the popup before redrawing the panes -- see the
+                    // analogous comment in select_namefilter(): closing
+                    // AFTER dir_draw() would restore the pre-popup screen
+                    // content over the freshly-drawn pane, hiding the new
+                    // entry until an unrelated redraw (e.g. switching panes)
+                    // happened to repaint it.
+                    menu_popup_close();
                     dir_draw(activepane, 1);
                 }
             }
         }
-        menu_popup_close();
+        else
+        {
+            menu_popup_close();
+        }
     }
 }
 

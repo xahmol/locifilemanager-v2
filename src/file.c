@@ -344,6 +344,14 @@ void file_copy_move_selected(uint8_t move)
             selection[activepane] = 0;
         }
     }
+    else
+    {
+        // Active pane empty (or browsing a virtual tape dir): nothing to
+        // select/copy from here. Without this, the keypress was a silent
+        // no-op -- indistinguishable from "doesn't work" when the user
+        // expects to copy INTO the active pane's (empty) directory.
+        menu_messagepopup(MSG_FILE_NOTHING_COPY);
+    }
 }
 
 void file_delete(void)
