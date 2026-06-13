@@ -56,6 +56,13 @@ below is new or substantially changed relative to v1.
   (quick boot, menus, file ops, libdemo, recursive ops, name filter,
   copy-cancel, viewer) totalling 245 assertions, run via `make test`.
   v1 had no automated tests.
+- App settings (`confirm`/`filter`/`enterchoice`/`sort`) consolidated from 4
+  standalone globals into one `struct AppSettings settings` (`src/dir.h`/
+  `src/dir.c`), used throughout `main.c`/`dir.c`/`file.c` — prep for
+  persistent storage, so save/load can become a single struct read/write if
+  persistent storage is ever reintroduced (it was removed earlier after
+  wedging the real LOCI firmware on writes to `"0:"` — see git history for
+  `config_save`/`config_load`/`LOCIFM.CFG`).
 
 ### 2. New file-management features
 
@@ -121,56 +128,8 @@ inside tape images. v2 adds:
 
 ## Planned / Future Work
 
-## Consolidate app settings into one struct (prep for persistent storage)
-
-### Context
-
-Persistent settings (`config_save()`/`config_load()`, `0:/LOCIFM.CFG`) were
-removed entirely after both App > Filter Type and App > Sort were found to
-wedge the real LOCI firmware solid (survives RESET, needs power-cycle) when
-writing to `"0:"` internal flash/LittleFS -- see the "Completed: v1 to v2"
-section above. A separate research task investigates whether persistent
-storage can be made to work at all on `"0:"`. If/when it is reintroduced,
-saving/loading should be a single struct write/read rather than juggling
-several independent globals.
-
-### Plan
-
-- Define `struct AppSettings { uint8_t confirm; uint8_t filter; uint8_t
-  enterchoice; uint8_t sort; };` in `src/dir.h`, with a single global
-  `extern struct AppSettings settings;` defined in `src/dir.c`. These are
-  exactly the 4 fields the old (removed) `struct FmConfig` held.
-- Replace the 4 standalone `uint8_t` globals `confirm`, `filter`,
-  `enterchoice`, `sort` with fields of `settings` (`settings.confirm`,
-  `settings.filter`, `settings.enterchoice`, `settings.sort`) throughout
-  `src/main.c`, `src/dir.c`, `src/file.c`, and the `extern` declarations in
-  `src/dir.h`.
-- `namefilter[32]` is intentionally NOT included -- it was an explicitly
-  transient, session-only filter even when `FmConfig` existed, and stays
-  that way.
-- Once persistent storage is confirmed viable, `config_save()`/
-  `config_load()` become a single `loci_write(fd, &settings,
-  sizeof(settings))` / `loci_read(fd, &settings, sizeof(settings))` call
-  each, plus a leading magic/version byte for forward compatibility (as
-  `FMCONFIG_MAGIC` did).
-
-### Test scenario
-
-Pure refactor, no behaviour change -- `make test` (245/245) must remain
-unchanged. No new test needed.
-
-### Progress
-
-- [x] Implemented
-- [x] Tests pass
-- [x] Docs updated (`ARCHITECTURE.md` state table, `CLAUDE.md` if relevant)
-
-**Status: done.** `struct AppSettings { confirm; filter; enterchoice; sort; }`
-plus a single `extern struct AppSettings settings;` now hold these four
-fields throughout `src/main.c`, `src/dir.c`, `src/file.c`, and `src/dir.h`.
-`make test` 245/245 unchanged (pure refactor, no behaviour change). When
-persistent storage (task #14) is reintroduced, save/load becomes a single
-`loci_write`/`loci_read` of `settings`.
+Empty right now; see [Adding a new plan](#adding-a-new-plan) for the format
+to use when that changes.
 
 ### Adding a new plan
 
