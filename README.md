@@ -453,7 +453,7 @@ This function can be reached also by pressing the **E** key.
 *Properties*
 
 Shows a popup with details about the present file or directory:
-- Name, type and the active path. Type is shown as a description: "Directory" for directories, ".DSK - Disk image", ".TAP - Tape image", ".ROM - ROM image" or ".LCE - LOCI Executable" for those file types, and the file's own extension (e.g. ".TXT") for any other file
+- Name, type and the active path. Type is shown as a description: "Directory" for directories, ".DSK - Disk image", ".TAP - Tape image", ".ROM - ROM image", ".LCE - LOCI Executable", ".CFG - Config file" or ".SYS - System file" for those file types (matched case-insensitively), and the file's own extension (e.g. ".TXT") for any other file
 - Attributes: R (read-only) and S (system), shown as a dash (-) if not set
 - Size in bytes. For a directory, the size is calculated recursively over all files in its tree; while calculating, "Calculating..." is shown, and pressing **ESC** cancels the calculation, after which "Cancelled." is shown instead of a size. If the directory tree is deeper than 8 levels, the total is shown with a trailing "+" to indicate it may be incomplete.
 

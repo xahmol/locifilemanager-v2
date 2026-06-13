@@ -159,6 +159,8 @@
 #define MSG_PROP_TYPE_TAP       ".TAP - Image bande"
 #define MSG_PROP_TYPE_ROM       ".ROM - Image ROM"
 #define MSG_PROP_TYPE_LCE       ".LCE - Executable LOCI"
+#define MSG_PROP_TYPE_CFG       ".CFG - Fichier config"
+#define MSG_PROP_TYPE_SYS       ".SYS - Fichier systeme"
 
 // Popup favoris (Outils -> Favoris, touche Y)
 #define MSG_FAV_TITLE           "Favoris"

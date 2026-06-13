@@ -1658,7 +1658,15 @@ void dir_show_properties(void)
             break;
         default:
             ext = strrchr(namebuf, '.');
-            if (ext)
+            if (ext && dir_stricmp(ext, ".cfg") == 0)
+            {
+                strcpy(typebuf, MSG_PROP_TYPE_CFG);
+            }
+            else if (ext && dir_stricmp(ext, ".sys") == 0)
+            {
+                strcpy(typebuf, MSG_PROP_TYPE_SYS);
+            }
+            else if (ext)
             {
                 strncpy(typebuf, ext, sizeof(typebuf) - 1);
                 typebuf[sizeof(typebuf) - 1] = '\0';
