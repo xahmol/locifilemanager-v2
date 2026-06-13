@@ -175,23 +175,26 @@ static void help(void)
     uint8_t item, y;
 
     menu_popup_open(0, 0, 28);
-    cwin_init(&win, 2, 0, 38, 28, A_FWBLACK, A_BGWHITE);
+    cwin_init(&win, 2, 0, 38, 28, A_FWCYAN, A_BGBLACK);
+    cwin_clear(&win);
 
     y = 0;
-    cwin_putat_string(&win, 0, y++, MSG_HELP_TITLE1);
+    cwin_putat_string(&win, 0, y++, ASTR_INK_GREEN MSG_HELP_TITLE1);
     for (item = 0; item < 24; item++)
     {
         cwin_putat_string(&win, 0, y, helpinfo[item][0]);
         cwin_putat_char(&win, 10, y, ':');
+        cwin_putat_string(&win, 11, y, ASTR_INK_YELLOW);
         cwin_putat_string(&win, 12, y, helpinfo[item][1]);
         y++;
     }
 
-    cwin_putat_string(&win, 0, y++, MSG_HELP_TITLE2);
+    cwin_putat_string(&win, 0, y++, ASTR_INK_GREEN MSG_HELP_TITLE2);
     for (item = 24; item < 25; item++)
     {
         cwin_putat_string(&win, 0, y, helpinfo[item][0]);
         cwin_putat_char(&win, 10, y, ':');
+        cwin_putat_string(&win, 11, y, ASTR_INK_YELLOW);
         cwin_putat_string(&win, 12, y, helpinfo[item][1]);
         y++;
     }
