@@ -311,11 +311,10 @@ aggregate `test:` target):
 
 - [x] Implemented
 - [x] Tests pass (`make test-laststate`, 8/8; `make test` 284/284)
-- [ ] Real-HW verification of per-navigation `config_save()` write frequency
-      — toggle-frequency saves are proven safe on `0:/idi8b/locifm/locifm.cfg`,
-      but this feature increases write frequency to every directory/drive
-      change and must be confirmed not to wedge or cause issues on real LOCI
-      hardware
+- [x] Real-HW verification of per-navigation `config_save()` write frequency
+      — confirmed working on real LOCI hardware (2026-06-14): the increased
+      write frequency (every directory/drive change, not just toggles) does
+      not wedge or cause issues
 - [x] Docs updated (no user-visible UI/MSG_* changes -- feature is fully
       automatic/silent, no README/Help updates needed)
 
