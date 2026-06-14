@@ -23,7 +23,7 @@ build/test commands and Oscar64-specific gotchas, see
 | Python 3 | `tools/mktap.py` (tape image wrapper), test scripts |
 | pandoc | Regenerating PDF docs (`make docs`) |
 | [Oricutron](http://www.defence-force.org/index.php?page=articles&art=oricutron) | Manual testing in emulator (no LOCI support) |
-| [Phosphoric](https://github.com/xahmol/Phosphoric) (`oric1-emu`) | Automated headless testing (LOCI emulated via host-fs sandbox) |
+| [Phosphoric](https://github.com/benedictemarty/Phosphoric) (`oric1-emu`) | Automated headless testing (LOCI emulated via host-fs sandbox) |
 
 ### Build and run
 

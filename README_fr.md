@@ -807,7 +807,7 @@ Code et ressources d'autres auteurs utilisés :
 -   Phosphoric, émulateur ORIC-1/Atmos cycle-exact par Xander Mol, utilisé
     pour la suite de tests automatisés (`make test`)
 
-    https://github.com/xahmol/Phosphoric
+    https://github.com/benedictemarty/Phosphoric
 
 -   Testé sur matériel réel Oric Atmos avec LOCI
 

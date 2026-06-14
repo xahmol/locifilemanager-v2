@@ -42,7 +42,7 @@ Emulator: `/home/xahmol/oricutron/oricutron -ma --serial none --vsynchack off --
 
 ## Testing
 
-Automated headless testing via the [Phosphoric](https://github.com/xahmol/Phosphoric)
+Automated headless testing via the [Phosphoric](https://github.com/benedictemarty/Phosphoric)
 emulator's `--loci-flash` sandbox (standing in for the LOCI's USB storage) and
 `--type-keys`/`--dump-ram-at` auto-typer/screen-capture.
 

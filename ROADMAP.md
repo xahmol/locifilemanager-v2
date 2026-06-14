@@ -50,7 +50,7 @@ below is new or substantially changed relative to v1.
   sections A–Q), used for manual smoke-testing and as the basis of automated
   library tests.
 - New **headless automated test harness** via the
-  [Phosphoric](https://github.com/xahmol/Phosphoric) emulator
+  [Phosphoric](https://github.com/benedictemarty/Phosphoric) emulator
   (`--loci-flash` sandbox, `--type-keys` auto-typing,
   `--dump-ram-at`/`tests/scripts/oric_screen.py` screen capture) — 9 suites
   (quick boot, menus, file ops, libdemo, recursive ops, name filter,

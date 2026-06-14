@@ -670,7 +670,7 @@ Code and resources from others used:
 -   Phosphoric, a cycle-accurate ORIC-1/Atmos emulator by Xander Mol, used to
     drive the automated headless test suite (`make test`)
 
-    https://github.com/xahmol/Phosphoric
+    https://github.com/benedictemarty/Phosphoric
 
 -   Tested using real hardware Oric Atmos plus LOCI
 

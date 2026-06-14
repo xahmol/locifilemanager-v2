@@ -37,7 +37,7 @@ flow. For compiler gotchas and day-to-day build/test commands, see
 - **Emulator:** Oricutron (`make run`/`make libdemo-run`) — LOCI features
   (file I/O, mount, overlay RAM) are **not** emulated by Oricutron and
   require real hardware.
-- **Headless test emulator:** [Phosphoric](https://github.com/xahmol/Phosphoric)
+- **Headless test emulator:** [Phosphoric](https://github.com/benedictemarty/Phosphoric)
   (`oric1-emu`) — emulates a LOCI device backed by a host-filesystem sandbox
   (`--loci-flash`), with `--type-keys` auto-typing and `--dump-ram-at`
   screen capture. This is what `make test*` runs against (§7).
