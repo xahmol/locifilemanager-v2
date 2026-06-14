@@ -2,7 +2,7 @@
 
 Gestionnaire de fichiers pour le périphérique de stockage de masse LOCI sur Oric Atmos — reconstruction v2 avec Oscar64.
 
-![Interface principale de LOCI FM](screenshots/LociFM-main-interface.png)
+![Interface principale de LOCI FM](screenshots/LociFM-main-interface-fr.png)
 
 ## Sommaire
 
@@ -40,11 +40,7 @@ couvre l'ensemble des fonctionnalités de la v1, ainsi que les nouvelles
 fonctionnalités v2 listées ci-dessus (copie/déplacement/suppression
 récursifs, annulation de copie en cours, filtres par nom et par type,
 visionneuse de texte, fenêtre de propriétés), et est
-couverte par une suite de tests automatisés (`make test`). Les captures
-d'écran plus loin dans ce manuel proviennent d'une version antérieure de la
-v2 et datent d'avant l'ajout du menu « Tools » (Propriétés/Filtre de
-texte/Voir le texte) ; elles seront mises à jour pour montrer la barre de menu
-actuelle à 6 éléments.
+couverte par une suite de tests automatisés (`make test`).
 
 Pour plus d'informations sur le périphérique LOCI lui-même, voir le
 [manuel utilisateur du LOCI](https://github.com/sodiumlb/loci-hardware/wiki/LOCI-User-Manual)
@@ -160,7 +156,7 @@ Pour copier les images bande directement sur une clé USB :
 2. Allez dans l'interface utilisateur du LOCI en appuyant sur le bouton rouge
    du LOCI. Vous devriez obtenir une interface LOCI similaire à :
 
-   ![Interface LOCI - démarrage du programme](screenshots/LociFM-start-program.png)
+   ![Interface LOCI - démarrage du programme](screenshots/LociFM-start-program-fr.png)
 3. Allez dans le champ de sélection des images de bande en appuyant sur **T**
    (ou naviguez-y avec les touches curseur).
 4. Appuyez sur **ESPACE** pour aller au navigateur de fichiers.
@@ -243,7 +239,7 @@ Le bouton de tir déclenche la même action que la touche RETURN.
 
 Après le démarrage de l'application, l'interface principale ressemble à :
 
-![Interface principale de LOCI FM](screenshots/LociFM-main-interface.png)
+![Interface principale de LOCI FM](screenshots/LociFM-main-interface-fr.png)
 
 La première ligne de l'écran est un en-tête affichant le nom de l'application,
 suivi de la chaîne d'identification et de version de firmware du périphérique
@@ -286,7 +282,7 @@ utiliser, classées par option du menu principal.
 
 ### App : Options de l'application
 
-![Menu Application](screenshots/LociFM-menu-app.png)
+![Menu Application](screenshots/LociFM-menu-app-fr.png)
 
 *Confirm.*
 
@@ -299,7 +295,7 @@ Cette fonction n'est accessible que via le menu.
 
 *Retour*
 
-![App : Retour](screenshots/LociFM-menu-app-return.png)
+![App : Retour](screenshots/LociFM-menu-app-return-fr.png)
 
 Sélectionne l'action à effectuer en appuyant sur RETURN :
 - Select : Bascule la sélection du fichier en appuyant sur **RETURN**, qui se
@@ -316,7 +312,7 @@ Cette fonction n'est accessible que via le menu.
 
 *Filtre de type*
 
-![App : Filtre](screenshots/LociFM-menu-app-filter.png)
+![App : Filtre](screenshots/LociFM-menu-app-filter-fr.png)
 
 Sélectionne le filtre à appliquer pour l'affichage des répertoires. Le menu
 affiche directement la valeur active (`[F] Type: Aucun`/`.DSK`/`.TAP`/`.ROM`/`.LCE`) :
@@ -341,7 +337,7 @@ Cette fonction est aussi accessible avec la touche **O**.
 
 *Sortie*
 
-![App : Sortie](screenshots/LociFM-menu-app-exit.png)
+![App : Sortie](screenshots/LociFM-menu-app-exit-fr.png)
 
 L'application se termine et démarre en fonction des montages actifs (lecteur
 A > .TAP > ROM).
@@ -352,7 +348,7 @@ Cette fonction est aussi accessible avec la touche **ESC**.
 
 ### Fichier : Opérations sur les fichiers
 
-![Menu Fichier](screenshots/LociFM-menu-file.png)
+![Menu Fichier](screenshots/LociFM-menu-file-fr.png)
 
 *Sélection*
 
@@ -362,7 +358,7 @@ d'écran ci-dessous.
 
 Cette fonction est aussi accessible avec la touche **S**.
 
-![Fichier : Sélection](screenshots/LociFM-menu-file-select.png)
+![Fichier : Sélection](screenshots/LociFM-menu-file-select-fr.png)
 
 *Tout sélectionner*
 
@@ -402,7 +398,7 @@ Cette fonction permet aussi de supprimer un répertoire :
 
 Cette fonction est aussi accessible avec la touche **DEL**.
 
-![Fichier : Effacer](screenshots/LociFM-menu-file-delete.png)
+![Fichier : Effacer](screenshots/LociFM-menu-file-delete-fr.png)
 
 *Renommer*
 
@@ -414,7 +410,7 @@ annuler.
 
 Cette fonction est aussi accessible avec la touche **R**.
 
-![Fichier : Renommer](screenshots/LociFM-menu-file-rename.png)
+![Fichier : Renommer](screenshots/LociFM-menu-file-rename-fr.png)
 
 *Copier / Déplacer*
 
@@ -428,19 +424,19 @@ La copie ou le déplacement s'effectue depuis le répertoire du volet actif vers
 le répertoire du volet non actif. Vous ne pouvez pas copier ou déplacer vers
 le même répertoire ; dans ce cas un message d'erreur s'affiche :
 
-![Fichier : Copier - erreur même répertoire](screenshots/LociFM-menu-file-copy-same-dir.png)
+![Fichier : Copier - erreur même répertoire](screenshots/LociFM-menu-file-copy-same-dir-fr.png)
 
 Si un ou plusieurs fichiers du même nom existent déjà, une fenêtre demande
 confirmation pour écraser les fichiers du répertoire cible (selon le réglage
 Confirm. du menu App, une seule fois ou pour chaque fichier).
 
-![Fichier : Copier - confirmation d'écrasement](screenshots/LociFM-menu-file-copy-confirm.png)
+![Fichier : Copier - confirmation d'écrasement](screenshots/LociFM-menu-file-copy-confirm-fr.png)
 
 Sinon, une fenêtre affiche la progression de la copie ou du déplacement.
 Appuyer sur **ESC** annule immédiatement, même en cours de copie d'un fichier ;
 tout fichier de destination partiellement écrit est supprimé automatiquement.
 
-![Fichier : Copier](screenshots/LociFM-menu-file-copy.png)
+![Fichier : Copier](screenshots/LociFM-menu-file-copy-fr.png)
 
 Cette fonction est aussi accessible avec la touche **C** pour copier ou **V**
 pour déplacer.
@@ -458,11 +454,11 @@ type TAP.
 La sélection commence par monter l'image de bande. Cette fenêtre s'affiche,
 appuyez sur une touche pour continuer :
 
-![Fichier : Parcourir bande - message de montage](screenshots/LociFM-menu-file-browse-tape-mount.png)
+![Fichier : Parcourir bande - message de montage](screenshots/LociFM-menu-file-browse-tape-mount-fr.png)
 
 Le volet actif du navigateur ressemble alors à :
 
-![Fichier : Parcourir bande](screenshots/LociFM-menu-file-browse-tape-browse.png)
+![Fichier : Parcourir bande](screenshots/LociFM-menu-file-browse-tape-browse-fr.png)
 
 La première ligne affiche désormais « Ruban : » pour indiquer que vous êtes à
 l'intérieur d'une image de bande, suivi du nom de l'image. La deuxième ligne
@@ -481,7 +477,7 @@ La seule chose qui fonctionne en parcourant une bande est de se positionner
 sur le fichier souhaité à l'intérieur de la bande en appuyant sur **RETURN**.
 Cela affiche cette fenêtre :
 
-![Fichier : Parcourir bande - se positionner sur un fichier](screenshots/LociFM-menu-file-browse-tape-mount-file-on-tape.png)
+![Fichier : Parcourir bande - se positionner sur un fichier](screenshots/LociFM-menu-file-browse-tape-mount-file-on-tape-fr.png)
 
 Revenez au répertoire normal en appuyant sur **Curseur Gauche** (ou joystick
 gauche).
@@ -490,7 +486,7 @@ Cette fonction est aussi accessible avec la touche **W**.
 
 ### Répertoire : Navigation et opérations sur les répertoires
 
-![Menu Répertoire](screenshots/LociFM-menu-dir.png)
+![Menu Répertoire](screenshots/LociFM-menu-dir-fr.png)
 
 *Aller à la racine*
 
@@ -532,25 +528,95 @@ touches curseur et DEL peuvent être utilisées pour l'édition), appuyez sur
 
 Cette fonction est aussi accessible avec la touche **E**.
 
-![Répertoire : Nouveau répertoire](screenshots/LociFM-menu-dir-create-dir.png)
+![Répertoire : Nouveau répertoire](screenshots/LociFM-menu-dir-create-dir-fr.png)
+
+### Montages : Montage de lecteurs et sélection de la cible
+
+![Menu Montages](screenshots/LociFM-menu-mounts-fr.png)
+
+*Autre panneau*
+
+Bascule le volet actif vers l'autre volet. Cette fonction est aussi
+accessible avec la touche **/**.
+
+*Lecteur suivant / Lecteur précédent*
+
+Passe au lecteur LOCI suivant ou précédent disponible pour le volet actif.
+Ces fonctions sont aussi accessibles avec la touche **.** (suivant) ou **,**
+(précédent).
+
+*Monter*
+
+Monte le fichier actif, selon son type :
+- .DSK : monté sur le lecteur de disque cible (voir *Cible* ci-dessous)
+- .TAP : monté sur le lecteur de bande
+- .ROM : monté dans la boîte ROM
+
+Une fenêtre confirme le résultat :
+
+![Montages : Monter](screenshots/LociFM-menu-mounts-mount-fr.png)
+
+Si vous parcourez l'intérieur d'une image de bande, cette fonction se positionne
+plutôt sur le fichier sélectionné dans la bande (voir *Parcourir bande* dans
+[Fichier : Opérations sur les fichiers](#fichier--opérations-sur-les-fichiers)).
+
+Cette fonction est aussi accessible avec la touche **M**.
+
+*Démonter*
+
+Ouvre une fenêtre pour choisir quel lecteur, bande ou ROM doit être
+démonté/éjecté :
+
+![Montages : Démonter](screenshots/LociFM-menu-mounts-unmount-fr.png)
+
+Cette fonction est aussi accessible avec la touche **U**.
+
+*Cible*
+
+Ouvre une fenêtre pour choisir sur quel lecteur de disque (A-D) les images
+.DSK sont montées par *Monter*. Le menu affiche directement la cible active
+(`[G] Cible : A`/`B`/`C`/`D`).
+
+![Montages : Cible](screenshots/LociFM-menu-mounts-target-fr.png)
+
+Cette fonction est aussi accessible avec la touche **G**.
+
+*Voir montages*
+
+Affiche une fenêtre listant les noms de fichiers actuellement montés sur les
+lecteurs A-D, le lecteur de bande et la boîte ROM. Appuyer sur une touche pour
+fermer.
+
+![Montages : Voir montages](screenshots/LociFM-menu-mounts-show-fr.png)
 
 ### Outils : propriétés, filtre par nom et visionneuse de texte
+
+![Menu Outils](screenshots/LociFM-menu-tools-fr.png)
 
 *Propriétés*
 
 Affiche une fenêtre avec les détails du fichier ou répertoire présent :
 - Nom, type et chemin actif. Le type est affiché sous forme de description :
   "Repertoire" pour les répertoires, ".DSK - Image disque", ".TAP - Image
-  bande", ".ROM - Image ROM" ou ".LCE - Executable LOCI" pour ces types de
-  fichiers, et l'extension propre du fichier (par ex. ".TXT") pour tout autre
-  fichier
+  bande", ".ROM - Image ROM", ".LCE - Executable LOCI", ".CFG - Fichier
+  config" ou ".SYS - Fichier systeme" pour ces types de fichiers (recherche
+  insensible à la casse), et l'extension propre du fichier (par ex. ".TXT")
+  pour tout autre fichier
 - Attributs : R (lecture seule) et S (système), affichés par un tiret (-) si absents
 - Taille en octets. Pour un répertoire, la taille est calculée récursivement
-  sur tous les fichiers de son arborescence ; pendant le calcul, "Calcul en
-  cours..." s'affiche, et appuyer sur **ESC** annule le calcul, après quoi
-  "Annulé." s'affiche à la place d'une taille. Si l'arborescence dépasse 8
-  niveaux de profondeur, le total est affiché avec un "+" final pour indiquer
-  qu'il peut être incomplet.
+  sur tous les fichiers de son arborescence ; pendant le calcul, la fenêtre
+  affiche "Calcul en cours... N" (un compteur du nombre de répertoires déjà
+  parcourus) avec le nom du répertoire en cours d'analyse, ainsi qu'une
+  indication "ESC pour annuler." -- appuyer sur **ESC** annule le calcul,
+  après quoi "Annulé." s'affiche à la place d'une taille. Si l'arborescence
+  dépasse 8 niveaux de profondeur, le total est affiché avec un "+" final
+  pour indiquer qu'il peut être incomplet.
+
+![Outils : Propriétés (fichier)](screenshots/LociFM-menu-tools-properties-fr.png)
+
+![Outils : Propriétés (répertoire, calcul en cours)](screenshots/LociFM-menu-tools-properties-dir-calc-fr.png)
+
+![Outils : Propriétés (répertoire)](screenshots/LociFM-menu-tools-properties-dir-fr.png)
 
 Appuyer sur une touche pour fermer la fenêtre.
 
@@ -562,6 +628,8 @@ Ouvre une fenêtre pour saisir un motif avec caractères génériques (`*` et `?
 insensible à la casse) qui filtre la liste des répertoires des deux volets par
 nom de fichier. Les répertoires sont toujours affichés quel que soit le motif,
 afin que la navigation ne soit jamais bloquée.
+
+![Outils : Filtre de texte](screenshots/LociFM-menu-tools-filter-fr.png)
 
 Saisir un motif vide pour effacer le filtre. Appuyer sur **RETURN** pour
 appliquer, **ESC** pour annuler sans modification. Ce filtre n'est pas
@@ -580,6 +648,8 @@ Ouvre le fichier présent dans une visionneuse de texte plein écran avec retour
 passer à la page suivante, ou **ESC** pour revenir au navigateur de fichiers.
 La pagination se fait uniquement vers l'avant.
 
+![Outils : Voir le texte](screenshots/LociFM-menu-tools-view-fr.png)
+
 Tout octet qui n'est pas un caractère ASCII imprimable (0x20-0x7E) -- par
 exemple lors de l'affichage d'un fichier binaire/non-texte -- est affiché
 comme un caractère de remplacement `.`, afin que le contenu binaire
@@ -591,11 +661,30 @@ de chaque octet ainsi qu'une colonne ASCII ; appuyer de nouveau sur **X**
 pour revenir à l'affichage texte avec retour à la ligne automatique. Dans
 les deux cas, le fichier est relu depuis le début dans la nouvelle vue.
 
+![Outils : Voir le texte (affichage hexadécimal)](screenshots/LociFM-menu-tools-view-hex-fr.png)
+
 Cette fonction est aussi accessible avec la touche **J**.
+
+*Favoris*
+
+Ouvre une fenêtre listant 8 emplacements de favoris, partagés par les deux
+volets et enregistrés dans `0:/idi8b/locifm/locifm.cfg`. Les emplacements
+vides sont affichés comme "(vide)".
+
+![Outils : Favoris](screenshots/LociFM-menu-tools-favourites-fr.png)
+
+- Appuyer sur **1**-**8** pour faire aller le volet actif au répertoire
+  enregistré dans cet emplacement (sans effet si l'emplacement est vide).
+- Appuyer sur **A** puis **1**-**8** pour enregistrer le répertoire actuel du
+  volet actif dans cet emplacement, en remplaçant toute entrée précédente.
+- Appuyer sur **D** puis **1**-**8** pour effacer cet emplacement.
+- Appuyer sur **ESC** pour fermer la fenêtre.
+
+Cette fonction est aussi accessible avec la touche **Y**.
 
 ### Info : Informations sur la version et aide
 
-![Menu Info](screenshots/LociFM-menu-info.png)
+![Menu Info](screenshots/LociFM-menu-info-fr.png)
 
 *Version/crédits*
 
@@ -605,13 +694,15 @@ Affiche deux écrans pleins successifs. Le premier montre le logo "I Dream in
 code QR menant vers la page GitHub du projet. Appuyer sur une touche pour
 passer à l'écran suivant, puis à nouveau pour revenir à l'application.
 
-![Info : Version](screenshots/LociFM-menu-info-version.png)
+![Info : Version](screenshots/LociFM-menu-info-version-fr.png)
+
+![Info : Code QR](screenshots/LociFM-menu-info-version-qr-fr.png)
 
 *Aide*
 
 Affiche un écran d'aide pour les commandes clavier.
 
-![Info : Aide](screenshots/LociFM-menu-info-help.png)
+![Info : Aide](screenshots/LociFM-menu-info-help-fr.png)
 
 ---
 

@@ -38,10 +38,7 @@ Available in English and French.
 full v1 feature set plus the new v2 features listed above (recursive
 copy/move/delete, mid-copy cancellation, name and type filters, text viewer,
 properties popup), and is covered by an automated test
-suite (`make test`). The screenshots further down in this manual were
-captured from an earlier v2 build and predate the "Tools" menu
-(Properties/Text filter/View text); they will be refreshed to show the
-current 6-item menu bar.
+suite (`make test`).
 
 For more information about the LOCI device itself, see the
 [LOCI User Manual](https://github.com/sodiumlb/loci-hardware/wiki/LOCI-User-Manual).
