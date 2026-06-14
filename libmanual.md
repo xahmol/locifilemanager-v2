@@ -1012,7 +1012,7 @@ Overlay RAM partition:
 
 ### Compiler
 
-Oscar64 at `/home/xahmol/oscar64/bin/oscar64`.  Standard flags:
+Oscar64 (`$OSCAR64_HOME/bin/oscar64`, default `~/oscar64/`). Standard flags:
 
 ```
 -n -tf=bin -rt=include/oric_crt.c -i=include -O2 -dNOFLOAT

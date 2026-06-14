@@ -1,7 +1,6 @@
 # Oscar64 Compiler Reference — Fast-Retrieval Memory Bank
 
-**Source:** `/home/xahmol/oscar64/`  
-**Tutorials (local):** `/home/xahmol/OscarTutorials/`  
+**Source:** https://github.com/drmortalwombat/oscar64 (default install: `~/oscar64/`)  
 **Online manual:** https://github.com/drmortalwombat/oscar64/blob/main/oscar64.md  
 **Tutorials:** https://github.com/drmortalwombat/OscarTutorials
 
@@ -1377,9 +1376,6 @@ See tutorials 4500–4520.
 ### Virtual sprite order — canonical
 Each frame: `vspr_sort()` → `rirq_wait()` → `vspr_update()` → `rirq_sort()`. Or: drive `vspr_update()` + `rirq_sort()` from `rirq_call()` in IRQ. See tutorials 1710, 1750.
 
-### Tutorials local path
-`/home/xahmol/OscarTutorials/` — numbered 0010–5030, Resources/ subfolder has .ctm/.spd/.sid/.bin assets.
-
 ---
 
 ## Non-C64 Bare-Metal Targets (e.g. Oric Atmos)
@@ -1647,8 +1643,7 @@ uint8_t *debug = (uint8_t *)0xA000;  // unused scratch RAM, never read
 sprintf((char *)debug, "...", ...);
 ```
 Do not remove such a call without re-testing the full UI — its removal can
-silently re-break a caller's save-set. Full writeup with addresses/diffs:
-`~/.claude/oscar64.md`.
+silently re-break a caller's save-set.
 
 ---
 

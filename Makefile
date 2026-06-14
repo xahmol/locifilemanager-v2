@@ -4,7 +4,7 @@
 #   1. Oscar64 (-n -tf=bin -rt=include/oric_crt.c) -> build/*.bin
 #   2. tools/mktap.py -> build/*.tap
 #
-# make run requires oricutron in /home/xahmol/oricutron/
+# make run requires Oricutron; see ORICUTRON_HOME below
 # Overlay RAM features (cwin_push/cwin_pop) require LOCI — test on real hardware only.
 # LOCI section in libdemo also requires real LOCI hardware (degrades gracefully without).
 
@@ -28,9 +28,19 @@ endif
 # Toolchain
 # -------------------------------------------------------------------------
 
-CC    = /home/xahmol/oscar64/bin/oscar64
+ifndef OSCAR64_HOME
+$(warning OSCAR64_HOME not set. Defaulting to $(HOME)/oscar64)
+export OSCAR64_HOME = $(HOME)/oscar64
+endif
+
+ifndef ORICUTRON_HOME
+$(warning ORICUTRON_HOME not set. Defaulting to $(HOME)/oricutron)
+export ORICUTRON_HOME = $(HOME)/oricutron
+endif
+
+CC    = $(OSCAR64_HOME)/bin/oscar64
 PY    = python3
-EMUL  = /home/xahmol/oricutron/oricutron
+EMUL  = $(ORICUTRON_HOME)/oricutron
 
 # -------------------------------------------------------------------------
 # Build versioning
@@ -225,7 +235,7 @@ build/$(MAIN)$(LANGSUFFIX).tap: build/$(MAIN)$(LANGSUFFIX).bin
 
 # Launch locifm in Oricutron (must cd to oricutron dir — it loads ROMs from cwd)
 run: build/$(MAIN)$(LANGSUFFIX).tap
-	cd /home/xahmol/oricutron && \
+	cd $(ORICUTRON_HOME) && \
 	    $(EMUL) $(EMUFLAG) "$(CURDIR)/build/$(MAIN)$(LANGSUFFIX).tap"
 
 # -------------------------------------------------------------------------
@@ -249,7 +259,7 @@ build/$(DEMO)$(LANGSUFFIX).tap: build/$(DEMO)$(LANGSUFFIX).bin
 
 # Launch libdemo in Oricutron
 libdemo-run: libdemo
-	cd /home/xahmol/oricutron && \
+	cd $(ORICUTRON_HOME) && \
 	    $(EMUL) $(EMUFLAG) "$(CURDIR)/build/$(DEMO)$(LANGSUFFIX).tap"
 
 # -------------------------------------------------------------------------

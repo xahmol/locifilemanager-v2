@@ -14,8 +14,7 @@
 //                — left untouched by code/data/stack so charset glyphs used by
 //                  the version splash are not corrupted by stack contents.
 //                  $B400 is OSDK's documented start of charset RAM — the hard
-//                  TEXT-mode ceiling (see ~/.claude/oric_atmos_reference.md,
-//                  "user program area")
+//                  TEXT-mode ceiling for user code/data.
 //   $BB80-$FFFF  Screen RAM ($BB80) + ROM ($C000)
 //
 // The overlay RAM at $C000-$FFFF requires LOCI device; not mapped as a code region.

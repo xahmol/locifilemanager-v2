@@ -15,7 +15,7 @@ delete, name filter, mid-copy cancellation, text viewer, properties popup).
 
 ## Compiler Toolchain
 
-This is an **Oscar64** project. `oscar64manual.md` is in the project root — consult it for compiler flags, pragmas, language extensions, and gotchas. The Oscar64 binary is at `/home/xahmol/oscar64/bin/oscar64`.
+This is an **Oscar64** project. `oscar64manual.md` is in the project root — consult it for compiler flags, pragmas, language extensions, and gotchas. The Oscar64 binary is at `$OSCAR64_HOME/bin/oscar64` (Makefile defaults `OSCAR64_HOME` to `~/oscar64`).
 
 Target: 6502A (Oric Atmos), bare-metal. No VIC-II, SID, or C64 Kernal.
 
@@ -38,7 +38,7 @@ make clean        # remove build artifacts
 
 Compiler flags: `-n -tf=bin -rt=include/oric_crt.c -i=include -O2 -dNOFLOAT`
 
-Emulator: `/home/xahmol/oricutron/oricutron -ma --serial none --vsynchack off --turbotape on`
+Emulator: `$ORICUTRON_HOME/oricutron -ma --serial none --vsynchack off --turbotape on` (Makefile defaults `ORICUTRON_HOME` to `~/oricutron`)
 
 ## Testing
 
@@ -47,14 +47,21 @@ emulator's `--loci-flash` sandbox (standing in for the LOCI's USB storage) and
 `--type-keys`/`--dump-ram-at` auto-typer/screen-capture.
 
 ```
-make test          # full suite: test-quick + test-menus + test-fileops + test-libdemo
+make test          # full suite: all 11 test-* targets below
 make test-quick    # boot smoke test (LOCI detection + main interface)
 make test-menus    # pulldown menu regression (5 menus, open + close)
 make test-fileops  # file ops regression (mkdir/rename/delete/copy/move) via
                     # tests/sandbox host-fs state
 make test-libdemo  # full libdemo walkthrough: title/status screen, textinput
-                    # + key-echo, every lettered section A-P, and the final
+                    # + key-echo, every lettered section A-Q, and the final
                     # "LIBRARY TEST COMPLETE. HALTED." screen
+make test-recurse     # Tools pulldown + recursive copy/move/delete
+make test-namefilter  # wildcard name filter set/clear
+make test-copycancel  # ESC mid-copy cancellation + partial-file cleanup
+make test-viewer      # text file viewer
+make test-config      # persistent settings save/load (config_save/config_load)
+make test-favourites  # favourite directories (add/goto/delete, Tools popup)
+make test-laststate   # remembered pane path/drive/active-pane across restart
 make test-capture CYCLES=N TYPEKEYS='...'
                     # calibration helper for writing new test scripts
 ```
@@ -278,7 +285,13 @@ now in `src/`):
 | `recurse.c/h` | Iterative depth-first directory walker shared by recursive copy/move/delete and the properties recursive size calc |
 | `viewer.c/h` | Full-screen paged, word-wrapped text file viewer |
 
-Menu system: follows `~/.claude/menu_conventions.md` (Oric CC65 section). Key conventions: LIFO window stack (`cwin_push`/`cwin_pop`), `[X]` keyboard hints, four standard popup helpers.
+Menu system: three-layer menu bar -> pulldown -> popup design with a LIFO
+window-save stack and `[X]` keyboard-shortcut hints in menu item labels; four
+standard popup helpers (`menu_areyousure`, `menu_messagepopup`,
+`menu_fileerrormessage`, `menu_option_select`, plus `menu_confirm_file`). See
+ARCHITECTURE.md §4.2 and §6.3 for the data-table layout, return-code
+encoding (`menubarchoice * 10 + menuoptionchoice`), and window-stack
+mechanics.
 
 **On exit:** boot from active mounts (disk > tape > ROM). This boot preference is the primary output of the application.
 

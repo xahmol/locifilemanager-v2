@@ -385,9 +385,7 @@ struct Directory {
 extern struct Directory presentdir[2];   // [0]=top pane, [1]=bottom pane
 ```
 
-User-configurable settings are grouped in one struct, `settings`, so that
-persistent storage (if reintroduced) can save/load them in a single
-read/write:
+User-configurable settings are grouped in one struct, `settings`:
 
 ```c
 struct AppSettings
@@ -400,15 +398,51 @@ struct AppSettings
 extern struct AppSettings settings;
 ```
 
+`settings`, the favourites table and each pane's last path/drive/active-pane
+are persisted to `0:/idi8b/locifm/locifm.cfg` (`FMCONFIG_PATH`) via
+`config_save()`/`config_load()` (`src/dir.c`):
+
+```c
+#define FMCONFIG_FAV_SLOTS   8
+#define FMCONFIG_FAV_PATHLEN 48
+#define FMCONFIG_MAGIC       0xA5
+
+struct FmConfig
+{
+    uint8_t magic;
+    uint8_t confirm;
+    uint8_t filter;
+    uint8_t enterchoice;
+    uint8_t sort;
+    char    favourites[FMCONFIG_FAV_SLOTS][FMCONFIG_FAV_PATHLEN];
+    char    lastpath[2][FMCONFIG_FAV_PATHLEN];
+    uint8_t lastdrive[2];
+    uint8_t lastactivepane;
+};
+```
+
+- `config_save()` writes the live `settings`, `favourites[]` and each pane's
+  `presentdir[i].path`/`.drive` plus `activepane` into a `struct FmConfig`
+  (`magic = FMCONFIG_MAGIC`) and saves it with `file_save()`, creating
+  `FMCONFIG_DIR1`/`FMCONFIG_DIR2` first if needed.
+- `config_load()` reads the file back with `file_load()`. If the read is
+  short, or `cfg.magic != FMCONFIG_MAGIC` (missing/foreign/corrupt file), it
+  falls back to writing out the compiled-in defaults via `config_save()`
+  instead of loading.
+- `favourites_add()`/`favourites_delete()`/`favourites_goto()`/
+  `favourites_show()` manage the 8 bookmark slots (`favourites[i][0] ==
+  '\0'` marks an unused slot) and call `config_save()` on any change.
+
 Other global application state in `dir.h`/`dir.c`:
 
 | Variable | Meaning |
 |---|---|
-| `activepane` | 0 = top pane active, 1 = bottom pane active |
+| `activepane` | 0 = top pane active, 1 = bottom pane active; persisted as `lastactivepane` |
 | `targetdrive` | Mount target: 0=A,1=B,2=C,3=D |
 | `selection[2]` | Count of selected entries per pane |
 | `insidetape[2]` | Non-zero if that pane is browsing inside a `.TAP` container |
 | `namefilter[32]` | Wildcard (`*`/`?`) name filter, case-insensitive -- session-only, not part of `settings` |
+| `favourites[FMCONFIG_FAV_SLOTS][FMCONFIG_FAV_PATHLEN]` | Bookmarked directory paths, persisted via `config_save()`/`config_load()` |
 | `pathbuffer[256]`, `pathbuffer2[256]`, `pathbuffer3[256]` | Scratch full-path buffers shared across modules |
 
 ### 4.4 LOCI API structures (`include/loci.h`)
@@ -736,7 +770,7 @@ cursor is on a non-directory entry outside a tape browse.
 ### 6.9 `libdemo.c`
 
 A standalone `.tap` build (`make libdemo`) that exercises every
-charwin/keyboard/LOCI/IJK library function in lettered sections (A–P),
+charwin/keyboard/LOCI/IJK library function in lettered sections (A–Q),
 ending with a fixed "LIBRARY TEST COMPLETE. HALTED." screen. Used both for
 manual library verification and as the target of `make test-libdemo`
 (§7). It is independent of `main.c`'s application logic — a pure library
@@ -752,15 +786,18 @@ sandbox (`--loci-flash tests/sandbox`) and supports `--type-keys` (auto-typer)
 + `--dump-ram-at` (RAM dump for screen-content assertions).
 
 ```
-make test            # full suite (all targets below)
+make test            # full suite (all 11 targets below)
 make test-quick      # boot smoke test: LOCI detection + main interface
 make test-menus      # pulldown menu regression (5 menus, open + close)
 make test-fileops    # mkdir/rename/delete/copy/move, via tests/sandbox state
-make test-libdemo    # full libdemo walkthrough (sections A-P + completion screen)
+make test-libdemo    # full libdemo walkthrough (sections A-Q + completion screen)
 make test-recurse    # Tools pulldown + recursive copy/move/delete
 make test-namefilter # wildcard name filter set/clear
 make test-copycancel # ESC mid-copy cancellation + partial-file cleanup
 make test-viewer     # text file viewer
+make test-config     # persistent settings save/load (config_save/config_load)
+make test-favourites # favourite directories (add/goto/delete, Tools popup)
+make test-laststate  # remembered pane path/drive/active-pane across restart
 make test-capture CYCLES=N TYPEKEYS='...'   # calibration helper for new scripts
 ```
 

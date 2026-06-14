@@ -1047,7 +1047,7 @@ Partitionnement de la RAM overlay :
 
 ### Compilateur
 
-Oscar64 en `/home/xahmol/oscar64/bin/oscar64`. Drapeaux standard :
+Oscar64 (`$OSCAR64_HOME/bin/oscar64`, par défaut `~/oscar64/`). Drapeaux standard :
 
 ```
 -n -tf=bin -rt=include/oric_crt.c -i=include -O2 -dNOFLOAT

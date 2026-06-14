@@ -316,7 +316,8 @@ static void menu_draw_item(uint8_t y, uint8_t xpos, uint8_t menunumber,
     // so a live caller variable gets clobbered and stray garbage appears on
     // screen at a row that tracks menuchoice. The sprintf call's register
     // pressure forces the correct (larger) save set. 0xA000 is scratch space
-    // in the unused heap region (see /home/xahmol/.claude/projects/-home-xahmol/memory/project_locifm_pulldown_menu_bug.md)
+    // in the unused heap region (see oscar64manual.md, "-O2 whole-program
+    // register allocator: caller-save set can be under-counted")
     // — do not remove or "clean up" this call without re-testing the App
     // pulldown in the emulator (corruption appears immediately on open).
     uint8_t *debug = (uint8_t *)0xA000;

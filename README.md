@@ -93,6 +93,10 @@ Features:
 | pandoc | PDF documentation generation | `sudo apt install pandoc` |
 | zip | Release archive | `sudo apt install zip` |
 
+> **Note:** The Makefile expects Oscar64 at `$OSCAR64_HOME/bin/oscar64` and
+> Oricutron at `$ORICUTRON_HOME/oricutron`, defaulting to `~/oscar64` and
+> `~/oricutron` if those environment variables are not set.
+
 ---
 
 ## Building from source
@@ -667,8 +671,8 @@ Code and resources from others used:
 
 -   Original windowing system code on Commodore 128 by unknown author.
 
--   Phosphoric, a cycle-accurate ORIC-1/Atmos emulator by Xander Mol, used to
-    drive the automated headless test suite (`make test`)
+-   Phosphoric, a cycle-accurate ORIC-1/Atmos emulator, used to drive the
+    automated headless test suite (`make test`)
 
     https://github.com/benedictemarty/Phosphoric
 

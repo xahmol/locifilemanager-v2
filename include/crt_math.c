@@ -1,6 +1,6 @@
 // crt_math.c - Oscar64 math and float runtime helpers for Oric bare-metal
 //
-// Extracted from /home/xahmol/oscar64/include/crt.c by Oric/Oscar64 Authors.
+// Extracted from ~/oscar64/include/crt.c by Oric/Oscar64 Authors.
 // Only the integer arithmetic and floating-point runtime routines are included;
 // the startup, bytecode interpreter, and platform init code are omitted.
 // Bytecode handler wrappers (inp_*) that reference startup.exec are excluded.
