@@ -6,6 +6,16 @@
 #include "keyboard.h"
 #include "ijk.h"
 
+/**
+ * Block until a key or joystick direction/fire is pressed and return it as
+ * a KEY_* code. Polls the keyboard via keyb_poll() and, if an IJK joystick
+ * interface is present and no key was pressed, also polls the joystick and
+ * maps stick directions/fire to the corresponding KEY_UP/DOWN/LEFT/RIGHT/
+ * ENTER codes. After a joystick-derived key, waits for the stick to return
+ * to neutral (debounce) before returning.
+ *
+ * @return KEY_* code of the key or joystick action detected (never KEY_NONE).
+ */
 uint8_t fm_getkey(void)
 {
     uint8_t k;

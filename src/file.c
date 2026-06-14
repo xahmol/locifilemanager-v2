@@ -24,13 +24,28 @@ typedef struct
     OricCharWin *popup;      // progress popup (rows 5-7 reused for status)
 } CopyMoveCtx;
 
-// recurse_walk() callback for a recursive directory copy/move.
-//
-// pathbuffer  holds the destination root (dstroot), pathbuffer2 the source
-// root (srcroot) for the whole walk -- both set up by the caller and left
-// untouched here. fullpath (= recurse.c's walkpath) is always the SOURCE
-// path of the current entry; the corresponding destination path is built
-// into pathbuffer3 as dstroot + (fullpath without the srcroot prefix).
+/**
+ * recurse_walk() callback for a recursive directory copy/move.
+ *
+ * pathbuffer  holds the destination root (dstroot), pathbuffer2 the source
+ * root (srcroot) for the whole walk -- both set up by the caller and left
+ * untouched here. fullpath (= recurse.c's walkpath) is always the SOURCE
+ * path of the current entry; the corresponding destination path is built
+ * into pathbuffer3 as dstroot + (fullpath without the srcroot prefix).
+ * RECURSE_ENTER_DIR creates the matching destination subdirectory (merge
+ * semantics). RECURSE_FILE confirms/overwrites an existing destination file
+ * (per settings.confirm / ctx->confirmed) and copies via
+ * file_copy_progress(), removing the source on move. RECURSE_LEAVE_DIR
+ * removes the now-empty source subdirectory on move.
+ *
+ * @param ev       Which walk event is being reported.
+ * @param entry    Directory entry for RECURSE_ENTER_DIR/RECURSE_FILE; NULL
+ *                  for RECURSE_LEAVE_DIR.
+ * @param fullpath Source-side path of the current entry.
+ * @param userdata Pointer to the CopyMoveCtx for this walk.
+ * @return         RECURSE_CONTINUE to keep walking, or RECURSE_ABORT on
+ *                  error, user decline, ESC, or mkdir failure.
+ */
 static int8_t file_copy_move_cb(RecurseEvent ev, const LociDirent *entry,
                                  const char *fullpath, void *userdata)
 {
@@ -137,10 +152,24 @@ static int8_t file_copy_move_cb(RecurseEvent ev, const LociDirent *entry,
     return RECURSE_CONTINUE;
 }
 
-// Recursively copy or move the directory srcpath (in pathbuffer2) to dstpath
-// (in pathbuffer). Returns RECURSE_ABORT if the operation stopped early
-// (error, decline, ESC, or mkdir failure), RECURSE_CONTINUE otherwise.
-// *confirmed carries the "overwrite all" state into and out of the walk.
+/**
+ * Recursively copy or move the directory srcpath to dstpath, creating
+ * dstpath first if it doesn't exist (merge semantics if it does). Drives
+ * recurse_walk() with file_copy_move_cb(). On a successful move (and if the
+ * walk wasn't truncated by RECURSE_MAX_DEPTH), removes the now-empty
+ * srcpath afterwards.
+ *
+ * @param srcpath   Source directory path to copy/move (drive-prefixed).
+ * @param dstpath   Destination directory path (drive-prefixed).
+ * @param move      0 = copy, non-zero = move (delete source after).
+ * @param popup     Progress popup window used for status/filename rows.
+ * @param confirmed In/out "overwrite all" flag: carries the confirmation
+ *                  state into the walk and reflects any change made during
+ *                  it back to the caller.
+ * @return          RECURSE_CONTINUE on success/truncation, or
+ *                   RECURSE_ABORT if the operation stopped early (error,
+ *                   decline, ESC, or mkdir failure).
+ */
 static int8_t file_copy_move_dir(const char *srcpath, const char *dstpath, uint8_t move,
                                   OricCharWin *popup, uint8_t *confirmed)
 {
@@ -202,8 +231,22 @@ static int8_t file_copy_move_dir(const char *srcpath, const char *dstpath, uint8
     return RECURSE_CONTINUE;
 }
 
+/**
+ * Copy or move all selected entries (or, if none are selected, the entry
+ * under the cursor) from the active pane's directory to the other
+ * ("target") pane's current directory. Shows a progress popup, handles
+ * per-file overwrite confirmation (settings.confirm), recurses into
+ * subdirectories via file_copy_move_dir(), and allows ESC to cancel
+ * mid-operation. Refuses with a message if the source and target panes show
+ * the same path, or if the active pane has nothing to copy from (empty or
+ * inside a tape). Redraws the target pane (and, on move, the source pane)
+ * and clears the selection afterwards.
+ *
+ * @param move 0 = copy, non-zero = move (source entries are deleted after a
+ *             successful copy).
+ * @return     (none)
+ */
 void file_copy_move_selected(uint8_t move)
-// Copy or move selected files from active pane to non-active pane
 {
     OricCharWin popup;
     uint8_t  confirmed = 0;
@@ -354,8 +397,18 @@ void file_copy_move_selected(uint8_t move)
     }
 }
 
+/**
+ * Delete all selected entries (or, if none are selected and the cursor is
+ * on a file/non-directory, that single entry) from the active pane's
+ * directory. Shows a progress popup and, per settings.confirm, asks for
+ * confirmation before each deletion (loci_unlink()). Stops early on the
+ * first deletion failure or user decline. Redraws the active pane and
+ * clears the selection afterwards. No-op if the active pane is empty or
+ * browsing inside a tape.
+ *
+ * @return (none)
+ */
 void file_delete(void)
-// Delete selected files from active pane
 {
     OricCharWin popup;
     uint8_t  confirmed = 0;
@@ -431,8 +484,18 @@ void file_delete(void)
     }
 }
 
+/**
+ * Rename the entry under the cursor in the active pane. Opens a popup with
+ * the current name (trailing '/' stripped for directories) pre-filled for
+ * editing via cwin_textinput(). If the name is unchanged or the input is
+ * cancelled, does nothing further. Otherwise renames via loci_rename(); on
+ * success, redraws the active pane (entry addresses can shift because name
+ * lengths change); on failure, shows an error popup. No-op if the active
+ * pane is empty or browsing inside a tape.
+ *
+ * @return (none)
+ */
 void file_rename(void)
-// Rename selected file or directory
 {
     OricCharWin popup;
     char input[64];
@@ -489,8 +552,15 @@ void file_rename(void)
     }
 }
 
+/**
+ * If the entry under the cursor in the active pane is a .TAP file (and the
+ * pane is not already inside a tape), mount it via drive_mount(), enter
+ * tape-browse mode for the active pane (insidetape[activepane] = 1), and
+ * redraw the pane to show the tape's contents. No-op otherwise.
+ *
+ * @return (none)
+ */
 void file_browse_tape(void)
-// Browse a .TAP tape archive
 {
     if (presentdir[activepane].firstelement && !insidetape[activepane] && presentdirelement.meta.type == 3)
     {

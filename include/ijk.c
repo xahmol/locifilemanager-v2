@@ -18,6 +18,14 @@ uint8_t ijk_present = 0;
 uint8_t ijk_ljoy    = 0;
 uint8_t ijk_rjoy    = 0;
 
+/**
+ * Probe VIA Port A to determine whether an IJK joystick interface is
+ * present and update the global ijk_present flag accordingly. Resets
+ * ijk_ljoy and ijk_rjoy to 0. Brackets all VIA Port A access with PHP/SEI/
+ * PLP so the keyboard scanner (which also uses VIA.pra2) cannot interleave.
+ *
+ * @return (none) -- result is written to the global ijk_present.
+ */
 void ijk_detect(void)
 {
     uint8_t saved_ddra, saved_ora;
@@ -54,6 +62,15 @@ void ijk_detect(void)
     __asm { plp }
 }
 
+/**
+ * Sample both joysticks via VIA Port A and update the global ijk_ljoy/
+ * ijk_rjoy bitmasks (IJK_JOY_* bits, active-high after inversion). No-op if
+ * ijk_present is 0 (no IJK interface was detected by ijk_detect()).
+ * Brackets all VIA Port A access with PHP/SEI/PLP so the keyboard scanner
+ * (which also uses VIA.pra2) cannot interleave.
+ *
+ * @return (none) -- results are written to the globals ijk_ljoy/ijk_rjoy.
+ */
 void ijk_read(void)
 {
     uint8_t saved_ddra, saved_ora;

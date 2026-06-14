@@ -21,15 +21,28 @@
 // Hex digit table for key-echo display
 static const char hexdig[16] = "0123456789ABCDEF";
 
+/**
+ * Format an 8-bit value as two uppercase hex digits (no terminator written).
+ *
+ * @param buf Destination buffer; at least 2 bytes are written (buf[0..1]).
+ * @param v   Value to format.
+ * @return    (none)
+ */
 static void hex2(char *buf, uint8_t v)
 {
     buf[0] = hexdig[v >> 4];
     buf[1] = hexdig[v & 0x0F];
 }
 
-// Overlay RAM write/read-back test. Enable overlay RAM, write two sentinel
-// bytes, disable, re-enable, read back. Returns true on PASS.
-// LOCI presence must be confirmed before calling.
+/**
+ * Overlay RAM write/read-back smoke test: enable overlay RAM, write two
+ * sentinel bytes at OVERLAY_BASE, disable, then re-enable and read them
+ * back. LOCI presence must be confirmed (loci_present()) before calling, as
+ * overlay RAM requires real LOCI hardware.
+ *
+ * @return true if both sentinel bytes (0xA5, 0x5A) read back correctly
+ *         (PASS), false otherwise.
+ */
 static bool test_overlay_ram(void)
 {
     // volatile required: Oscar64 -O2 optimises writes to constant ROM-space
@@ -59,6 +72,34 @@ static bool test_overlay_ram(void)
     return ok;
 }
 
+/**
+ * Library demo entry point. Runs a fixed sequence of self-contained demo
+ * screens exercising the Oscar64 bare-metal buildchain, charwin library,
+ * keyboard scanner and menu system (testable in Oricutron), plus the LOCI
+ * library and overlay RAM (section L, requires real LOCI hardware):
+ *   - Status/colour/text-input/key-echo intro screens
+ *   - A: full colour palette grid
+ *   - B: inline attribute (ASTR) demo
+ *   - C: fill-rect concentric border pattern
+ *   - D: animated cursor walk (cursor_show + move funcs)
+ *   - E: read-back verification (cwin_getat_char)
+ *   - F: text editing (insert/delete char, printline)
+ *   - G: scroll-up speed benchmark
+ *   - H: scroll-down demo
+ *   - I: bouncing-character animation
+ *   - J: viewport/map scroll demo
+ *   - K: menu system demo (menu_main + popup helpers)
+ *   - L: LOCI library demo (detection, firmware version, directory
+ *        listing, IJK joystick; skipped if LOCI is absent)
+ *   - M: cursor move/forward/backward/newline + put_chars/getat_chars
+ *   - N: get_rect/put_rect screen-region save and restore
+ *   - O: cwin_printwrap word-wrap demo
+ *   - P: cwin_scroll_left/right horizontal scroll
+ *   - Q: LOCI lseek/file I/O smoke test
+ * Each section waits for a keypress before advancing. Never returns.
+ *
+ * @return Does not return (infinite input loop on the final screen).
+ */
 int main(void)
 {
     charwin_init();

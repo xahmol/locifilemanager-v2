@@ -127,6 +127,14 @@ static __zeropage uint8_t _kbz1;   // current row index
 //   - C variable names are valid operands directly
 // -------------------------------------------------------------------------
 
+/**
+ * Scan the full 8x8 keyboard matrix via direct AY/VIA access and populate
+ * keyb_matrix[8] (bit N of keyb_matrix[row] = 1 if the key at that row/col
+ * is currently pressed). Takes ~1-2 ms (64 AY+VIA write/read cycles at
+ * 1 MHz). Call from a polling loop.
+ *
+ * @return (none) -- result is written to the global keyb_matrix[].
+ */
 void keyb_scan(void)
 {
     // Oscar64 inline asm decimal bug: values 10-15 compile to wrong immediates.
@@ -209,6 +217,17 @@ void keyb_scan(void)
 // keyb_decode -- decode keyb_matrix[] into an ASCII key code
 // -------------------------------------------------------------------------
 
+/**
+ * Decode the current keyb_matrix[] (as populated by keyb_scan()) into a
+ * single key code, updating the global keyb_modifiers (MOD_SHIFT/MOD_CTRL/
+ * MOD_FUNCT/MOD_CAPSLOCK) along the way. Applies SHIFT/FUNCT lookup tables,
+ * Caps Lock case-folding for letters, and CTRL masking (letter & 0x1F).
+ * Only the first pressed key found (scanning row 0..7, col 0..7) is
+ * decoded; pure modifier keys (SHIFT/CTRL/FUNCT) are skipped.
+ *
+ * @return Decoded ASCII/KEY_* code, or KEY_NONE (0) if no non-modifier key
+ *         is pressed.
+ */
 uint8_t keyb_decode(void)
 {
     uint8_t mods = 0;
@@ -270,6 +289,17 @@ uint8_t keyb_decode(void)
 // keyb_poll -- scan + decode + key repeat
 // -------------------------------------------------------------------------
 
+/**
+ * Scan and decode the keyboard (via keyb_scan()/keyb_decode()), then apply
+ * key-repeat and release-debounce logic: a newly-pressed key is returned
+ * immediately and then suppressed for REP_DELAY polls, after which it
+ * repeats every REP_RATE polls while held; after any key is released,
+ * RELEASE_DEBOUNCE no-key polls must elapse before a new key is accepted.
+ * Updates the global keyb_char to the same value as the return value.
+ *
+ * @return Decoded ASCII/KEY_* code for this poll, or KEY_NONE (0) if no key
+ *         event should be reported this poll.
+ */
 uint8_t keyb_poll(void)
 {
     keyb_scan();
@@ -317,6 +347,12 @@ uint8_t keyb_poll(void)
 // keyb_getch -- blocking key read
 // -------------------------------------------------------------------------
 
+/**
+ * Block until a key is pressed, by repeatedly calling keyb_poll() until it
+ * returns non-zero.
+ *
+ * @return Decoded ASCII/KEY_* code of the pressed key (never KEY_NONE).
+ */
 uint8_t keyb_getch(void)
 {
     uint8_t ch;
@@ -330,6 +366,13 @@ uint8_t keyb_getch(void)
 // keyb_check -- non-blocking: return current keyb_char
 // -------------------------------------------------------------------------
 
+/**
+ * Non-blocking keyboard check: performs one keyb_poll() and returns its
+ * result without waiting for a key.
+ *
+ * @return Decoded ASCII/KEY_* code if a key event is pending this poll, or
+ *         KEY_NONE (0) otherwise.
+ */
 uint8_t keyb_check(void)
 {
     return keyb_poll();

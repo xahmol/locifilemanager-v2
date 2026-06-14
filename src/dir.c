@@ -63,6 +63,15 @@ static OricCharWin pane[2] = {
 static char dirbuffer[41];
 static const uint8_t dirProgressBar[4] = { 48, 53, 93, 95 };
 
+/**
+ * Write the INK and PAPER attribute bytes at columns 0 and 1 of an absolute
+ * screen row, directly via TEXTVRAM (see comment below for why).
+ *
+ * @param row   Absolute screen row (0-based).
+ * @param ink   INK attribute byte written to column 0.
+ * @param paper PAPER attribute byte written to column 1.
+ * @return (none)
+ */
 // Write INK/PAPER attribute bytes at screen columns 0/1 of an absolute row.
 // Duplicates charwin's private row_setattr() (not exported).
 static void dir_row_attr(uint8_t row, uint8_t ink, uint8_t paper)
@@ -72,6 +81,14 @@ static void dir_row_attr(uint8_t row, uint8_t ink, uint8_t paper)
     p[1] = paper;
 }
 
+/**
+ * Case-insensitive comparison of two NUL-terminated strings.
+ *
+ * @param a First string.
+ * @param b Second string.
+ * @return <0, 0, or >0 if a is (case-insensitively) less than, equal to, or
+ *         greater than b, matching strcmp() semantics.
+ */
 // Case-insensitive string compare (Oscar64 has no stricmp/strcasecmp).
 static int16_t dir_stricmp(const char *a, const char *b)
 {
@@ -83,8 +100,18 @@ static int16_t dir_stricmp(const char *a, const char *b)
     return (int16_t)ca - (int16_t)cb;
 }
 
-// Case-insensitive '*'/'?' glob match. Small bounded recursion only -- not
-// directory-depth recursion (namefilter is <=31 chars, names <=63 chars).
+/**
+ * Case-insensitive glob match of name against pattern, supporting '*'
+ * (matches any sequence, including empty) and '?' (matches exactly one
+ * character). Recurses on each '*' (see comment below for why this is
+ * safe).
+ *
+ * @param pattern NUL-terminated glob pattern.
+ * @param name    NUL-terminated name to test against pattern.
+ * @return 1 if name matches pattern, 0 otherwise.
+ */
+// Small bounded recursion only -- not directory-depth recursion (namefilter
+// is <=31 chars, names <=63 chars).
 static uint8_t dir_wildcard_match(const char *pattern, const char *name)
 {
     while (*pattern)
@@ -118,9 +145,20 @@ static uint8_t dir_wildcard_match(const char *pattern, const char *name)
     return !*name;
 }
 
-// Format a directory entry name + 3-char type into a fixed 36-char field
-// ("%-32.32s %.3s"). Oscar64 sprintf does not honour %s precision, so this
-// is done manually.
+/**
+ * Format a directory entry as a fixed-width "%-32.32s %.3s" field: name
+ * left-justified/truncated/padded to 32 chars, a space, then the 3-char
+ * type string, NUL-terminated (37 bytes total including NUL). Written
+ * manually because Oscar64's sprintf() does not honour %s precision (see
+ * comment below).
+ *
+ * @param out     Destination buffer, at least 37 bytes.
+ * @param name    Entry name (truncated to 32 chars if longer, space-padded
+ *                  if shorter).
+ * @param typestr 3-character type string (e.g. an entry of dir_entry_types[]).
+ * @return (none) -- result is written to out.
+ */
+// Oscar64 sprintf does not honour %s precision, so this is done manually.
 static void dir_format_entry(char *out, const char *name, const char *typestr)
 {
     uint8_t i;
@@ -133,7 +171,13 @@ static void dir_format_entry(char *out, const char *name, const char *typestr)
     out[36] = '\0';
 }
 
-// Format a uint16_t as 4 uppercase hex digits ("%04X").
+/**
+ * Format v as 4 uppercase hex digits ("%04X"), not NUL-terminated.
+ *
+ * @param out Destination buffer, at least 4 bytes.
+ * @param v   Value to format.
+ * @return (none) -- result is written to out.
+ */
 static void dir_hex4(char *out, uint16_t v)
 {
     static const char hexdig[16] = "0123456789ABCDEF";
@@ -143,7 +187,14 @@ static void dir_hex4(char *out, uint16_t v)
     out[3] = hexdig[v & 0x0F];
 }
 
-// Format a uint16_t as a 6-char space-padded right-justified decimal ("%6d").
+/**
+ * Format v as a 6-character space-padded, right-justified decimal number
+ * ("%6u"), not NUL-terminated.
+ *
+ * @param out Destination buffer, at least 6 bytes.
+ * @param v   Value to format.
+ * @return (none) -- result is written to out.
+ */
 static void dir_dec6(char *out, uint16_t v)
 {
     char    tmp[6];
@@ -166,8 +217,15 @@ static void dir_dec6(char *out, uint16_t v)
     for (j = i; j < 6; j++) out[j] = tmp[j];
 }
 
-// Format a uint32_t as a 10-char space-padded right-justified decimal,
-// NUL-terminated ("%10lu" -- cwin_printf has no uint32 support, see dir_dec6).
+/**
+ * Format v as a 10-character space-padded, right-justified decimal number
+ * ("%10lu"), NUL-terminated. Used in place of cwin_printf(), which has no
+ * uint32 support (see dir_dec6() for the 16-bit equivalent).
+ *
+ * @param out Destination buffer, at least 11 bytes.
+ * @param v   Value to format.
+ * @return (none) -- result is written to out.
+ */
 static void dir_dec10(char *out, uint32_t v)
 {
     char    tmp[10];
@@ -191,7 +249,17 @@ static void dir_dec10(char *out, uint32_t v)
     out[10] = '\0';
 }
 
-// Format a tape entry as "%-12.12s       $%04X %6db" (32 chars + NUL).
+/**
+ * Format a tape directory entry as "%-12.12s       $%04X %6db" (32 chars
+ * plus NUL).
+ *
+ * @param out        Destination buffer, at least 33 bytes.
+ * @param name       Tape file name (truncated to 12 chars if longer,
+ *                     space-padded if shorter).
+ * @param start_addr Load start address, shown as 4 hex digits.
+ * @param size       File size in bytes, shown as a 6-digit decimal.
+ * @return (none) -- result is written to out.
+ */
 static void dir_format_tape_entry(char *out, const char *name,
                                    uint16_t start_addr, uint16_t size)
 {
@@ -210,9 +278,15 @@ static void dir_format_tape_entry(char *out, const char *name,
     out[i] = '\0';
 }
 
-// Prepare the progress-bar row (the path row, pane row 1) before a directory
-// or tape read: write FWBLACK/bg attrs, an A_ALT charset switch at col 0,
-// then clear the remaining 37 columns.
+/**
+ * Prepare the progress-bar row (pane row 1, the path row) before a directory
+ * or tape read: writes the FWBLACK/bg attribute bytes, an A_ALT charset
+ * switch at column 0, then clears the remaining 37 columns ready for
+ * dir_progress_step().
+ *
+ * @param dirnr Pane number (0 or 1) whose progress row is prepared.
+ * @return (none)
+ */
 static void dir_progress_init(uint8_t dirnr)
 {
     uint8_t bg   = (activepane == dirnr) ? A_BGYELLOW : A_BGWHITE;
@@ -223,7 +297,16 @@ static void dir_progress_init(uint8_t dirnr)
     cwin_fill_rect(&pane[dirnr], 1, 1, 37, 1, ' ');
 }
 
-// Advance the progress bar by one step; wraps and clears when full.
+/**
+ * Advance the progress bar on pane dirnr's row 1 by one step, writing the
+ * next animated character at *count's position; once the row is full,
+ * clears it and resets *count to 0.
+ *
+ * @param dirnr Pane number (0 or 1) whose progress row is updated.
+ * @param count In/out: progress-bar step counter, incremented each call
+ *               (and reset to 0 when the bar wraps).
+ * @return (none)
+ */
 static void dir_progress_step(uint8_t dirnr, uint8_t *count)
 {
     if ((*count >> 2) > 36)
@@ -242,7 +325,17 @@ static void dir_progress_step(uint8_t dirnr, uint8_t *count)
 // Path helpers
 // -------------------------------------------------------------------------
 
-// Build "dirpath + name" into dest (e.g. a directory path plus an entry name).
+/**
+ * Concatenate dirpath and name into dest, e.g. a directory path plus an
+ * entry name, truncating to fit destsize.
+ *
+ * @param dest     Destination buffer.
+ * @param destsize Size of dest in bytes, including the NUL terminator.
+ * @param dirpath  Directory path (copied first, truncated to destsize-1).
+ * @param name     Entry name appended after dirpath (truncated to fit the
+ *                   remaining space).
+ * @return (none) -- result is written to dest.
+ */
 void dir_build_path(char *dest, uint16_t destsize, const char *dirpath, const char *name)
 {
     strncpy(dest, dirpath, destsize);
@@ -253,6 +346,12 @@ void dir_build_path(char *dest, uint16_t destsize, const char *dirpath, const ch
 // Element storage
 // -------------------------------------------------------------------------
 
+/**
+ * Load presentdirelement (meta data, then name) from XRAM at address.
+ *
+ * @param address XRAM address of a DirElement (meta data followed by name).
+ * @return (none) -- result is written to the global presentdirelement.
+ */
 void dir_get_element(uint16_t address)
 {
     uint16_t workaddress = address;
@@ -261,6 +360,12 @@ void dir_get_element(uint16_t address)
     xram_memcpy_from(presentdirelement.name, workaddress, presentdirelement.meta.length);
 }
 
+/**
+ * Store presentdirelement (meta data, then name) to XRAM at address.
+ *
+ * @param address XRAM address of a DirElement (meta data followed by name).
+ * @return (none) -- writes presentdirelement to XRAM.
+ */
 void dir_save_element(uint16_t address)
 {
     uint16_t workaddress = address;
@@ -269,7 +374,12 @@ void dir_save_element(uint16_t address)
     xram_memcpy_to(workaddress, presentdirelement.name, presentdirelement.meta.length);
 }
 
-// Refresh `present` and presentdirelement from the active pane's current element
+/**
+ * Refresh the global `present` pointer and presentdirelement from the active
+ * pane's current element (presentdir[activepane].present).
+ *
+ * @return (none) -- updates the globals `present` and presentdirelement.
+ */
 void dir_refresh_present(void)
 {
     present = presentdir[activepane].present;
@@ -281,6 +391,24 @@ void dir_refresh_present(void)
 // Directory / tape reading
 // -------------------------------------------------------------------------
 
+/**
+ * Read the directory at presentdir[dirnr].path into the XRAM linked list for
+ * pane dirnr (DIR1BASE/DIR2BASE), classifying each entry by type (directory,
+ * .DSK/.TAP/.ROM/.LCE image, or unknown), filtering by filterval and the
+ * global namefilter, and inserting into the list in sort order if
+ * settings.sort is set (or append order otherwise). Shows a progress bar on
+ * pane dirnr's row 1 while reading, and refreshes the pane's
+ * device/path header (dir_print_id_and_path()) when done. Stops early
+ * (silently truncating the listing) if the per-pane XRAM region (DIRSIZE
+ * bytes) would be exceeded.
+ *
+ * @param dirnr     Pane number (0 or 1) to read into.
+ * @param filterval File-type filter: 0 = show all types, otherwise only
+ *                    type (filterval + 1) plus directories are kept (see
+ *                    dir_entry_types[]).
+ * @return (none) -- populates presentdir[dirnr] and the pane's XRAM linked
+ *         list; updates the global `present`/`previous`.
+ */
 void dir_read(uint8_t dirnr, uint8_t filterval)
 {
     uint8_t  presenttype;
@@ -507,6 +635,20 @@ void dir_read(uint8_t dirnr, uint8_t filterval)
     dir_print_id_and_path(dirnr);
 }
 
+/**
+ * Rewind the mounted tape image and parse its file headers into the XRAM
+ * linked list for pane dirnr (DIR1BASE/DIR2BASE), formatting each entry via
+ * dir_format_tape_entry() (type 7 = PRG/BIN, type 8 = BASIC) and inserting in
+ * sort order if settings.sort is set (or append order otherwise). Shows a
+ * progress bar on pane dirnr's row 1 while reading, and refreshes the pane's
+ * device/path header (dir_print_id_and_path()) when done. Stops early
+ * (rewinding the tape) if the per-pane XRAM region (DIRSIZE bytes) would be
+ * exceeded.
+ *
+ * @param dirnr Pane number (0 or 1) to read into.
+ * @return (none) -- populates presentdir[dirnr] and the pane's XRAM linked
+ *         list; updates the global `present`/`previous`.
+ */
 void dir_tape_parse(uint8_t dirnr)
 {
     uint8_t  presenttype;
@@ -688,6 +830,15 @@ void dir_tape_parse(uint8_t dirnr)
 // Pane drawing
 // -------------------------------------------------------------------------
 
+/**
+ * Redraw pane dirnr's two header rows: row 0 shows the device label (or, if
+ * insidetape[dirnr], MSG_DIR_TAPE_PREFIX plus the mounted tape's filename),
+ * and row 1 shows the current path (drive-number prefix in its own 3-char
+ * field, then the rest of the path).
+ *
+ * @param dirnr Pane number (0 or 1) to redraw.
+ * @return (none)
+ */
 void dir_print_id_and_path(uint8_t dirnr)
 {
     uint8_t bg     = (activepane == dirnr) ? A_BGYELLOW : A_BGWHITE;
@@ -715,6 +866,18 @@ void dir_print_id_and_path(uint8_t dirnr)
     cwin_putat_string(&pane[dirnr], 3, 1, presentdir[dirnr].path + 3);
 }
 
+/**
+ * Redraw a single directory-listing row of pane dirnr at printpos (0-based,
+ * below the two header rows): highlights it if it's both the active pane and
+ * the cursor position, shows a '-' selection indicator in column 0 if
+ * presentdirelement.meta.select is set, and formats the (possibly
+ * tape-offset) name and type via dir_format_entry().
+ *
+ * @param dirnr   Pane number (0 or 1) being redrawn.
+ * @param printpos Row index within the pane's listing area (0-based).
+ * @return (none) -- assumes presentdirelement already holds the entry to
+ *         print (see dir_get_element()).
+ */
 void dir_print_entry(uint8_t dirnr, uint8_t printpos)
 {
     uint8_t fg, bg, offs, absrow;
@@ -746,6 +909,19 @@ void dir_print_entry(uint8_t dirnr, uint8_t printpos)
     cwin_putat_string(&pane[dirnr], 1, printpos + 2, linebuf);
 }
 
+/**
+ * Fully redraw pane dirnr: clears the pane, redraws the header
+ * (dir_print_id_and_path()), optionally re-reads the directory or tape
+ * (dir_read()/dir_tape_parse()) if readdir is set, then prints either
+ * MSG_DIR_EMPTY (if the listing is empty) or up to PANE_HEIGHT entries
+ * starting from presentdir[dirnr].firstprint, tracking
+ * presentdir[dirnr].present/lastprint and the global `present` as it goes.
+ *
+ * @param dirnr   Pane number (0 or 1) to redraw.
+ * @param readdir Non-zero to re-read the directory/tape before drawing;
+ *                  zero to redraw the existing in-memory listing.
+ * @return (none)
+ */
 void dir_draw(uint8_t dirnr, uint8_t readdir)
 {
     uint8_t  ypos = (dirnr) ? PANE2_YPOS : PANE1_YPOS;
@@ -809,6 +985,15 @@ void dir_draw(uint8_t dirnr, uint8_t readdir)
 // Drive switching
 // -------------------------------------------------------------------------
 
+/**
+ * Switch pane dirnr to the next valid LOCI device (wrapping past MAXDEV back
+ * to 0, per locicfg.validdev[]), reset its path to that drive's root ("N:/"),
+ * and redraw it (re-reading the directory). Persists the new drive/path via
+ * config_save().
+ *
+ * @param dirnr Pane number (0 or 1) to switch.
+ * @return (none)
+ */
 void dir_get_next_drive(uint8_t dirnr)
 {
     uint8_t drive = presentdir[dirnr].drive;
@@ -836,6 +1021,15 @@ void dir_get_next_drive(uint8_t dirnr)
     config_save();
 }
 
+/**
+ * Switch pane dirnr to the previous valid LOCI device (wrapping below 0 to
+ * MAXDEV, per locicfg.validdev[]), reset its path to that drive's root
+ * ("N:/"), and redraw it (re-reading the directory). Persists the new
+ * drive/path via config_save().
+ *
+ * @param dirnr Pane number (0 or 1) to switch.
+ * @return (none)
+ */
 void dir_get_prev_drive(uint8_t dirnr)
 {
     uint8_t drive = presentdir[dirnr].drive;
@@ -871,6 +1065,13 @@ void dir_get_prev_drive(uint8_t dirnr)
 // Pane / cursor navigation
 // -------------------------------------------------------------------------
 
+/**
+ * Toggle the active pane (0 <-> 1) and redraw both panes (without re-reading
+ * their directories) so the highlight moves to the newly active pane.
+ * Persists the new active pane via config_save().
+ *
+ * @return (none)
+ */
 void dir_switch_pane(void)
 {
     activepane = !activepane;
@@ -879,6 +1080,14 @@ void dir_switch_pane(void)
     config_save();
 }
 
+/**
+ * Move the cursor down one entry in the active pane, scrolling the listing
+ * (re-reading the page via dir_draw()) if the cursor would move past the
+ * last visible row, or otherwise redrawing just the affected two rows. No-op
+ * if the listing is empty or the current entry has no next element.
+ *
+ * @return (none)
+ */
 void dir_go_down(void)
 {
     if (presentdir[activepane].firstelement && presentdirelement.meta.next)
@@ -905,6 +1114,15 @@ void dir_go_down(void)
     }
 }
 
+/**
+ * Move the cursor up one entry in the active pane, scrolling the listing
+ * (recomputing firstprint and calling dir_draw()) if the cursor is already
+ * on the first visible row, or otherwise redrawing just the affected two
+ * rows. No-op if the listing is empty or the current entry has no previous
+ * element.
+ *
+ * @return (none)
+ */
 void dir_go_up(void)
 {
     uint8_t count;
@@ -942,6 +1160,15 @@ void dir_go_up(void)
     }
 }
 
+/**
+ * Move the cursor to the last entry of the currently displayed page
+ * (starting from presentdir[activepane].firstprint and advancing up to
+ * PANE_HEIGHT-1 times), redrawing the old and new cursor rows. Used by
+ * dir_bottom() and dir_pagedown() when the listing ends partway through a
+ * page.
+ *
+ * @return (none) -- no-op if the active pane's listing is empty.
+ */
 void dir_last_of_page(void)
 {
     uint16_t element;
@@ -974,6 +1201,16 @@ void dir_last_of_page(void)
     }
 }
 
+/**
+ * Scroll the active pane forward by one page: advances up to PANE_HEIGHT
+ * elements past the current `present` element to become the new
+ * firstprint/present (cursor at position 0), then redraws via dir_draw(). If
+ * the current last-printed element has no next element (already on the last
+ * page), instead calls dir_last_of_page() to move the cursor to the end of
+ * the current page.
+ *
+ * @return (none) -- no-op if the active pane's listing is empty.
+ */
 void dir_pagedown(void)
 {
     uint16_t element;
@@ -1010,6 +1247,14 @@ void dir_pagedown(void)
     }
 }
 
+/**
+ * Scroll the active pane back by one page: retreats up to PANE_HEIGHT
+ * elements before the current `present` element to become the new
+ * firstprint/present (cursor at position 0), then redraws via dir_draw().
+ *
+ * @return (none) -- no-op if the active pane's listing is empty or already
+ *         at the first element.
+ */
 void dir_pageup(void)
 {
     uint8_t count;
@@ -1034,6 +1279,12 @@ void dir_pageup(void)
     }
 }
 
+/**
+ * Move the active pane's cursor to the first entry of the listing
+ * (firstelement), redrawing the pane.
+ *
+ * @return (none) -- no-op if the active pane's listing is empty.
+ */
 void dir_top(void)
 {
     if (presentdir[activepane].firstelement)
@@ -1047,6 +1298,16 @@ void dir_top(void)
     }
 }
 
+/**
+ * Move the active pane's cursor to the last entry of the listing: if the
+ * current page already shows the last entry, delegates to
+ * dir_last_of_page(); otherwise walks to the last element, computes a new
+ * firstprint that places it at the bottom of a full page (PANE_HEIGHT-1
+ * elements back), and redraws via dir_draw().
+ *
+ * @return (none) -- no-op if the active pane's listing is empty or the
+ *         current entry has no next element.
+ */
 void dir_bottom(void)
 {
     uint8_t count;
@@ -1093,6 +1354,14 @@ void dir_bottom(void)
 // Selection
 // -------------------------------------------------------------------------
 
+/**
+ * Toggle the selection mark on the entry under the cursor in the active
+ * pane, persist it (dir_save_element()), redraw that row, and update
+ * selection[activepane]. No-op for directories, tape entries, or an empty
+ * listing.
+ *
+ * @return (none)
+ */
 void dir_select_toggle(void)
 {
     if (presentdir[activepane].firstelement && !insidetape[activepane] && presentdirelement.meta.type > 1)
@@ -1111,6 +1380,16 @@ void dir_select_toggle(void)
     }
 }
 
+/**
+ * Set the selection mark on every non-directory entry in the active pane's
+ * listing to select, persist each change (dir_save_element()), recompute
+ * selection[activepane], and redraw the pane.
+ *
+ * @param select New selection state to apply (0 = deselect, non-zero =
+ *                 select) to every selectable entry.
+ * @return (none) -- no-op if the active pane's listing is empty or it is a
+ *         tape listing.
+ */
 void dir_select_all(uint8_t select)
 {
     uint16_t element;
@@ -1134,6 +1413,14 @@ void dir_select_all(uint8_t select)
     }
 }
 
+/**
+ * Invert the selection mark on every non-directory entry in the active
+ * pane's listing, persist each change (dir_save_element()), recompute
+ * selection[activepane], and redraw the pane.
+ *
+ * @return (none) -- no-op if the active pane's listing is empty or it is a
+ *         tape listing.
+ */
 void dir_select_inverse(void)
 {
     uint16_t element;
@@ -1164,6 +1451,13 @@ void dir_select_inverse(void)
 // Path navigation
 // -------------------------------------------------------------------------
 
+/**
+ * Reset the active pane's path to its drive's root ("N:/"), clear
+ * insidetape[activepane], redraw the pane (re-reading the directory), and
+ * persist the new path via config_save().
+ *
+ * @return (none)
+ */
 void dir_gotoroot(void)
 {
     sprintf(dirbuffer, "%u:/", presentdir[activepane].drive);
@@ -1175,6 +1469,15 @@ void dir_gotoroot(void)
     config_save();
 }
 
+/**
+ * Navigate the active pane up one level: if currently inside a tape
+ * container, leaves the tape view; otherwise truncates the path after the
+ * second-to-last '/' (no-op at the drive root, path length <= 3). Redraws the
+ * pane (re-reading the directory) and persists the new path via
+ * config_save().
+ *
+ * @return (none)
+ */
 void dir_parentdir(void)
 {
     uint8_t length;
@@ -1212,6 +1515,13 @@ void dir_parentdir(void)
 // Sort toggle
 // -------------------------------------------------------------------------
 
+/**
+ * Toggle settings.sort, redraw both panes (re-reading their directories so
+ * the new sort order takes effect), update the "Sort: On/Off" pulldown menu
+ * label, and persist the setting via config_save().
+ *
+ * @return (none)
+ */
 void dir_togglesort(void)
 {
     settings.sort = !settings.sort;
@@ -1227,8 +1537,13 @@ void dir_togglesort(void)
 // Persistent settings (FMCONFIG_PATH)
 // -------------------------------------------------------------------------
 
-// Save confirm/filter/enterchoice/sort, favourites and the last path/drive
-// of each pane plus the active pane to FMCONFIG_PATH.
+/**
+ * Persist settings (confirm/filter/enterchoice/sort), favourites, and each
+ * pane's last path/drive plus the active pane to FMCONFIG_PATH, creating
+ * FMCONFIG_DIR1/FMCONFIG_DIR2 first if needed.
+ *
+ * @return (none) -- writes FMCONFIG_PATH.
+ */
 void config_save(void)
 {
     // static: struct FmConfig is too large for the 512-byte stack segment
@@ -1262,11 +1577,16 @@ void config_save(void)
     file_save(FMCONFIG_PATH, &cfg, sizeof(cfg));
 }
 
-// Load confirm/filter/enterchoice/sort, favourites and the last path/drive
-// of each pane plus the active pane from FMCONFIG_PATH, if present and
-// valid. On any failure (missing file, short read, bad magic), the
-// compiled-in defaults already set by the caller are written out as a new
-// config file instead.
+/**
+ * Load settings (confirm/filter/enterchoice/sort), favourites, and each
+ * pane's last path/drive plus the active pane from FMCONFIG_PATH, if present
+ * and valid (correct size and FMCONFIG_MAGIC). On any failure (missing file,
+ * short read, bad magic), instead calls config_save() to write out the
+ * compiled-in defaults already set by the caller as a new config file.
+ *
+ * @return (none) -- updates settings, favourites, presentdir[]/activepane,
+ *         or writes FMCONFIG_PATH via config_save().
+ */
 void config_load(void)
 {
     // static: see config_save() above.
@@ -1309,7 +1629,13 @@ void config_load(void)
 // Favourite directories (FMCONFIG_PATH)
 // -------------------------------------------------------------------------
 
-// Bookmark the active pane's current path into the given slot (0-based).
+/**
+ * Bookmark the active pane's current path into favourites[slot] and persist
+ * via config_save().
+ *
+ * @param slot 0-based favourite slot index (0..FMCONFIG_FAV_SLOTS-1).
+ * @return (none)
+ */
 void favourites_add(uint8_t slot)
 {
     strncpy(favourites[slot], presentdir[activepane].path, FMCONFIG_FAV_PATHLEN - 1);
@@ -1317,15 +1643,26 @@ void favourites_add(uint8_t slot)
     config_save();
 }
 
-// Clear the given favourite slot (0-based).
+/**
+ * Clear favourites[slot] and persist via config_save().
+ *
+ * @param slot 0-based favourite slot index (0..FMCONFIG_FAV_SLOTS-1).
+ * @return (none)
+ */
 void favourites_delete(uint8_t slot)
 {
     favourites[slot][0] = '\0';
     config_save();
 }
 
-// Jump the active pane to the path bookmarked in the given slot (0-based).
-// No-op if the slot is empty.
+/**
+ * Jump the active pane to the path bookmarked in favourites[slot]: copies
+ * the path, derives the drive number from its leading digit, clears
+ * insidetape[activepane], and redraws the pane (re-reading the directory).
+ *
+ * @param slot 0-based favourite slot index (0..FMCONFIG_FAV_SLOTS-1).
+ * @return (none) -- no-op if favourites[slot] is empty.
+ */
 void favourites_goto(uint8_t slot)
 {
     if (!favourites[slot][0])
@@ -1339,9 +1676,16 @@ void favourites_goto(uint8_t slot)
     dir_draw(activepane, 1);
 }
 
-// Popup: list the 8 favourite slots ("(empty)" for unused ones). Digits
-// 1-8 jump to a populated slot, [A] bookmarks the active pane's current
-// path into a chosen slot, [D] clears a chosen slot, ESC closes.
+/**
+ * Show a popup listing all FMCONFIG_FAV_SLOTS favourite slots (MSG_FAV_EMPTY
+ * for unused ones). Digit keys 1..FMCONFIG_FAV_SLOTS jump the active pane to
+ * a populated slot (closing the popup first) via favourites_goto(); [A]
+ * prompts for a slot and bookmarks the active pane's current path into it
+ * via favourites_add(); [D] prompts for a slot and clears it via
+ * favourites_delete(); ESC closes the popup without navigating.
+ *
+ * @return (none)
+ */
 void favourites_show(void)
 {
     OricCharWin popup;
@@ -1413,6 +1757,15 @@ void favourites_show(void)
 // Directory creation / deletion
 // -------------------------------------------------------------------------
 
+/**
+ * Prompt for a new subdirectory name in the active pane's current path and
+ * create it via loci_mkdir(), then redraw the pane to show the new entry.
+ * Shows menu_fileerrormessage() if creation or the post-creation
+ * loci_opendir() check fails. No-op (after the input prompt) if the user
+ * cancels/enters an empty name, or if the active pane is a tape listing.
+ *
+ * @return (none)
+ */
 void dir_newdir(void)
 {
     char input[64] = "";
@@ -1483,6 +1836,22 @@ void dir_newdir(void)
     }
 }
 
+/**
+ * recurse_walk() callback for dir_delete_recursive(): for every event except
+ * RECURSE_ENTER_DIR, shows the current name/path on the popup and deletes it
+ * via loci_unlink() (a file on RECURSE_FILE, or a now-emptied directory on
+ * RECURSE_LEAVE_DIR). Aborts the walk on a delete error (after showing
+ * menu_fileerrormessage()) or if ESC is pressed.
+ *
+ * @param ev       Type of recursion event.
+ * @param entry    Directory entry for the current file/directory (used for
+ *                   its name on RECURSE_FILE).
+ * @param fullpath Full drive-prefixed path of the current file/directory.
+ * @param userdata Pointer to the OricCharWin popup used for progress
+ *                   feedback.
+ * @return RECURSE_CONTINUE to keep walking, or RECURSE_ABORT to stop (on
+ *         delete error or ESC).
+ */
 // recurse_walk() callback for dir_delete_recursive(): removes files as they
 // are visited, and now-empty subdirectories on RECURSE_LEAVE_DIR.
 static int8_t dir_delete_cb(RecurseEvent ev, const LociDirent *entry,
@@ -1508,8 +1877,17 @@ static int8_t dir_delete_cb(RecurseEvent ev, const LociDirent *entry,
     return RECURSE_CONTINUE;
 }
 
-// Recursively delete everything inside path, then path itself. Caller has
-// already confirmed via menu_confirm_file(MSG_DIR_DELETE_RECURSE_Q, ...).
+/**
+ * Recursively delete everything inside path, then path itself, showing
+ * progress in a popup via dir_delete_cb(). If the walk was truncated
+ * (recurse_truncated), path itself is left in place and
+ * MSG_DIR_RECURSE_TRUNCATED is shown instead of deleting it. Waits for a
+ * keypress before closing the popup. Caller has already confirmed via
+ * menu_confirm_file(MSG_DIR_DELETE_RECURSE_Q, ...).
+ *
+ * @param path Drive-prefixed path of the directory to delete recursively.
+ * @return (none)
+ */
 static void dir_delete_recursive(const char *path)
 {
     OricCharWin popup;
@@ -1539,6 +1917,21 @@ static void dir_delete_recursive(const char *path)
     menu_popup_close();
 }
 
+/**
+ * Delete the directory under the cursor in the active pane. For non-internal
+ * drives, first checks whether the directory is empty (loci_opendir()/
+ * loci_readdir()); if not empty, prompts via
+ * menu_confirm_file(MSG_DIR_DELETE_RECURSE_Q, ...) and, if confirmed, deletes
+ * it recursively via dir_delete_recursive(). Otherwise (empty, or drive 0
+ * where emptiness can't be pre-checked), prompts via
+ * menu_confirm_file(MSG_DIR_DELETE_Q, ...) and deletes via loci_unlink();
+ * on drive 0, an EACCES from loci_unlink() is treated as "directory not
+ * empty" and re-prompts for recursive deletion. Redraws the pane on success.
+ * Shows menu_fileerrormessage() on any other error.
+ *
+ * @return (none) -- no-op if the cursor entry is not a directory, the
+ *         listing is empty, or the active pane is a tape listing.
+ */
 void dir_deletedir(void)
 {
     if (presentdir[activepane].firstelement && !insidetape[activepane] && presentdirelement.meta.type == 1)
@@ -1617,6 +2010,21 @@ typedef struct
     uint16_t     dirs;
 } SizeCbData;
 
+/**
+ * recurse_walk() callback for dir_show_properties(): on RECURSE_FILE, adds
+ * entry->d_size to data->total; on RECURSE_ENTER_DIR, increments data->dirs
+ * and shows the directory name and running count on data->popup as progress
+ * feedback. Aborts the walk if ESC is pressed.
+ *
+ * @param ev       Type of recursion event.
+ * @param entry    Directory entry for the current file/directory (used for
+ *                   d_size on RECURSE_FILE, d_name on RECURSE_ENTER_DIR).
+ * @param fullpath Full drive-prefixed path of the current file/directory
+ *                   (unused).
+ * @param userdata Pointer to a SizeCbData accumulating the result.
+ * @return RECURSE_CONTINUE to keep walking, or RECURSE_ABORT if ESC was
+ *         pressed.
+ */
 static int8_t dir_size_cb(RecurseEvent ev, const LociDirent *entry,
                            const char *fullpath, void *userdata)
 {
@@ -1639,8 +2047,18 @@ static int8_t dir_size_cb(RecurseEvent ev, const LociDirent *entry,
     return RECURSE_CONTINUE;
 }
 
-// Show name/type/path/attributes for the entry under the cursor, and its
-// size in bytes -- recursively computed for directories.
+/**
+ * Show a popup with the name, type, path, and attributes (R/S flags) of the
+ * entry under the cursor in the active pane, plus its size in bytes -- for
+ * directories, recursively computed via recurse_walk()/dir_size_cb() with
+ * live progress feedback and ESC-to-cancel (showing MSG_PROP_CANCELLED if
+ * aborted). The type string is a known extension's "EXT - Description"
+ * label, MSG_PROP_TYPE_DIR for directories, or the entry's own extension as
+ * a fallback. Waits for a keypress before closing.
+ *
+ * @return (none) -- no-op if the listing is empty or the active pane is a
+ *         tape listing.
+ */
 void dir_show_properties(void)
 {
     OricCharWin popup;

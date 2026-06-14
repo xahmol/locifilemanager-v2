@@ -39,6 +39,13 @@ static uint16_t  overlay_sp;
 // Init
 // -------------------------------------------------------------------------
 
+/**
+ * Initialize the charwin library: build the row_base[] address lookup table
+ * (row_base[r] = TEXTVRAM + r * SCREEN_COLS) and reset the overlay-RAM save
+ * stack. Must be called once before any other cwin_* or charwin_* function.
+ *
+ * @return (none) -- populates row_base[], resets overlay_sp and save_depth.
+ */
 void charwin_init(void)
 {
     // Use addition to fill row_base — avoids 16-bit multiply on 6502
@@ -52,6 +59,20 @@ void charwin_init(void)
     save_depth = 0;
 }
 
+/**
+ * Populate a window descriptor with its geometry and colors. Cursor is reset
+ * to (0,0). Enforces sx >= 2 (columns 0-1 of every managed row hold the
+ * INK/PAPER attribute bytes).
+ *
+ * @param w     Window descriptor to initialize.
+ * @param sx    Start column (clamped to >= 2).
+ * @param sy    Start row.
+ * @param wx    Width in characters.
+ * @param wy    Height in characters.
+ * @param ink   INK attribute (A_FW* value, 0x00-0x07).
+ * @param paper PAPER attribute (A_BG* value, 0x10-0x17).
+ * @return (none) -- writes *w.
+ */
 void cwin_init(OricCharWin *w,
                uint8_t sx, uint8_t sy,
                uint8_t wx, uint8_t wy,
@@ -72,7 +93,15 @@ void cwin_init(OricCharWin *w,
 // Internal helpers
 // -------------------------------------------------------------------------
 
-// Write INK at col 0, PAPER at col 1 of the given absolute screen row.
+/**
+ * Write the INK and PAPER attribute bytes at columns 0 and 1 of an absolute
+ * screen row.
+ *
+ * @param row   Absolute screen row (0-based, not window-relative).
+ * @param ink   INK attribute (A_FW* value) written to column 0.
+ * @param paper PAPER attribute (A_BG* value) written to column 1.
+ * @return (none)
+ */
 static void row_setattr(uint8_t row, uint8_t ink, uint8_t paper)
 {
     uint8_t *base = (uint8_t *)row_base[row];
@@ -84,6 +113,14 @@ static void row_setattr(uint8_t row, uint8_t ink, uint8_t paper)
 // Screen I/O
 // -------------------------------------------------------------------------
 
+/**
+ * Clear a window: write the INK/PAPER attribute bytes at columns 0-1 of
+ * every row, fill the content columns with spaces, and reset the cursor to
+ * (0,0).
+ *
+ * @param w Window to clear.
+ * @return (none)
+ */
 void cwin_clear(OricCharWin *w)
 {
     for (uint8_t y = 0; y < w->wy; y++)
@@ -98,18 +135,46 @@ void cwin_clear(OricCharWin *w)
     w->cy = 0;
 }
 
+/**
+ * Write a single character at window-relative (x, y) without affecting the
+ * cursor.
+ *
+ * @param w  Target window.
+ * @param x  Window-relative column.
+ * @param y  Window-relative row.
+ * @param ch Character/attribute byte to write.
+ * @return (none)
+ */
 void cwin_putat_char(OricCharWin *w, uint8_t x, uint8_t y, uint8_t ch)
 {
     uint8_t *base = (uint8_t *)row_base[w->sy + y];
     base[w->sx + x] = ch;
 }
 
+/**
+ * Read the character/attribute byte at window-relative (x, y).
+ *
+ * @param w Target window.
+ * @param x Window-relative column.
+ * @param y Window-relative row.
+ * @return The byte currently stored at (x, y).
+ */
 uint8_t cwin_getat_char(OricCharWin *w, uint8_t x, uint8_t y)
 {
     uint8_t *base = (uint8_t *)row_base[w->sy + y];
     return base[w->sx + x];
 }
 
+/**
+ * Write a NUL-terminated string starting at window-relative (x, y), clipping
+ * at the window's right edge. Cursor is not affected.
+ *
+ * @param w Target window.
+ * @param x Window-relative starting column.
+ * @param y Window-relative row.
+ * @param s NUL-terminated string to write.
+ * @return (none)
+ */
 void cwin_putat_string(OricCharWin *w, uint8_t x, uint8_t y, const char *s)
 {
     uint8_t *base = (uint8_t *)row_base[w->sy + y] + w->sx + x;
@@ -118,6 +183,19 @@ void cwin_putat_string(OricCharWin *w, uint8_t x, uint8_t y, const char *s)
         *base++ = (uint8_t)*s++;
 }
 
+/**
+ * Write a string in double-height characters at window-relative (x, y):
+ * sets A_STD2H at column x on rows y and y+1, writes each character of s to
+ * both rows (producing the top and bottom halves of each double-height
+ * glyph), then restores A_STD on both rows at the column following the
+ * string (if it fits). Does nothing if y+1 >= w->wy.
+ *
+ * @param w Target window.
+ * @param x Window-relative starting column.
+ * @param y Window-relative row of the top half (y+1 is the bottom half).
+ * @param s NUL-terminated string to render in double-height.
+ * @return (none)
+ */
 void cwin_putat_dblhi_string(OricCharWin *w, uint8_t x, uint8_t y, const char *s)
 {
     if ((uint8_t)(y + 1) >= w->wy) return;
@@ -139,6 +217,15 @@ void cwin_putat_dblhi_string(OricCharWin *w, uint8_t x, uint8_t y, const char *s
     }
 }
 
+/**
+ * Write a character at the cursor position and advance the cursor by one
+ * column. Does nothing if the cursor is already at or past the right edge
+ * (no wrap/scroll).
+ *
+ * @param w  Target window.
+ * @param ch Character to write.
+ * @return (none) -- writes one cell and advances w->cx.
+ */
 void cwin_put_char(OricCharWin *w, uint8_t ch)
 {
     if (w->cx >= w->wx) return;
@@ -146,12 +233,30 @@ void cwin_put_char(OricCharWin *w, uint8_t ch)
     w->cx++;
 }
 
+/**
+ * Write a NUL-terminated string at the cursor via repeated cwin_put_char()
+ * calls. No wrap/scroll.
+ *
+ * @param w Target window.
+ * @param s NUL-terminated string to write.
+ * @return (none)
+ */
 void cwin_put_string(OricCharWin *w, const char *s)
 {
     while (*s)
         cwin_put_char(w, (uint8_t)*s++);
 }
 
+/**
+ * Write a raw serial-attribute byte at the cursor and advance, via
+ * cwin_put_char(). Use this instead of embedding the byte in a C string
+ * literal when the attribute value is 0x00 (A_FWBLACK), which would
+ * terminate the string early.
+ *
+ * @param w    Target window.
+ * @param attr Attribute byte to write (e.g. an A_FW* or A_BG* constant).
+ * @return (none)
+ */
 void cwin_put_attr(OricCharWin *w, uint8_t attr)
 {
     cwin_put_char(w, attr);
@@ -161,8 +266,19 @@ void cwin_put_attr(OricCharWin *w, uint8_t attr)
 // Printf-style formatted output
 // -------------------------------------------------------------------------
 
-// Internal: format into buf (max maxlen bytes including NUL).
-// Handles %d %u %x %s %c %% with optional width/zero-fill (e.g. %02u).
+/**
+ * Format fmt with the variadic arguments at fps into buf, supporting
+ * %d/%u/%x/%s/%c/%% with an optional zero-fill/width prefix (e.g. "%02u").
+ * No floating-point support (matches the -dNOFLOAT build). Always
+ * NUL-terminates buf, truncating output if it would exceed maxlen-1
+ * characters.
+ *
+ * @param buf    Destination buffer for the formatted string.
+ * @param maxlen Size of buf in bytes, including the NUL terminator.
+ * @param fmt    printf-style format string.
+ * @param fps    Pointer to the first variadic argument (see comment below).
+ * @return (none) -- result is written to buf.
+ */
 // fps: pointer to first variadic argument (Oscar64 native vararg convention —
 //      caller passes (int *)&last_named_param + 1; no va_list/va_arg used
 //      because Oscar64 native mode [-1] indexing in va_arg is unsupported).
@@ -218,6 +334,16 @@ static void _cwin_vformat(char *buf, uint8_t maxlen, const char *fmt, int *fps)
     *p = '\0';
 }
 
+/**
+ * Format fmt with variadic arguments and write the result to the window via
+ * cwin_console_put_string() (handles '\n', wraps, scrolls). Max 79 formatted
+ * characters; see _cwin_vformat() for supported specifiers.
+ *
+ * @param w   Target window.
+ * @param fmt printf-style format string (%d/%u/%x/%s/%c/%%, optional width).
+ * @param ... Arguments matching fmt's specifiers.
+ * @return (none)
+ */
 void cwin_printf(OricCharWin *w, const char *fmt, ...)
 {
     static char pbuf[80];
@@ -225,6 +351,18 @@ void cwin_printf(OricCharWin *w, const char *fmt, ...)
     cwin_console_put_string(w, pbuf);
 }
 
+/**
+ * Format fmt with variadic arguments and write the result starting at
+ * window-relative (x, y) via cwin_putat_string() (clips at the window's
+ * right edge, no wrap/scroll). See _cwin_vformat() for supported specifiers.
+ *
+ * @param w   Target window.
+ * @param x   Window-relative starting column.
+ * @param y   Window-relative row.
+ * @param fmt printf-style format string (%d/%u/%x/%s/%c/%%, optional width).
+ * @param ... Arguments matching fmt's specifiers.
+ * @return (none)
+ */
 void cwin_putat_printf(OricCharWin *w, uint8_t x, uint8_t y, const char *fmt, ...)
 {
     static char pbuf[80];
@@ -232,6 +370,19 @@ void cwin_putat_printf(OricCharWin *w, uint8_t x, uint8_t y, const char *fmt, ..
     cwin_putat_string(w, x, y, pbuf);
 }
 
+/**
+ * Fill a bw x bh rectangle of character cells at window-relative (x, y) with
+ * ch, clipped to the window's bounds. Attribute columns (0-1) are untouched
+ * unless the rectangle itself covers them.
+ *
+ * @param w  Target window.
+ * @param x  Window-relative starting column.
+ * @param y  Window-relative starting row.
+ * @param bw Rectangle width in characters.
+ * @param bh Rectangle height in characters.
+ * @param ch Character to fill with.
+ * @return (none)
+ */
 void cwin_fill_rect(OricCharWin *w,
                     uint8_t x, uint8_t y,
                     uint8_t bw, uint8_t bh,
@@ -245,6 +396,14 @@ void cwin_fill_rect(OricCharWin *w,
     }
 }
 
+/**
+ * Scroll the window's content up by one row: each row's content columns are
+ * overwritten with the row below, and the new bottom row is cleared (attrs
+ * refreshed via row_setattr(), content filled with spaces).
+ *
+ * @param w Target window.
+ * @return (none)
+ */
 void cwin_scroll_up(OricCharWin *w)
 {
     // Copy rows upward within window content columns only
@@ -263,6 +422,15 @@ void cwin_scroll_up(OricCharWin *w)
         base[x] = 0x20;
 }
 
+/**
+ * Scroll the window's content down by one row: each row's content columns
+ * are overwritten with the row above (iterating bottom-to-top to avoid
+ * clobbering source rows), and the new top row is cleared (attrs refreshed
+ * via row_setattr(), content filled with spaces).
+ *
+ * @param w Target window.
+ * @return (none)
+ */
 void cwin_scroll_down(OricCharWin *w)
 {
     // Copy rows downward; iterate from bottom to top to avoid overwrite
@@ -280,6 +448,14 @@ void cwin_scroll_down(OricCharWin *w)
         base[x] = 0x20;
 }
 
+/**
+ * Insert a space at the cursor column on the cursor's row, shifting the rest
+ * of the row's content right by one. The character at the right edge
+ * (wx-1) is discarded. The cursor position is not moved.
+ *
+ * @param w Target window.
+ * @return (none)
+ */
 void cwin_insert_char(OricCharWin *w)
 {
     uint8_t *row = (uint8_t *)row_base[w->sy + w->cy] + w->sx;
@@ -289,6 +465,14 @@ void cwin_insert_char(OricCharWin *w)
     row[w->cx] = 0x20;
 }
 
+/**
+ * Delete the character at the cursor column on the cursor's row, shifting
+ * the rest of the row's content left by one. The right edge (wx-1) is filled
+ * with a space. The cursor position is not moved.
+ *
+ * @param w Target window.
+ * @return (none)
+ */
 void cwin_delete_char(OricCharWin *w)
 {
     uint8_t *row = (uint8_t *)row_base[w->sy + w->cy] + w->sx;
@@ -298,6 +482,15 @@ void cwin_delete_char(OricCharWin *w)
     row[w->wx - 1] = 0x20;
 }
 
+/**
+ * Write a string at the cursor via cwin_put_string(), then advance to the
+ * start of the next line via cwin_console_put_char('\n') (scrolling if
+ * already on the last row).
+ *
+ * @param w Target window.
+ * @param s NUL-terminated string to write.
+ * @return (none)
+ */
 void cwin_printline(OricCharWin *w, const char *s)
 {
     cwin_put_string(w, s);
@@ -308,6 +501,18 @@ void cwin_printline(OricCharWin *w, const char *s)
 // Viewport
 // -------------------------------------------------------------------------
 
+/**
+ * Initialize a viewport over a flat source character map, with the scroll
+ * offset reset to (0,0). Does not draw; call cwin_viewport_blit() to render.
+ *
+ * @param vp           Viewport descriptor to initialize.
+ * @param sourcebase   Pointer to the flat source character map
+ *                       (sourcebase[row * sourcewidth + col]).
+ * @param sourcewidth  Bytes per row in the source map (>= win->wx).
+ * @param sourceheight Total rows in the source map.
+ * @param win          Target display window the viewport blits into.
+ * @return (none) -- writes *vp.
+ */
 void cwin_viewport_init(OricViewport *vp,
                         uint8_t *sourcebase,
                         uint16_t sourcewidth, uint16_t sourceheight,
@@ -321,6 +526,16 @@ void cwin_viewport_init(OricViewport *vp,
     vp->win          = win;
 }
 
+/**
+ * Render the viewport's current win->wx x win->wy slice (at viewx, viewy) of
+ * the source character map into the display window, refreshing each row's
+ * INK/PAPER attributes. Rows past sourceheight, and columns past
+ * sourcewidth, are filled with spaces; embedded NUL bytes in the source map
+ * are also mapped to spaces.
+ *
+ * @param vp Viewport to blit.
+ * @return (none)
+ */
 void cwin_viewport_blit(OricViewport *vp)
 {
     OricCharWin *w = vp->win;
@@ -349,6 +564,17 @@ void cwin_viewport_blit(OricViewport *vp)
     }
 }
 
+/**
+ * Scroll the viewport by one unit in the given direction, clamped so the
+ * view stays within the source map's bounds, then redraw via
+ * cwin_viewport_blit(). Directions other than KEY_UP/DOWN/LEFT/RIGHT (or a
+ * direction already at its bound) leave the offset unchanged but still
+ * redraw.
+ *
+ * @param vp  Viewport to scroll.
+ * @param dir One of KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT.
+ * @return (none)
+ */
 void cwin_viewport_scroll(OricViewport *vp, uint8_t dir)
 {
     OricCharWin *w    = vp->win;
@@ -366,6 +592,17 @@ void cwin_viewport_scroll(OricViewport *vp, uint8_t dir)
     cwin_viewport_blit(vp);
 }
 
+/**
+ * Write ch as console output: '\n' moves to the start of the next line
+ * (scrolling up if already on the last row); other characters are written at
+ * the cursor and advance it, wrapping to the next line (scrolling if needed)
+ * when the right edge is reached. Refreshes the new row's INK/PAPER
+ * attributes whenever the cursor moves to a new row.
+ *
+ * @param w  Target window.
+ * @param ch Character to write, or '\n' for a line break.
+ * @return (none)
+ */
 void cwin_console_put_char(OricCharWin *w, uint8_t ch)
 {
     if (ch == '\n')
@@ -400,6 +637,14 @@ void cwin_console_put_char(OricCharWin *w, uint8_t ch)
     }
 }
 
+/**
+ * Write a NUL-terminated string via repeated cwin_console_put_char() calls
+ * (handles '\n', wraps, scrolls).
+ *
+ * @param w Target window.
+ * @param s NUL-terminated string to write.
+ * @return (none)
+ */
 void cwin_console_put_string(OricCharWin *w, const char *s)
 {
     while (*s)
@@ -410,6 +655,16 @@ void cwin_console_put_string(OricCharWin *w, const char *s)
 // Cursor
 // -------------------------------------------------------------------------
 
+/**
+ * Toggle the visual cursor at the current cursor cell by inverting the
+ * character byte's bit 7 (mapping space <-> inverse-space block). The caller
+ * must track on/off state itself to avoid double-toggling the same cell.
+ *
+ * @param w  Target window.
+ * @param on true to show the cursor (set inverse video), false to hide it
+ *            (restore normal video).
+ * @return (none)
+ */
 void cwin_cursor_show(OricCharWin *w, bool on)
 {
     uint8_t *cell = (uint8_t *)row_base[w->sy + w->cy] + w->sx + w->cx;
@@ -426,6 +681,12 @@ void cwin_cursor_show(OricCharWin *w, bool on)
     }
 }
 
+/**
+ * Move the cursor one column left within the current row.
+ *
+ * @param w Target window.
+ * @return true if the cursor moved, false if it was already at column 0.
+ */
 bool cwin_cursor_left(OricCharWin *w)
 {
     if (w->cx == 0) return false;
@@ -433,6 +694,13 @@ bool cwin_cursor_left(OricCharWin *w)
     return true;
 }
 
+/**
+ * Move the cursor one column right within the current row.
+ *
+ * @param w Target window.
+ * @return true if the cursor moved, false if it was already at the rightmost
+ *         column (wx-1).
+ */
 bool cwin_cursor_right(OricCharWin *w)
 {
     if (w->cx >= w->wx - 1) return false;
@@ -440,6 +708,12 @@ bool cwin_cursor_right(OricCharWin *w)
     return true;
 }
 
+/**
+ * Move the cursor one row up.
+ *
+ * @param w Target window.
+ * @return true if the cursor moved, false if it was already on row 0.
+ */
 bool cwin_cursor_up(OricCharWin *w)
 {
     if (w->cy == 0) return false;
@@ -447,6 +721,13 @@ bool cwin_cursor_up(OricCharWin *w)
     return true;
 }
 
+/**
+ * Move the cursor one row down.
+ *
+ * @param w Target window.
+ * @return true if the cursor moved, false if it was already on the bottom
+ *         row (wy-1).
+ */
 bool cwin_cursor_down(OricCharWin *w)
 {
     if (w->cy >= w->wy - 1) return false;
@@ -458,12 +739,29 @@ bool cwin_cursor_down(OricCharWin *w)
 // Cursor — extended movement
 // -------------------------------------------------------------------------
 
+/**
+ * Move the cursor directly to window-relative (cx, cy), without bounds
+ * checking or redrawing.
+ *
+ * @param w  Target window.
+ * @param cx New cursor column.
+ * @param cy New cursor row.
+ * @return (none)
+ */
 void cwin_cursor_move(OricCharWin *w, uint8_t cx, uint8_t cy)
 {
     w->cx = cx;
     w->cy = cy;
 }
 
+/**
+ * Advance the cursor forward by one cell, wrapping to the start of the next
+ * row at the right edge. Does not scroll.
+ *
+ * @param w Target window.
+ * @return true if the cursor moved, false if it was already at the
+ *         bottom-right cell (wx-1, wy-1).
+ */
 bool cwin_cursor_forward(OricCharWin *w)
 {
     if (w->cx + 1 < w->wx) { w->cx++; return true; }
@@ -471,6 +769,14 @@ bool cwin_cursor_forward(OricCharWin *w)
     return false;
 }
 
+/**
+ * Retreat the cursor backward by one cell, wrapping to the end of the
+ * previous row at the left edge.
+ *
+ * @param w Target window.
+ * @return true if the cursor moved, false if it was already at the top-left
+ *         cell (0, 0).
+ */
 bool cwin_cursor_backward(OricCharWin *w)
 {
     if (w->cx > 0) { w->cx--; return true; }
@@ -478,6 +784,13 @@ bool cwin_cursor_backward(OricCharWin *w)
     return false;
 }
 
+/**
+ * Move the cursor to column 0 of the next row, without scrolling.
+ *
+ * @param w Target window.
+ * @return true if the cursor moved to a new row, false if it was already on
+ *         the last row (only cx is reset to 0 in that case).
+ */
 bool cwin_cursor_newline(OricCharWin *w)
 {
     w->cx = 0;
@@ -489,12 +802,32 @@ bool cwin_cursor_newline(OricCharWin *w)
 // Multi-character bulk I/O
 // -------------------------------------------------------------------------
 
+/**
+ * Write exactly num characters at the cursor via repeated cwin_put_char()
+ * calls, advancing the cursor. No wrap/scroll.
+ *
+ * @param w     Target window.
+ * @param chars Buffer of characters to write (need not be NUL-terminated).
+ * @param num   Number of characters to write.
+ * @return (none)
+ */
 void cwin_put_chars(OricCharWin *w, const char *chars, uint8_t num)
 {
     for (uint8_t i = 0; i < num; i++)
         cwin_put_char(w, (uint8_t)chars[i]);
 }
 
+/**
+ * Write exactly num characters starting at window-relative (x, y), clipped
+ * to the window's right edge. Cursor is not affected.
+ *
+ * @param w     Target window.
+ * @param x     Window-relative starting column.
+ * @param y     Window-relative row.
+ * @param chars Buffer of characters to write (need not be NUL-terminated).
+ * @param num   Number of characters to write (clipped at wx - x).
+ * @return (none)
+ */
 void cwin_putat_chars(OricCharWin *w, uint8_t x, uint8_t y,
                       const char *chars, uint8_t num)
 {
@@ -505,6 +838,18 @@ void cwin_putat_chars(OricCharWin *w, uint8_t x, uint8_t y,
         base[i] = (uint8_t)chars[i];
 }
 
+/**
+ * Read exactly num characters starting at window-relative (x, y) into chars,
+ * clipped to the window's right edge. The output buffer is not
+ * NUL-terminated.
+ *
+ * @param w     Target window.
+ * @param x     Window-relative starting column.
+ * @param y     Window-relative row.
+ * @param chars Destination buffer (at least num bytes).
+ * @param num   Number of characters to read (clipped at wx - x).
+ * @return (none) -- result is written to chars.
+ */
 void cwin_getat_chars(OricCharWin *w, uint8_t x, uint8_t y,
                       char *chars, uint8_t num)
 {
@@ -519,6 +864,19 @@ void cwin_getat_chars(OricCharWin *w, uint8_t x, uint8_t y,
 // Rectangle copy (character bytes only — no separate colour RAM on Oric)
 // -------------------------------------------------------------------------
 
+/**
+ * Copy a bw x bh rectangle of character bytes from window-relative (x, y)
+ * into a flat row-major buffer (bw bytes per row, bh rows), clipped to the
+ * window's bounds. Attribute bytes are not read/copied.
+ *
+ * @param w     Source window.
+ * @param x     Window-relative starting column.
+ * @param y     Window-relative starting row.
+ * @param bw    Rectangle width in characters (row stride of chars).
+ * @param bh    Rectangle height in characters.
+ * @param chars Destination buffer, at least bw * bh bytes.
+ * @return (none) -- result is written to chars.
+ */
 void cwin_get_rect(OricCharWin *w, uint8_t x, uint8_t y,
                    uint8_t bw, uint8_t bh, char *chars)
 {
@@ -533,6 +891,19 @@ void cwin_get_rect(OricCharWin *w, uint8_t x, uint8_t y,
     }
 }
 
+/**
+ * Write a flat row-major buffer of characters (bw bytes per row, bh rows)
+ * into the window at (x, y), clipped to the window's bounds. Attribute bytes
+ * are not touched.
+ *
+ * @param w     Target window.
+ * @param x     Window-relative starting column.
+ * @param y     Window-relative starting row.
+ * @param bw    Rectangle width in characters (row stride of chars).
+ * @param bh    Rectangle height in characters.
+ * @param chars Source buffer, bw * bh bytes.
+ * @return (none)
+ */
 void cwin_put_rect(OricCharWin *w, uint8_t x, uint8_t y,
                    uint8_t bw, uint8_t bh, const char *chars)
 {
@@ -556,6 +927,16 @@ void cwin_put_rect(OricCharWin *w, uint8_t x, uint8_t y,
 // Adapted: Oric charwin API; no strlen/strcpy (bare-metal, no string.h).
 // -------------------------------------------------------------------------
 
+/**
+ * Print str into the window with word-wrapping at spaces, using console
+ * output (cwin_console_put_char()/cwin_console_put_string(), so it wraps and
+ * scrolls automatically). Words longer than the window width are
+ * hard-split across lines. Does not add a trailing newline.
+ *
+ * @param w   Target window.
+ * @param str NUL-terminated string to print.
+ * @return (none)
+ */
 void cwin_printwrap(OricCharWin *w, const char *str)
 {
     char    wrapbuffer[42];   // max wx=38 + space + NUL with margin
@@ -619,6 +1000,15 @@ void cwin_printwrap(OricCharWin *w, const char *str)
 // Horizontal scroll
 // -------------------------------------------------------------------------
 
+/**
+ * Shift every row's content columns left by `by` columns, filling the
+ * vacated columns at the right edge with spaces. Attribute columns (0-1) are
+ * not touched. A `by` >= wx clears the entire window content.
+ *
+ * @param w  Target window.
+ * @param by Number of columns to shift left (clamped to wx).
+ * @return (none)
+ */
 void cwin_scroll_left(OricCharWin *w, uint8_t by)
 {
     if (by == 0) return;
@@ -634,6 +1024,17 @@ void cwin_scroll_left(OricCharWin *w, uint8_t by)
     }
 }
 
+/**
+ * Shift every row's content columns right by `by` columns (iterating
+ * right-to-left to avoid overwriting source data), filling the vacated
+ * columns at the left edge with spaces. Attribute columns (0-1) are not
+ * touched. A `by` >= wx clears the entire window content. A `by` of 0 is a
+ * no-op.
+ *
+ * @param w  Target window.
+ * @param by Number of columns to shift right (clamped to wx).
+ * @return (none)
+ */
 void cwin_scroll_right(OricCharWin *w, uint8_t by)
 {
     if (by == 0) return;
@@ -654,6 +1055,18 @@ void cwin_scroll_right(OricCharWin *w, uint8_t by)
 // SEI/CLI brackets the overlay-RAM window; ROM is invisible during that time.
 // -------------------------------------------------------------------------
 
+/**
+ * Save window w's full screen rows [sy, sy+wy) to LOCI overlay RAM (LIFO),
+ * for later restoration via cwin_pop(). Requires a LOCI device (overlay RAM
+ * is mapped in via MICRODISCCFG). Disables interrupts (PHP/SEI/PLP, not
+ * SEI/CLI -- see the comment below and menu.c menu_winsave()) for the
+ * duration of the overlay-RAM access. Silently does nothing if the save
+ * stack (depth OVERLAY_STACK_DEPTH) is full.
+ *
+ * @param w Window whose rows [sy, sy+wy) are saved.
+ * @return (none) -- copies SCREEN_COLS * wy bytes to overlay RAM and pushes
+ *         a SaveRecord.
+ */
 void cwin_push(OricCharWin *w)
 {
     if (save_depth >= OVERLAY_STACK_DEPTH) return;
@@ -688,6 +1101,17 @@ void cwin_push(OricCharWin *w)
     __asm { plp }
 }
 
+/**
+ * Restore the most recently cwin_push()-ed rows from LOCI overlay RAM back
+ * to screen RAM (LIFO), reversing cwin_push(). Requires a LOCI device.
+ * Disables interrupts (PHP/SEI/PLP -- see cwin_push()) for the duration of
+ * the overlay-RAM access. Silently does nothing if the save stack is empty.
+ *
+ * @param w Unused; the saved geometry (start row, height) is taken from the
+ *           save stack, not from w.
+ * @return (none) -- copies the saved rows back from overlay RAM and pops a
+ *         SaveRecord.
+ */
 void cwin_pop(OricCharWin *w)
 {
     if (save_depth == 0) return;
@@ -719,6 +1143,11 @@ void cwin_pop(OricCharWin *w)
 // Key input
 // -------------------------------------------------------------------------
 
+/**
+ * Block until a key is pressed and return it, via keyb_getch().
+ *
+ * @return The key code read.
+ */
 uint8_t cwin_getch(void)
 {
     return keyb_getch();
@@ -731,6 +1160,30 @@ uint8_t cwin_getch(void)
 // DraBrowse 1.0e by Sascha Bader (2009). Adapted for charwin API and Oscar64.
 // -------------------------------------------------------------------------
 
+/**
+ * Interactive single-line text input widget at window-relative (x, y), with
+ * a vwidth-wide scrolling viewport over a buffer of up to maxlen characters.
+ * Displays an inverse-video cursor over the character at the edit position
+ * (or an inverse space past the end of the string). Handles ENTER (accept),
+ * ESC (cancel), DEL (backspace), LEFT/RIGHT (move cursor), and printable
+ * character insertion/overwrite filtered by `validation`.
+ *
+ * @param w          Target window.
+ * @param x          Window-relative column of the input field.
+ * @param y          Window-relative row of the input field.
+ * @param vwidth     Visible width of the input field in characters (may be
+ *                     less than maxlen, enabling horizontal scrolling).
+ * @param str        Pre-initialized, NUL-terminated buffer of at least
+ *                     maxlen+1 bytes; edited in place. The cursor starts
+ *                     after the existing content.
+ * @param maxlen     Maximum string length, not counting the NUL terminator.
+ * @param validation Bitwise combination of VINPUT_* flags restricting which
+ *                     characters may be typed (0/VINPUT_ALL = all
+ *                     printable).
+ * @return The resulting string length on ENTER, or -1 if cancelled with ESC
+ *         (str is left unchanged on ESC, but the field is blanked on
+ *         screen).
+ */
 signed int cwin_textinput(OricCharWin *w,
                           uint8_t x, uint8_t y,
                           uint8_t vwidth,

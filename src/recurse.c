@@ -21,8 +21,14 @@ static char walkpath[256];
 
 uint8_t recurse_truncated;
 
-// Close every open directory handle from stack[0] up to and including
-// stack[depth] -- used to unwind cleanly on RECURSE_ABORT.
+/**
+ * Close every open directory handle from stack[0] up to and including
+ * stack[depth]. Used to unwind cleanly when a callback returns
+ * RECURSE_ABORT partway through a walk.
+ *
+ * @param depth Deepest stack index (inclusive) whose handle must be closed.
+ * @return      (none)
+ */
 static void recurse_close_all(uint8_t depth)
 {
     int8_t d;
@@ -30,6 +36,22 @@ static void recurse_close_all(uint8_t depth)
         loci_closedir(&stack[d].dirhandle);
 }
 
+/**
+ * Iteratively walk the contents of rootpath depth-first, invoking cb for
+ * each file and directory encountered. rootpath itself is not reported.
+ * Directories are reported twice: RECURSE_ENTER_DIR before descending and
+ * RECURSE_LEAVE_DIR after all of its entries (and subdirectories) have been
+ * processed. If RECURSE_MAX_DEPTH is reached, a subdirectory is reported as
+ * already left (without descending) and recurse_truncated is set to 1.
+ *
+ * @param rootpath Directory to walk the contents of (drive-prefixed path).
+ * @param cb       Callback invoked for each ENTER_DIR/FILE/LEAVE_DIR event;
+ *                 returning RECURSE_ABORT stops the walk early.
+ * @param userdata Opaque pointer passed through unchanged to every cb call.
+ * @return         RECURSE_CONTINUE (0) on completion, RECURSE_ABORT (1) if
+ *                  cb requested an early stop, or -1 if rootpath could not
+ *                  be opened.
+ */
 int8_t recurse_walk(const char *rootpath, RecurseCallback cb, void *userdata)
 {
     LociDir *opened;

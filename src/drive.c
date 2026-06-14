@@ -30,8 +30,16 @@ static char drivebuffer[40];
 // Drive selection / mounting
 // -------------------------------------------------------------------------
 
+/**
+ * Show the drive-letter selection popup (menu_option_select) and, if the
+ * user picks a drive, set the global targetdrive to that slot (0-3 for
+ * A-D) and update the Mount pulldown's "target" menu-item label to show
+ * the newly selected drive letter.
+ *
+ * @return (none) -- result is written to the global targetdrive and to
+ *         pulldown_titles[3][5].
+ */
 void drive_targetdrive(void)
-// Select which drive is the target for mount operations
 {
     uint8_t select = menu_option_select(MSG_DRIVE_SELECT_TARGET, 8);
 
@@ -42,8 +50,16 @@ void drive_targetdrive(void)
     }
 }
 
+/**
+ * Unmount every drive slot (A-D disk drives, tape deck, ROM box) via
+ * loci_umount(), clear all mount_filename[] entries, and reset the
+ * fdc_on/tap_on/b11_on/bit_on/ald_on status flags to 0. If the active pane
+ * is currently browsing inside a tape image, exits tape-browse mode and
+ * redraws that pane.
+ *
+ * @return (none) -- effects are written to the global mount state.
+ */
 void drive_unmount_all(void)
-// Unmount all images for disk, tape and ROM
 {
     uint8_t drive;
 
@@ -66,8 +82,14 @@ void drive_unmount_all(void)
     ald_on = 0;
 }
 
+/**
+ * Open a popup window listing the filenames currently mounted on drives
+ * A-D, the tape deck and the ROM box (from mount_filename[]), and wait for
+ * any key before closing it.
+ *
+ * @return (none)
+ */
 void drive_showmounts(void)
-// Show filenames that are currently mounted
 {
     OricCharWin popup;
     uint8_t drive;
@@ -89,8 +111,19 @@ void drive_showmounts(void)
     menu_popup_close();
 }
 
+/**
+ * Act on the currently-selected entry in the active pane: if it is a
+ * mountable image (.DSK -> targetdrive, .TAP -> tape deck, .ROM -> ROM box),
+ * mount it via loci_mount(), record its name in mount_filename[] and set
+ * the corresponding fdc_on/tap_on/b11_on status flag, then show a result
+ * popup. If the active pane is browsing inside a tape image instead, seek
+ * the tape to the offset stored in the selected entry's name field (via
+ * tap_seek()) and show a confirmation popup.
+ *
+ * @return (none) -- effects are written to global mount state and shown via
+ *         popups.
+ */
 void drive_mount(void)
-// Mount the selected file (or seek to it, when browsing inside a tape)
 {
     if (presentdir[activepane].firstelement && presentdirelement.meta.type < 5)
     {
@@ -144,8 +177,16 @@ void drive_mount(void)
     }
 }
 
+/**
+ * Show the unmount-target selection popup (menu_option_select) and, if the
+ * user picks a slot (1-6 = A/B/C/D/Tape/ROM), unmount it via loci_umount()
+ * and clear its mount_filename[] entry. For A-D, clears fdc_on once no disk
+ * drive remains mounted. For Tape, clears tap_on/ald_on and exits
+ * tape-browse mode for the active pane. For ROM, clears b11_on.
+ *
+ * @return (none) -- effects are written to global mount state.
+ */
 void drive_unmount(void)
-// Unmount selected drive, tape or ROM
 {
     uint8_t select;
     uint8_t drive;

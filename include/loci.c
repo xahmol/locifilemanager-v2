@@ -29,12 +29,24 @@ LociCfg locicfg;
 // Oscar64 native mode (-n) treats 'a' and 'x' as 6502 register keywords.
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Push a 16-bit value onto XSTACK, high byte first then low byte (matches
+ * the CC65 v1 mia.s push-int byte ordering).
+ *
+ * @param v Value to push.
+ * @return (none)
+ */
 void mia_push_int(uint16_t v)
 {
     MIA.xstack = (uint8_t)(v >> 8);
     MIA.xstack = (uint8_t)v;
 }
 
+/**
+ * Pop a 16-bit value from XSTACK, low byte first then high byte.
+ *
+ * @return The popped 16-bit value, reassembled as hi<<8 | lo.
+ */
 int16_t mia_pop_int(void)
 {
     uint8_t lo = MIA.xstack;
@@ -42,6 +54,13 @@ int16_t mia_pop_int(void)
     return (int16_t)((uint16_t)hi << 8 | lo);
 }
 
+/**
+ * Push a 32-bit value onto XSTACK, most-significant byte first down to
+ * least-significant byte last.
+ *
+ * @param v Value to push.
+ * @return (none)
+ */
 void mia_push_long(uint32_t v)
 {
     MIA.xstack = (uint8_t)(v >> 24);
@@ -50,6 +69,11 @@ void mia_push_long(uint32_t v)
     MIA.xstack = (uint8_t)v;
 }
 
+/**
+ * Pop a 32-bit value from XSTACK, least-significant byte first.
+ *
+ * @return The popped 32-bit value, reassembled from the four bytes.
+ */
 uint32_t mia_pop_long(void)
 {
     uint8_t b0 = MIA.xstack;
@@ -59,12 +83,28 @@ uint32_t mia_pop_long(void)
     return ((uint32_t)b3 << 24) | ((uint32_t)b2 << 16) | ((uint32_t)b1 << 8) | (uint32_t)b0;
 }
 
+/**
+ * Set MIA.areg/MIA.xreg from a 16-bit value (areg = low byte, xreg = high
+ * byte), for ops that take their argument via the A/X registers.
+ *
+ * @param v Value to split into MIA.areg (low byte) and MIA.xreg (high byte).
+ * @return (none)
+ */
 void mia_set_ax(uint16_t v)
 {
     MIA.xreg = (uint8_t)(v >> 8);
     MIA.areg = (uint8_t)v;
 }
 
+/**
+ * Set MIA.sreg/MIA.areg/MIA.xreg from a 32-bit value, for ops whose single
+ * int32 argument is passed in registers rather than via XSTACK (e.g.
+ * MIA_OP_TAP_SEEK).
+ *
+ * @param v Value to split: upper 16 bits into MIA.sreg, lower 16 bits into
+ *          MIA.areg/MIA.xreg via mia_set_ax().
+ * @return (none)
+ */
 void mia_set_axsreg(uint32_t v)
 {
     MIA.sreg = (uint16_t)(v >> 16);
@@ -92,6 +132,13 @@ void mia_set_axsreg(uint32_t v)
 // before the firmware has even started, right as it begins overwriting
 // low RAM for the boot. At -O2 a preceding BIT-style flag test can leave
 // V set depending on the call site, so this can't be left to chance.
+/**
+ * Invoke MIA operation op via JSR MIA.spin (see comment above) and return
+ * its int16 result from MIA.areg/MIA.xreg.
+ *
+ * @param op MIA_OP_* operation code to write to MIA.op.
+ * @return int16 result (MIA.xreg<<8 | MIA.areg) from the firmware.
+ */
 int16_t mia_call_int(uint8_t op)
 {
     return __asm {
@@ -104,6 +151,14 @@ int16_t mia_call_int(uint8_t op)
     };
 }
 
+/**
+ * Like mia_call_int(), but on a negative result capture MIA.errno_lo into
+ * loci_errno and normalize the return value to -1.
+ *
+ * @param op MIA_OP_* operation code to write to MIA.op.
+ * @return int16 result from mia_call_int(op), or -1 with loci_errno set on
+ *         error.
+ */
 int16_t mia_call_int_errno(uint8_t op)
 {
     int16_t r = mia_call_int(op);
@@ -123,6 +178,17 @@ int16_t mia_call_int_errno(uint8_t op)
 // normal "CLV;BVC+0;LDA#lo;LDX#hi;RTS" released form), THEN jsr 0x03b1.
 // On success that JMP reboots the machine and this never returns; on
 // failure it returns the LDA/LDX result like mia_call_int.
+/**
+ * Invoke MIA_OP_BOOT with the given settings byte (see comment above for the
+ * split poll/JSR sequence and the VIA.ier/VIA.ifr reset). On success this
+ * jumps into the freshly-booted ROM via JMP ($FFFC) and never returns; on
+ * failure captures MIA.errno_lo into loci_errno and returns -1.
+ *
+ * @param settings Boot flag byte (bit 7 = FAST, plus ald/bit/b11/tap/fdc
+ *                  mount-status bits as built by main.c's boot()).
+ * @return int16 result from the firmware on failure (normalized to -1 with
+ *         loci_errno set), or does not return on success.
+ */
 int16_t mia_call_boot(uint8_t settings)
 {
     int16_t r;
@@ -166,6 +232,14 @@ int16_t mia_call_boot(uint8_t settings)
 // CLV before the JSR — see mia_call_int's comment: $03B1 is the BVC
 // opcode itself, one byte past the firmware's own CLV at $03B0, so the
 // busy-loop's correctness depends on V being clear on entry.
+/**
+ * Invoke MIA operation op via JSR MIA.spin (see comment above) and return
+ * its int32 result from MIA.areg/MIA.xreg/MIA.sreg.
+ *
+ * @param op MIA_OP_* operation code to write to MIA.op.
+ * @return int32 result (MIA.sreg<<16 | MIA.xreg<<8 | MIA.areg) from the
+ *         firmware.
+ */
 int32_t mia_call_long(uint8_t op)
 {
     return __asm {
@@ -182,6 +256,14 @@ int32_t mia_call_long(uint8_t op)
     };
 }
 
+/**
+ * Like mia_call_long(), but on a negative result capture MIA.errno_lo into
+ * loci_errno and normalize the return value to -1.
+ *
+ * @param op MIA_OP_* operation code to write to MIA.op.
+ * @return int32 result from mia_call_long(op), or -1 with loci_errno set on
+ *         error.
+ */
 int32_t mia_call_long_errno(uint8_t op)
 {
     int32_t r = mia_call_long(op);
@@ -193,8 +275,13 @@ int32_t mia_call_long_errno(uint8_t op)
 // Internal helpers (static — not part of the public API)
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Push a null-terminated string to XSTACK in reverse order (last char first).
-// MIA firmware reverses on dequeue, presenting bytes in forward order.
+/**
+ * Push a NUL-terminated string to XSTACK in reverse order (last char first).
+ * The MIA firmware reverses on dequeue, presenting bytes in forward order.
+ *
+ * @param s NUL-terminated string to push (e.g. a path argument).
+ * @return (none)
+ */
 static void push_path(const char *s)
 {
     uint8_t len = 0;
@@ -202,7 +289,16 @@ static void push_path(const char *s)
     while (len) mia_push_char((uint8_t)s[--len]);
 }
 
-// Read up to count bytes from an open file to buf via XSTACK (≤256 per call).
+/**
+ * Read up to count bytes from an open file to buf via XSTACK
+ * (MIA_OP_READ_XSTACK).
+ *
+ * @param buf    Destination buffer (at least count bytes).
+ * @param count  Number of bytes to read (<= 256).
+ * @param fildes Open LOCI file descriptor.
+ * @return Number of bytes actually read (>= 0), or -1 with loci_errno set on
+ *         error.
+ */
 static int16_t read_xstack(void *buf, uint16_t count, int16_t fildes)
 {
     int16_t got;
@@ -222,8 +318,17 @@ static int16_t read_xstack(void *buf, uint16_t count, int16_t fildes)
     return got;
 }
 
-// Write up to count bytes from buf to an open file via XSTACK (≤256 per call).
-//
+/**
+ * Write up to count bytes from buf to an open file via XSTACK
+ * (MIA_OP_WRITE_XSTACK). See the comment below for why count is not itself
+ * pushed onto XSTACK.
+ *
+ * @param buf    Source buffer (count bytes).
+ * @param count  Number of bytes to write (<= 256).
+ * @param fildes Open LOCI file descriptor.
+ * @return Number of bytes actually written (>= 0), or -1 with loci_errno set
+ *         on error.
+ */
 // Unlike read_xstack(), count is NOT pushed onto XSTACK -- matches v1's
 // write_xstack.c (libsrc/write_xstack.c) and the real firmware's
 // std_api_write_xstack (sodiumlb/loci-firmware src/mia/api/std.c), which
@@ -237,8 +342,17 @@ static int16_t write_xstack(const void *buf, uint16_t count, int16_t fildes)
     return mia_call_int_errno(MIA_OP_WRITE_XSTACK);
 }
 
-// Read count bytes from an open file into XRAM at xram_addr.
-//
+/**
+ * Read count bytes from an open file into XRAM at xram_addr
+ * (MIA_OP_READ_XRAM). See the comment below for the XSTACK argument-passing
+ * protocol.
+ *
+ * @param xram_addr XRAM destination address.
+ * @param count     Number of bytes to read.
+ * @param fildes    Open LOCI file descriptor.
+ * @return Number of bytes actually read (>= 0), or -1 with loci_errno set on
+ *         error.
+ */
 // xram_addr and count are passed via XSTACK (buf pushed first, then count
 // — MIA_OP_READ_XRAM pops count first, then xram_addr), matching v1's
 // read_xram() (libsrc/read_xram.c). MIA.addr0/.step0/.rw0 are a *different*
@@ -254,8 +368,17 @@ static int16_t read_xram(uint16_t xram_addr, uint16_t count, int16_t fildes)
     return mia_call_int_errno(MIA_OP_READ_XRAM);
 }
 
-// Write count bytes from XRAM at xram_addr to an open file. See read_xram()
-// for why xram_addr/count are pushed via XSTACK rather than MIA.addr1.
+/**
+ * Write count bytes from XRAM at xram_addr to an open file
+ * (MIA_OP_WRITE_XRAM). See read_xram() for why xram_addr/count are pushed
+ * via XSTACK rather than MIA.addr1.
+ *
+ * @param xram_addr XRAM source address.
+ * @param count     Number of bytes to write.
+ * @param fildes    Open LOCI file descriptor.
+ * @return Number of bytes actually written (>= 0), or -1 with loci_errno set
+ *         on error.
+ */
 static int16_t write_xram(uint16_t xram_addr, uint16_t count, int16_t fildes)
 {
     mia_push_int(xram_addr);
@@ -268,13 +391,25 @@ static int16_t write_xram(uint16_t xram_addr, uint16_t count, int16_t fildes)
 // Detection & configuration
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Check whether the LOCI device is present by reading its identity marker.
+ *
+ * @return true if the LOCI ROM has written 'L' at LOCI_SIGNATURE_ADDR
+ *         ($0319), false otherwise.
+ */
 bool loci_present(void)
 {
     return *LOCI_SIGNATURE_ADDR == 'L';
 }
 
-// uname: populate LociUname struct via XSTACK.
-// Firmware pops sizeof(LociUname) == 69 bytes from XSTACK after MIA_OP_UNAME.
+/**
+ * Populate *buf with the LOCI firmware's uname information (sysname,
+ * nodename, release, version, machine), read byte-by-byte from XSTACK after
+ * MIA_OP_UNAME (firmware pushes exactly sizeof(LociUname) == 69 bytes).
+ *
+ * @param buf Destination LociUname struct (69 bytes).
+ * @return (none)
+ */
 // Based on sysuname.c in sodiumlb/loci-rom (XSTACK loop, not DMA).
 void loci_uname(LociUname *buf)
 {
@@ -288,6 +423,17 @@ void loci_uname(LociUname *buf)
     }
 }
 
+/**
+ * Populate the global locicfg with firmware version info (parsed from
+ * loci_uname()'s release string) and enumerate mounted USB mass-storage
+ * devices by walking the root directory for "N.MSC.*" entries, setting
+ * locicfg.validdev[] and locicfg.devnr accordingly (drive 0 is always
+ * valid). If LOCI is not present, shows MSG_LOCI_NOT_FOUND and halts the
+ * machine (bare-metal, no exit()).
+ *
+ * @return (none) -- result is written to the global locicfg; does not return
+ *         if LOCI is absent.
+ */
 void get_locicfg(void)
 {
     uint8_t     devid;
@@ -345,6 +491,17 @@ void get_locicfg(void)
     loci_closedir(dir);
 }
 
+/**
+ * Check whether the LOCI firmware version recorded in locicfg.version is at
+ * least major.minor.patch (lexicographic major/minor/patch comparison).
+ *
+ * @param major Minimum required major version.
+ * @param minor Minimum required minor version (only checked if major
+ *               matches).
+ * @param patch Minimum required patch version (only checked if major and
+ *               minor both match).
+ * @return true if locicfg.version >= major.minor.patch, false otherwise.
+ */
 bool loci_check_fw(uint8_t major, uint8_t minor, uint8_t patch)
 {
     if (locicfg.version.major > major) return true;
@@ -354,6 +511,18 @@ bool loci_check_fw(uint8_t major, uint8_t minor, uint8_t patch)
     return false;
 }
 
+/**
+ * Look up the directory entry name of the devid-th root-directory entry
+ * (0-based) and return its device label, truncated to maxlength characters.
+ * The label starts at d_name[3] (after the "N.M" device-number prefix). The
+ * result is copied into a static buffer so it survives the directory close.
+ *
+ * @param devid     0-based index of the root-directory entry to look up.
+ * @param maxlength Maximum number of label characters to return (label is
+ *                   truncated in place if longer).
+ * @return Pointer to a static, NUL-terminated device label string, or "" if
+ *         devid is out of range.
+ */
 const char *get_loci_devname(uint8_t devid, uint8_t maxlength)
 {
     static LociDirent entry;
@@ -385,11 +554,21 @@ const char *get_loci_devname(uint8_t devid, uint8_t maxlength)
 // System
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Query the CPU clock speed via MIA_OP_PHI2.
+ *
+ * @return CPU clock speed in kHz.
+ */
 int16_t phi2(void)
 {
     return mia_call_int(MIA_OP_PHI2);
 }
 
+/**
+ * Generate a random 32-bit number via MIA_OP_LRAND.
+ *
+ * @return A pseudo-random int32 value from the firmware.
+ */
 int32_t loci_lrand(void)
 {
     return mia_call_long(MIA_OP_LRAND);
@@ -405,6 +584,14 @@ int32_t loci_lrand(void)
 //   Reads:  load bytes from rw0 (synchronous, no spin needed)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Write a single byte to XRAM at addr via the direct DMA register window
+ * (MIA.step0/MIA.addr0/MIA.rw0), waiting for the operation to complete.
+ *
+ * @param addr XRAM address to write.
+ * @param val  Byte value to write.
+ * @return (none)
+ */
 void xram_poke(uint16_t addr, uint8_t val)
 {
     MIA.step0 = 1;
@@ -413,6 +600,14 @@ void xram_poke(uint16_t addr, uint8_t val)
     while (MIA.busy & MIA_BUSY_BIT) {}
 }
 
+/**
+ * Read a single byte from XRAM at addr via the direct DMA register window
+ * (MIA.step0/MIA.addr0/MIA.rw0). The read is synchronous; no busy-wait is
+ * needed.
+ *
+ * @param addr XRAM address to read.
+ * @return The byte value read from XRAM.
+ */
 uint8_t xram_peek(uint16_t addr)
 {
     MIA.step0 = 1;
@@ -420,6 +615,16 @@ uint8_t xram_peek(uint16_t addr)
     return MIA.rw0;
 }
 
+/**
+ * Copy count bytes from local RAM at src to XRAM at dest via the direct DMA
+ * register window (MIA.step0/MIA.addr0/MIA.rw0, auto-incrementing), waiting
+ * for the operation to complete.
+ *
+ * @param dest  XRAM destination address.
+ * @param src   Local source buffer (count bytes).
+ * @param count Number of bytes to copy.
+ * @return (none)
+ */
 void xram_memcpy_to(uint16_t dest, const void *src, uint16_t count)
 {
     const uint8_t *p = (const uint8_t *)src;
@@ -431,6 +636,16 @@ void xram_memcpy_to(uint16_t dest, const void *src, uint16_t count)
     while (MIA.busy & MIA_BUSY_BIT) {}
 }
 
+/**
+ * Copy count bytes from XRAM at src to local RAM at dest via the direct DMA
+ * register window (MIA.step0/MIA.addr0/MIA.rw0, auto-incrementing); each
+ * read is synchronous.
+ *
+ * @param dest  Local destination buffer (count bytes).
+ * @param src   XRAM source address.
+ * @param count Number of bytes to copy.
+ * @return (none)
+ */
 void xram_memcpy_from(void *dest, uint16_t src, uint16_t count)
 {
     uint8_t  *p = (uint8_t *)dest;
@@ -445,13 +660,35 @@ void xram_memcpy_from(void *dest, uint16_t src, uint16_t count)
 // Overlay RAM ($C000–$FFFF via MICRODISCCFG $0314)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Map overlay RAM ($C000-$FFFF) into the address space via MICRODISCCFG
+ * ($0314), exposing LOCI's MIA/TAP register blocks and hiding the BASIC ROM.
+ *
+ * @return (none) -- writes MICRODISCCFG.
+ */
 void enable_overlay_ram(void)  { MICRODISCCFG = 0xFD; }
+
+/**
+ * Unmap overlay RAM, restoring the normal ROM/I/O view at $C000-$FFFF via
+ * MICRODISCCFG ($0314).
+ *
+ * @return (none) -- writes MICRODISCCFG.
+ */
 void disable_overlay_ram(void) { MICRODISCCFG = 0xFF; }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // File I/O
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Open a file at path with the given flags (O_RDONLY/O_WRONLY/O_RDWR,
+ * optionally combined with O_CREAT/O_TRUNC/O_APPEND/O_EXCL) via MIA_OP_OPEN.
+ *
+ * @param path  Drive-prefixed path of the file to open.
+ * @param flags Bitwise combination of O_* flags (see loci.h).
+ * @return Non-negative file descriptor on success, or a negative LOCI_E*
+ *         error code on failure.
+ */
 int16_t loci_open(const char *path, uint16_t flags)
 {
     push_path(path);
@@ -459,12 +696,29 @@ int16_t loci_open(const char *path, uint16_t flags)
     return mia_call_int_errno(MIA_OP_OPEN);
 }
 
+/**
+ * Close an open file descriptor via MIA_OP_CLOSE.
+ *
+ * @param fd File descriptor previously returned by loci_open()/loci_opendir().
+ * @return 0 on success, or a negative LOCI_E* error code on failure.
+ */
 int16_t loci_close(int16_t fd)
 {
     mia_set_ax((uint16_t)fd);
     return mia_call_int_errno(MIA_OP_CLOSE);
 }
 
+/**
+ * Read up to count bytes from fd into buf, splitting the transfer into
+ * <=256-byte blocks (the XSTACK protocol's per-call limit, see
+ * read_xstack()) and stopping early if a short read indicates EOF.
+ *
+ * @param fd    Open file descriptor to read from.
+ * @param buf   Destination buffer (count bytes).
+ * @param count Number of bytes requested.
+ * @return Total number of bytes actually read (may be less than count at
+ *         EOF), or a negative LOCI_E* error code on failure.
+ */
 int16_t loci_read(int16_t fd, void *buf, uint16_t count)
 {
     int16_t  total = 0;
@@ -481,6 +735,17 @@ int16_t loci_read(int16_t fd, void *buf, uint16_t count)
     return total;
 }
 
+/**
+ * Write up to count bytes from buf to fd, splitting the transfer into
+ * <=256-byte blocks (the XSTACK protocol's per-call limit, see
+ * write_xstack()) and stopping early if a short write is reported.
+ *
+ * @param fd    Open file descriptor to write to.
+ * @param buf   Source buffer (count bytes).
+ * @param count Number of bytes to write.
+ * @return Total number of bytes actually written, or a negative LOCI_E*
+ *         error code on failure.
+ */
 int16_t loci_write(int16_t fd, const void *buf, uint16_t count)
 {
     int16_t        total = 0;
@@ -497,6 +762,15 @@ int16_t loci_write(int16_t fd, const void *buf, uint16_t count)
     return total;
 }
 
+/**
+ * Reposition the file offset of fd via MIA_OP_LSEEK.
+ *
+ * @param fd     Open file descriptor to reposition.
+ * @param offset Offset in bytes, interpreted according to whence.
+ * @param whence One of SEEK_SET, SEEK_CUR, or SEEK_END.
+ * @return The resulting absolute file offset, or a negative LOCI_E* error
+ *         code on failure.
+ */
 int32_t loci_lseek(int16_t fd, int32_t offset, uint8_t whence)
 {
     mia_push_long((uint32_t)offset);
@@ -505,12 +779,26 @@ int32_t loci_lseek(int16_t fd, int32_t offset, uint8_t whence)
     return mia_call_long_errno(MIA_OP_LSEEK);
 }
 
+/**
+ * Delete the file (or empty directory, on the hostfs backend) at path via
+ * MIA_OP_UNLINK.
+ *
+ * @param path Drive-prefixed path of the file/directory to delete.
+ * @return 0 on success, or a negative LOCI_E* error code on failure.
+ */
 int16_t loci_unlink(const char *path)
 {
     push_path(path);
     return mia_call_int_errno(MIA_OP_UNLINK);
 }
 
+/**
+ * Rename/move oldpath to newpath via MIA_OP_RENAME.
+ *
+ * @param oldpath Drive-prefixed path of the existing file/directory.
+ * @param newpath Drive-prefixed destination path.
+ * @return 0 on success, or a negative LOCI_E* error code on failure.
+ */
 int16_t loci_rename(const char *oldpath, const char *newpath)
 {
     // Push old path, then a NUL separator, then new path (each reversed).
@@ -526,6 +814,13 @@ int16_t loci_rename(const char *oldpath, const char *newpath)
 // High-level file operations
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Check whether a file exists at path by attempting to open it read-only
+ * and immediately closing it.
+ *
+ * @param path Drive-prefixed path to check.
+ * @return true if the file could be opened (exists), false otherwise.
+ */
 bool file_exists(const char *path)
 {
     int16_t fd = loci_open(path, O_RDONLY | O_EXCL);
@@ -534,6 +829,15 @@ bool file_exists(const char *path)
     return true;
 }
 
+/**
+ * Open path read-only, read up to count bytes into dst, and close it.
+ *
+ * @param path  Drive-prefixed path of the file to load.
+ * @param dst   Destination buffer (count bytes).
+ * @param count Maximum number of bytes to read.
+ * @return Number of bytes read, or a negative LOCI_E* error code if the file
+ *         could not be opened or the read failed.
+ */
 int16_t file_load(const char *path, void *dst, uint16_t count)
 {
     int16_t fd = loci_open(path, O_RDONLY | O_EXCL);
@@ -544,6 +848,16 @@ int16_t file_load(const char *path, void *dst, uint16_t count)
     return r;
 }
 
+/**
+ * Open path write-only (creating it if necessary), write count bytes from
+ * src, and close it.
+ *
+ * @param path  Drive-prefixed path of the file to write.
+ * @param src   Source buffer (count bytes).
+ * @param count Number of bytes to write.
+ * @return Number of bytes written, or a negative LOCI_E* error code if the
+ *         file could not be opened or the write failed.
+ */
 int16_t file_save(const char *path, const void *src, uint16_t count)
 {
     int16_t fd = loci_open(path, O_WRONLY | O_CREAT);
@@ -554,6 +868,16 @@ int16_t file_save(const char *path, const void *src, uint16_t count)
     return r;
 }
 
+/**
+ * Copy src to dst via XRAM-buffered block transfers (read_xram()/
+ * write_xram() through the COPYBUF_XRAM_* staging area), without any
+ * progress indication.
+ *
+ * @param dst Drive-prefixed destination path (created/truncated).
+ * @param src Drive-prefixed source path (opened read-only).
+ * @return 0 on success, or a negative LOCI_E* error code if either file
+ *         could not be opened or a read/write failed partway through.
+ */
 int16_t file_copy(const char *dst, const char *src)
 {
     int16_t fd_src, fd_dst;
@@ -584,6 +908,20 @@ int16_t file_copy(const char *dst, const char *src)
 // Animated progress-bar characters, cycled every read/write block.
 static const uint8_t progressBar[4] = { 48, 53, 93, 95 };
 
+/**
+ * Copy src to dst via XRAM-buffered block transfers (as file_copy()), while
+ * animating a progress bar at (progx, progy) of length progl characters
+ * directly in text VRAM, and polling for ESC to allow mid-copy cancellation.
+ *
+ * @param dst   Drive-prefixed destination path (created/truncated).
+ * @param src   Drive-prefixed source path (opened read-only).
+ * @param progx Column of the first progress-bar character.
+ * @param progy Row of the progress bar in text VRAM.
+ * @param progl Width of the progress bar in characters.
+ * @return 0 on success, -2 if cancelled via ESC (the partial destination
+ *         file is removed), or a negative LOCI_E* error code if either file
+ *         could not be opened or a read/write failed partway through.
+ */
 // Based on libsrc/fileops.c file_copy() (CC65, prog/progx/progy/progl args) by
 // Xander Mol, 2025 — local reference at locifilemanager/libsrc/fileops.c.
 // Adapted: no conio gotoxy/cputc/cclear in Oscar64 bare-metal — progress bar
@@ -651,6 +989,16 @@ int16_t file_copy_progress(const char *dst, const char *src,
 static LociDir    s_dir;
 static LociDirent s_dirent;
 
+/**
+ * Open a directory stream at path via MIA_OP_OPENDIR, returning a static
+ * LociDir handle. Only one directory stream can be open at a time (the
+ * handle and its read buffer are statically allocated).
+ *
+ * @param path Drive-prefixed path of the directory to open ("" for the
+ *              device root).
+ * @return Pointer to the static LociDir handle on success, or NULL if the
+ *         directory could not be opened.
+ */
 LociDir *loci_opendir(const char *path)
 {
     int16_t fd;
@@ -668,12 +1016,28 @@ LociDir *loci_opendir(const char *path)
     return &s_dir;
 }
 
+/**
+ * Close a directory stream previously opened with loci_opendir() via
+ * MIA_OP_CLOSEDIR.
+ *
+ * @param dir Directory handle returned by loci_opendir().
+ * @return (none)
+ */
 void loci_closedir(LociDir *dir)
 {
     mia_set_ax((uint16_t)dir->fd);
     mia_call_int_errno(MIA_OP_CLOSEDIR);
 }
 
+/**
+ * Read the next directory entry from dir via MIA_OP_READDIR, popping
+ * LOCI_DIRENT_SIZE bytes from XSTACK into a static LociDirent buffer.
+ *
+ * @param dir Directory handle returned by loci_opendir(); dir->off is
+ *             incremented on success.
+ * @return Pointer to the static LociDirent on success (an empty d_name
+ *         signals end-of-directory), or NULL on error.
+ */
 LociDirent *loci_readdir(LociDir *dir)
 {
     uint8_t i;
@@ -693,12 +1057,27 @@ LociDirent *loci_readdir(LociDir *dir)
     return &s_dirent;
 }
 
+/**
+ * Create a directory at path via MIA_OP_MKDIR.
+ *
+ * @param path Drive-prefixed path of the directory to create.
+ * @return 0 on success, or a negative LOCI_E* error code on failure.
+ */
 int16_t loci_mkdir(const char *path)
 {
     push_path(path);
     return mia_call_int_errno(MIA_OP_MKDIR);
 }
 
+/**
+ * Get the current working directory of the active LOCI device into buf via
+ * MIA_OP_GETCWD.
+ *
+ * @param buf Destination buffer for the NUL-terminated path.
+ * @param len Size of buf in bytes; at most len-1 characters are written plus
+ *             a NUL terminator.
+ * @return (none) -- result is written to buf.
+ */
 // getcwd protocol (from initcwd.s in sodiumlb/loci-rom):
 //   ax = max_length (len-1); call MIA_OP_GETCWD; then pop bytes from XSTACK
 //   until '\0' or max reached.
@@ -720,6 +1099,15 @@ void loci_getcwd(char *buf, uint8_t len)
 // Mount operations
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Mount a disk image file as the given drive via MIA_OP_MOUNT.
+ *
+ * @param drive    Drive number to mount onto.
+ * @param path     Drive-prefixed path of the directory containing the image
+ *                   file.
+ * @param filename Name of the image file within path.
+ * @return 0 on success, or a negative LOCI_E* error code on failure.
+ */
 int16_t loci_mount(int16_t drive, const char *path, const char *filename)
 {
     mia_set_ax((uint16_t)drive);
@@ -729,6 +1117,12 @@ int16_t loci_mount(int16_t drive, const char *path, const char *filename)
     return mia_call_int_errno(MIA_OP_MOUNT);
 }
 
+/**
+ * Unmount the disk image currently mounted on drive via MIA_OP_UMOUNT.
+ *
+ * @param drive Drive number to unmount.
+ * @return 0 on success, or a negative LOCI_E* error code on failure.
+ */
 int16_t loci_umount(int16_t drive)
 {
     mia_set_ax((uint16_t)drive);
@@ -739,6 +1133,13 @@ int16_t loci_umount(int16_t drive)
 // Tape operations
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Seek to a byte offset within the mounted tape image via MIA_OP_TAP_SEEK.
+ *
+ * @param pos Absolute byte offset to seek to.
+ * @return The resulting absolute tape position, or a negative LOCI_E* error
+ *         code on failure.
+ */
 int32_t tap_seek(int32_t pos)
 {
     // MIA_OP_TAP_SEEK reads its single argument from API_AXSREG (registers),
@@ -747,11 +1148,27 @@ int32_t tap_seek(int32_t pos)
     return mia_call_long_errno(MIA_OP_TAP_SEEK);
 }
 
+/**
+ * Get the current byte offset within the mounted tape image via
+ * MIA_OP_TAP_TELL.
+ *
+ * @return The current absolute tape position, or a negative LOCI_E* error
+ *         code on failure.
+ */
 int32_t tap_tell(void)
 {
     return mia_call_long_errno(MIA_OP_TAP_TELL);
 }
 
+/**
+ * Read the tape file header at the current tape position into *hdr via
+ * MIA_OP_TAP_HDR.
+ *
+ * @param hdr Destination for the sizeof(LociTapHdr)-byte tape header.
+ * @return The tape position returned by MIA_OP_TAP_HDR (interpretation as
+ *         for tap_tell()), or a negative LOCI_E* error code on failure;
+ *         *hdr is populated from XSTACK regardless.
+ */
 // MIA_OP_TAP_HDR pushes sizeof(LociTapHdr) header bytes onto XSTACK
 // (regardless of success/failure) — pop them into *hdr, matching v1
 // tap.c tap_read_header().

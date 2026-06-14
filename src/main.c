@@ -39,8 +39,15 @@ static const char * const helpinfo[25][2] = { MSG_HELP_TABLE };
 // App pulldown dynamic entries
 // -------------------------------------------------------------------------
 
+/**
+ * Toggle settings.confirm between "once" and "all" delete-confirmation
+ * modes, update the App pulldown's "Confirm" label to match, and persist
+ * the new setting via config_save().
+ *
+ * @return (none) -- result is written to the global settings.confirm and
+ *         to pulldown_titles[0][0].
+ */
 static void confirm_toggle(void)
-// Toggle confirm once or all
 {
     settings.confirm = !settings.confirm;
     sprintf(pulldown_titles[0][0], MSG_MENU_APP_CONFIRM_FMT,
@@ -48,8 +55,16 @@ static void confirm_toggle(void)
     config_save();
 }
 
+/**
+ * Show the "what does Enter do" selection popup (menu_option_select) and, if
+ * the user picks an option, set settings.enterchoice (0=Select, 1=Enter,
+ * 2=Launch), update the App pulldown's "On Enter" label to match, and persist
+ * the new setting via config_save().
+ *
+ * @return (none) -- result is written to the global settings.enterchoice and
+ *         to pulldown_titles[0][1].
+ */
 static void select_enter_choice(void)
-// Select what to do on enter
 {
     static const char * const vals[3] = { MSG_MENU_VAL_SELECT, MSG_MENU_VAL_ENTER, MSG_MENU_VAL_LAUNCH };
     uint8_t select = menu_option_select(MSG_MAIN_ENTER_PROMPT, 6);
@@ -62,8 +77,17 @@ static void select_enter_choice(void)
     }
 }
 
+/**
+ * Show the file-type filter selection popup (menu_option_select) and, if the
+ * user picks an option, set settings.filter (0=None, 1=.DSK, 2=.TAP, 3=.ROM,
+ * 4=.LCE), update the App pulldown's "Filter" label to match, redraw both
+ * directory panes to apply the new filter, and persist the new setting via
+ * config_save().
+ *
+ * @return (none) -- result is written to the global settings.filter, both
+ *         directory panes, and pulldown_titles[0][2].
+ */
 static void select_filter(void)
-// Select which filter to apply
 {
     static const char * const vals[5] = { MSG_MENU_VAL_NONE, MSG_MENU_VAL_DSK, MSG_MENU_VAL_TAP, MSG_MENU_VAL_ROM, MSG_MENU_VAL_LCE };
     uint8_t select = menu_option_select(MSG_MAIN_FILTER_PROMPT, 7);
@@ -78,8 +102,17 @@ static void select_filter(void)
     }
 }
 
+/**
+ * Prompt for a filename wildcard filter pattern (*, ? supported) via
+ * cwin_textinput(), showing the currently-active pattern (if any). On ESC
+ * (result < 0) the filter is left unchanged; otherwise the global namefilter
+ * is updated, the Tools pulldown's name-filter label is set to On/Off, and
+ * both directory panes are redrawn to apply the new filter.
+ *
+ * @return (none) -- result is written to the global namefilter, both
+ *         directory panes, and pulldown_titles[4][1].
+ */
 static void select_namefilter(void)
-// Set/clear the filename wildcard filter (*, ?)
 {
     char input[32] = "";
     OricCharWin popup;
@@ -120,10 +153,14 @@ static void select_namefilter(void)
 // Info popups
 // -------------------------------------------------------------------------
 
+/**
+ * Show version information and credits, then a QR code linking to the
+ * project's GitHub page, as two full-screen splashes (black paper
+ * background) with a keypress between and after.
+ *
+ * @return (none)
+ */
 static void versioninfo(void)
-// Show version information and credits, then a QR code linking to the
-// project's GitHub page, as two full-screen splashes (black paper
-// background) with a keypress between and after.
 {
     OricCharWin win;
     char buf[40];
@@ -168,8 +205,13 @@ static void versioninfo(void)
     menu_popup_close();   // restore whole screen
 }
 
+/**
+ * Show the keyboard-shortcuts help screen (helpinfo[] table) as a full-screen
+ * popup and wait for a keypress before closing it.
+ *
+ * @return (none)
+ */
 static void help(void)
-// Show keyboard shortcuts help information
 {
     OricCharWin win;
     uint8_t item, y;
@@ -209,9 +251,16 @@ static void help(void)
 // Boot
 // -------------------------------------------------------------------------
 
+/**
+ * Boot from active mounts (disk > tape > ROM), via mia_call_boot() with a
+ * flag byte built from the ald_on/bit_on/b11_on/tap_on/fdc_on mount-status
+ * flags (auto-load tape takes preference if no disk is mounted on drive A).
+ * On success this never returns (LOCI reboots the machine); on failure shows
+ * an error popup and returns.
+ *
+ * @return (none) -- does not return on success.
+ */
 static void boot(void)
-// Boot from active mounts (disk > tape > ROM). On success this never
-// returns (LOCI reboots the machine); on failure shows an error popup.
 {
     // Enable tape auto load if no disk mounted on A takes preference
     if (!mount_filename[0][0] && mount_filename[4][0])
@@ -225,8 +274,18 @@ static void boot(void)
 // Main menu loop
 // -------------------------------------------------------------------------
 
+/**
+ * Open the pulldown menu bar (menu_main()) and repeatedly dispatch the
+ * returned menubarchoice*10+menuoptionchoice code to the corresponding
+ * action (App/File/Dir/Mounts/Tools/Info menu items), redrawing the active
+ * pane's directory listing (dir_refresh_present()) before each menu_main()
+ * call. Choosing App > Exit and confirming boots from the active mounts and
+ * sets choice to 99, ending the loop; any other choice keeps the loop
+ * running.
+ *
+ * @return (none)
+ */
 static void mainmenuloop(void)
-// Go to main menu and act on selection made
 {
     uint8_t choice;
 
@@ -397,6 +456,30 @@ static void mainmenuloop(void)
 // Application entry point
 // -------------------------------------------------------------------------
 
+/**
+ * Application entry point. Initialises the charwin library, checks for LOCI
+ * presence (overlay RAM is required; shows MSG_LOCI_NOT_FOUND and returns if
+ * absent), resets application state to defaults, then overrides it from
+ * FMCONFIG_PATH via config_load() (or writes the compiled-in defaults as a
+ * new config file if none exists). Populates the dynamic App pulldown
+ * entries and the Mount-target label from the (possibly restored) settings,
+ * queries the LOCI firmware version (get_locicfg()), unmounts all drives/
+ * tape/ROM for a known state, draws the header bar with the firmware
+ * version, and draws both directory panes.
+ *
+ * Then runs the main input loop forever: fm_getkey() is polled and
+ * dispatched to the corresponding directory/file/drive/menu action (cursor
+ * movement, selection, copy/move/delete/rename, mount/unmount, viewer,
+ * favourites, help, etc.). KEY_RIGHT opens the pulldown menu
+ * (mainmenuloop()); KEY_ENTER either descends into a directory or performs
+ * the configured settings.enterchoice action (Select/Enter+mount/Launch+
+ * boot); KEY_ESC prompts to exit and, if confirmed, boots from the active
+ * mounts.
+ *
+ * @return 0 if LOCI is not present (early exit); otherwise never returns
+ *         (the main loop runs forever and exits only via boot()'s machine
+ *         reboot).
+ */
 int main(void)
 {
     charwin_init();

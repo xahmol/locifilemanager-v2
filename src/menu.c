@@ -21,20 +21,45 @@
 // Oscar64 -O2 handles 16-bit multiply; menus are called infrequently.
 #define MENU_ROW(y) ((uint8_t *)((uint16_t)TEXTVRAM + (uint16_t)(y) * 40U))
 
+/**
+ * Write a single raw byte directly to screen RAM at (x, y).
+ *
+ * @param x Column (0-39).
+ * @param y Row (0-27).
+ * @param b Raw byte to write (character code or attribute).
+ * @return (none)
+ */
 static void menu_screen_putb(uint8_t x, uint8_t y, uint8_t b)
 {
     MENU_ROW(y)[x] = b;
 }
 
+/**
+ * Write a NUL-terminated string directly to screen RAM starting at (x, y),
+ * left to right with no wrapping or clipping.
+ *
+ * @param x Starting column (0-39).
+ * @param y Row (0-27).
+ * @param s NUL-terminated string to write.
+ * @return (none)
+ */
 static void menu_screen_puts(uint8_t x, uint8_t y, const char *s)
 {
     uint8_t *p = MENU_ROW(y) + x;
     while (*s) *p++ = (uint8_t)*s++;
 }
 
-// Write exactly `n` bytes from raw buffer `buf` to screen row y starting at x.
-// Replaces any byte < 0x20 (attribute codes, NUL) with a space to prevent
-// unintended attribute pollution from zero-padded pulldown_titles entries.
+/**
+ * Write exactly n bytes from raw buffer buf to screen row y starting at x.
+ * Replaces any byte < 0x20 (attribute codes, NUL) with a space to prevent
+ * unintended attribute pollution from zero-padded pulldown_titles entries.
+ *
+ * @param x   Starting column (0-39).
+ * @param y   Row (0-27).
+ * @param buf Buffer of n raw bytes to write.
+ * @param n   Number of bytes to write from buf.
+ * @return (none)
+ */
 static void menu_screen_putn(uint8_t x, uint8_t y, const uint8_t *buf, uint8_t n)
 {
     uint8_t *p = MENU_ROW(y) + x;
@@ -53,6 +78,19 @@ static MenuWinRecord menu_win_stack[MENU_WIN_DEPTH];
 static uint8_t       menu_win_depth;
 static uint16_t      menu_win_ptr;
 
+/**
+ * Push a record onto the window-save stack for height rows starting at
+ * screen row ypos, and (if LOCI is present) copy those rows from screen RAM
+ * into overlay RAM at the current menu_win_ptr, advancing menu_win_ptr by
+ * height*40 bytes. If LOCI is absent, the depth/record bookkeeping still
+ * happens but no actual copy is made (menus then leave screen residue on
+ * close). No-op if the window-save stack (MENU_WIN_DEPTH) is already full.
+ *
+ * @param ypos   First screen row to save.
+ * @param height Number of rows to save.
+ * @return (none) -- result is written to menu_win_stack[], menu_win_depth,
+ *         and menu_win_ptr.
+ */
 static void menu_winsave(uint8_t ypos, uint8_t height)
 {
     if (menu_win_depth >= MENU_WIN_DEPTH) return;
@@ -86,6 +124,15 @@ static void menu_winsave(uint8_t ypos, uint8_t height)
     menu_win_ptr += len;
 }
 
+/**
+ * Pop the most recent record from the window-save stack and (if LOCI is
+ * present) copy its saved rows back from overlay RAM to screen RAM,
+ * restoring menu_win_ptr to the popped record's overlay address. No-op if
+ * the window-save stack is empty.
+ *
+ * @return (none) -- result is written to screen RAM, menu_win_depth, and
+ *         menu_win_ptr.
+ */
 static void menu_winrestore(void)
 {
     if (menu_win_depth == 0) return;
@@ -113,9 +160,15 @@ static void menu_winrestore(void)
     __asm { plp }
 }
 
-// Draw a white-paper popup background for rows ypos..ypos+height-1.
-// Paper (A_BGWHITE) at col 5, ink (A_FWBLACK=0x00) at col 6, spaces at 7-39.
-// Cols 0-4 retain existing content (part of the saved background).
+/**
+ * Draw a white-paper popup background for rows ypos..ypos+height-1. Paper
+ * (A_BGWHITE) at col 5, ink (A_FWBLACK=0x00) at col 6, spaces at cols 7-39.
+ * Cols 0-4 retain existing content (part of the saved background).
+ *
+ * @param ypos   First screen row to paint.
+ * @param height Number of rows to paint.
+ * @return (none)
+ */
 static void menu_wininit(uint8_t ypos, uint8_t height)
 {
     for (uint8_t y = 0; y < height; y++)
@@ -128,9 +181,16 @@ static void menu_wininit(uint8_t ypos, uint8_t height)
     }
 }
 
-// Open a full-width popup: save rows ypos..ypos+height-1, then paint a
-// white-paper background from column xpos to 39. Generalizes menu_wininit()
-// (hardcoded xpos=5) for dir/file popups that need to start at column 0.
+/**
+ * Open a full-width popup: save rows ypos..ypos+height-1, then paint a
+ * white-paper background from column xpos to 39. Generalizes menu_wininit()
+ * (hardcoded xpos=5) for dir/file popups that need to start at column 0.
+ *
+ * @param xpos   First column of the white-paper background (popup left edge).
+ * @param ypos   First screen row to save and paint.
+ * @param height Number of rows to save and paint.
+ * @return (none)
+ */
 // Based on v1 windownew() (locifilemanager src/menu.c) by Xander Mol, 2025.
 void menu_popup_open(uint8_t xpos, uint8_t ypos, uint8_t height)
 {
@@ -145,6 +205,12 @@ void menu_popup_open(uint8_t xpos, uint8_t ypos, uint8_t height)
     }
 }
 
+/**
+ * Close the most recently opened menu_popup_open() window, restoring the
+ * saved screen rows. Equivalent to menu_winrestore().
+ *
+ * @return (none)
+ */
 void menu_popup_close(void)
 {
     menu_winrestore();
@@ -154,6 +220,17 @@ void menu_popup_close(void)
 // Input: keyboard + IJK joystick
 // -------------------------------------------------------------------------
 
+/**
+ * Block until a key is pressed, polling both the keyboard (keyb_poll()) and,
+ * if present, the IJK joystick (ijk_read()), mapping left-stick directions
+ * to KEY_UP/DOWN/LEFT/RIGHT and fire to KEY_ENTER. After a joystick-derived
+ * key, waits for both sticks to return to neutral before returning, to avoid
+ * a held direction being read repeatedly by tight redraw/getkey loops (see
+ * menu_pulldown()).
+ *
+ * @return Decoded ASCII/KEY_* code of the key or joystick action detected
+ *         (never KEY_NONE).
+ */
 static uint8_t menu_getkey(void)
 {
     uint8_t k;
@@ -237,6 +314,14 @@ char pulldown_titles[PULLDOWN_NUMBER][PULLDOWN_MAXOPTIONS][PULLDOWN_MAXLENGTH] =
 // Init
 // -------------------------------------------------------------------------
 
+/**
+ * Initialise the menu module: reset the window-save stack (depth and overlay
+ * pointer) and detect the IJK joystick interface (ijk_detect()). Call once
+ * after charwin_init() and the loci_present() check.
+ *
+ * @return (none) -- result is written to menu_win_depth, menu_win_ptr, and
+ *         the globals ijk_present/ijk_ljoy/ijk_rjoy (via ijk_detect()).
+ */
 void menu_init(void)
 {
     menu_win_depth = 0;
@@ -248,6 +333,13 @@ void menu_init(void)
 // Header and bar
 // -------------------------------------------------------------------------
 
+/**
+ * Draw the application header at row 0: black ink, green paper across the
+ * row, with header printed starting at column 2.
+ *
+ * @param header NUL-terminated header text to display.
+ * @return (none)
+ */
 void menu_placeheader(const char *header)
 {
     uint8_t *row = MENU_ROW(0);
@@ -257,6 +349,16 @@ void menu_placeheader(const char *header)
     menu_screen_puts(2, 0, header);
 }
 
+/**
+ * Draw the menu bar at row y: black ink, green paper across the row, with
+ * each top-level menubar.titles[] entry printed left to right with a
+ * one-column gap on each side. Computes and stores each item's highlight
+ * column in menubar.xstart[], clamping the last item's start column so the
+ * trailing un-highlight writes in menu_main() stay within the 40-column row.
+ *
+ * @param y Screen row to draw the bar on.
+ * @return (none) -- result is written to menubar.ypos and menubar.xstart[].
+ */
 void menu_placebar(uint8_t y)
 {
     uint8_t *row = MENU_ROW(y);
@@ -281,6 +383,14 @@ void menu_placebar(uint8_t y)
     }
 }
 
+/**
+ * Clear the whole screen to black ink/black paper, then draw the application
+ * header (menu_placeheader()) at row 0 and the menu bar (menu_placebar()) at
+ * row 1.
+ *
+ * @param header NUL-terminated header text to display.
+ * @return (none)
+ */
 void menu_placetop(const char *header)
 {
     // Clear all rows to black paper / black ink
@@ -299,12 +409,30 @@ void menu_placetop(const char *header)
 // Pulldown menu
 // -------------------------------------------------------------------------
 
-// Draw one pulldown item row. `width` is the longest item label in this
-// pulldown (computed by the caller from the actual current strings, NOT
-// PULLDOWN_MAXLENGTH) — every row pads to it so the highlight bar is the
-// same width for every item, regardless of how long that item's own label
-// happens to be (titles are not all padded to the same length, and some
-// are filled in at runtime via sprintf with varying result lengths).
+/**
+ * Draw one pulldown item row at screen row y, columns xpos-1..xpos+2+width,
+ * showing pulldown_titles[menunumber][item] either highlighted (yellow
+ * paper, '-' prefix) or unhighlighted (cyan paper, ' ' prefix), padded with
+ * spaces to width and followed by endcolor.
+ *
+ * @param y          Screen row to draw on.
+ * @param xpos       Column of the highlight-bar ink byte (item text starts
+ *                    at xpos+2).
+ * @param menunumber Index into pulldown_titles[]/pulldown_options[].
+ * @param item       Index of the item within this pulldown to draw.
+ * @param selected   Non-zero to draw this item highlighted (yellow paper,
+ *                    '-' prefix), zero for unhighlighted (cyan paper,
+ *                    ' ' prefix).
+ * @param endcolor   Attribute byte written immediately after the padded
+ *                    label (A_BGBLACK for top-menu pulldowns, A_BGWHITE for
+ *                    popup sub-menus).
+ * @param width      Width (in characters) every row is padded to -- the
+ *                    longest item label in this pulldown (computed by the
+ *                    caller from the live strings, NOT PULLDOWN_MAXLENGTH),
+ *                    so every row's highlight bar is the same width
+ *                    regardless of that item's own label length.
+ * @return (none)
+ */
 static void menu_draw_item(uint8_t y, uint8_t xpos, uint8_t menunumber,
                             uint8_t item, uint8_t selected, uint8_t endcolor,
                             uint8_t width)
@@ -338,6 +466,25 @@ static void menu_draw_item(uint8_t y, uint8_t xpos, uint8_t menunumber,
 
 }
 
+/**
+ * Open a pulldown menu at (xpos, ypos) listing pulldown_titles[menunumber],
+ * saving the covered rows first (menu_winsave()) and restoring them on exit
+ * (menu_winrestore()). Highlights the current item and handles KEY_UP/DOWN
+ * to move the selection, KEY_ENTER to choose, and (for top-menu pulldowns,
+ * menunumber < MENUBAR_MAXOPTIONS) KEY_LEFT/KEY_RIGHT to request the
+ * previous/next bar item. If escapable, KEY_ESC cancels.
+ *
+ * @param xpos       Column of the highlight-bar ink byte for every item row.
+ * @param ypos       First screen row of the pulldown (item 1).
+ * @param menunumber Index into pulldown_titles[]/pulldown_options[] for the
+ *                    pulldown to display.
+ * @param escapable  Non-zero to allow KEY_ESC to cancel (returns
+ *                    MENU_CANCEL); zero to require a choice.
+ * @return 1..pulldown_options[menunumber] (the chosen item), MENU_CANCEL (0)
+ *         if escapable and ESC was pressed, or MENU_LEFT_ARROW/
+ *         MENU_RIGHT_ARROW if a top-menu pulldown's KEY_LEFT/KEY_RIGHT was
+ *         pressed.
+ */
 uint8_t menu_pulldown(uint8_t xpos, uint8_t ypos,
                       uint8_t menunumber, uint8_t escapable)
 {
@@ -435,6 +582,17 @@ uint8_t menu_pulldown(uint8_t xpos, uint8_t ypos,
 // Main menu bar loop
 // -------------------------------------------------------------------------
 
+/**
+ * Run the menu bar navigation loop: highlight bar items left/right with
+ * KEY_LEFT/KEY_RIGHT, and on KEY_ENTER open the corresponding pulldown
+ * (menu_pulldown()). If the pulldown returns MENU_LEFT_ARROW/
+ * MENU_RIGHT_ARROW, move to the adjacent bar item and reopen its pulldown;
+ * otherwise return the encoded choice. KEY_ESC at the bar level exits with
+ * code 99.
+ *
+ * @return menubarchoice*10 + menuoptionchoice (1-69), or 99 if ESC/STOP was
+ *         pressed at the menu-bar level.
+ */
 uint8_t menu_main(void)
 {
     uint8_t menubarchoice    = 1;
@@ -510,6 +668,13 @@ uint8_t menu_main(void)
 // Popup helpers
 // -------------------------------------------------------------------------
 
+/**
+ * Show a popup with message followed by "Are you sure?" and a Yes/No
+ * pulldown (MENU_YESNO), then restore the screen.
+ *
+ * @param message NUL-terminated message text to display above the prompt.
+ * @return 1 if Yes was chosen, 2 if No.
+ */
 uint8_t menu_areyousure(const char *message)
 {
     uint8_t choice;
@@ -522,6 +687,14 @@ uint8_t menu_areyousure(const char *message)
     return choice;
 }
 
+/**
+ * Show a popup reporting a file-operation error: the generic "file error"
+ * message, the current loci_errno value formatted as a decimal number
+ * (without sprintf), and a "press a key" prompt. Waits for a keypress before
+ * restoring the screen.
+ *
+ * @return (none)
+ */
 void menu_fileerrormessage(void)
 {
     menu_winsave(8, 8);
@@ -548,6 +721,13 @@ void menu_fileerrormessage(void)
     menu_winrestore();
 }
 
+/**
+ * Show a popup with message and a "press a key" prompt, wait for a keypress,
+ * then restore the screen.
+ *
+ * @param message NUL-terminated message text to display.
+ * @return (none)
+ */
 void menu_messagepopup(const char *message)
 {
     menu_winsave(8, 6);
@@ -558,6 +738,17 @@ void menu_messagepopup(const char *message)
     menu_winrestore();
 }
 
+/**
+ * Show a popup with message, a "select option" prompt, and a sub-pulldown
+ * (pulldown_titles[menu]) for selection, then restore the screen.
+ *
+ * @param message NUL-terminated prompt text to display above the
+ *                 sub-pulldown.
+ * @param menu    Index into pulldown_titles[]/pulldown_options[] for the
+ *                 sub-pulldown to display.
+ * @return 1..pulldown_options[menu] (the chosen item), or MENU_CANCEL (0) if
+ *         ESC was pressed.
+ */
 uint8_t menu_option_select(const char *message, uint8_t menu)
 {
     uint8_t option;
@@ -572,6 +763,17 @@ uint8_t menu_option_select(const char *message, uint8_t menu)
     return option;
 }
 
+/**
+ * Show a full-width popup with message, "Name: <filename>" (filename
+ * truncated to 30 chars), and a Yes/No pulldown (MENU_YESNO). Generic
+ * confirm-with-filename dialog for dir/file operations (overwrite/delete
+ * confirmations).
+ *
+ * @param message  NUL-terminated message text to display above the filename.
+ * @param filename NUL-terminated filename to display (truncated to 30 chars
+ *                  if longer).
+ * @return 1 if Yes was chosen, 0 otherwise (No or ESC).
+ */
 // Based on v1 file_confirm_message() (locifilemanager src/file.c) by
 // Xander Mol, 2025. Adapted: full-width popup via menu_popup_open(0,...)
 // instead of windownew(0,...); raw screen writes instead of cputsxy/cprintf.
