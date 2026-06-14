@@ -1745,11 +1745,12 @@ void dir_show_properties(void)
         data.dirs  = 0;
 
         cwin_putat_printf(&popup, 0, 7, MSG_PROP_CALCULATING_FMT, data.dirs);
+        cwin_putat_string(&popup, 0, 9, MSG_FILE_ESC_CANCEL);
 
         dir_build_path(pathbuffer, sizeof(pathbuffer), presentdir[activepane].path, presentdirelement.name);
         walkresult = recurse_walk(pathbuffer, dir_size_cb, &data);
 
-        cwin_fill_rect(&popup, 0, 6, 36, 2, CH_SPACE);
+        cwin_fill_rect(&popup, 0, 6, 36, 4, CH_SPACE);
 
         if (walkresult == RECURSE_ABORT)
         {
