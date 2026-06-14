@@ -506,9 +506,11 @@ Shows a popup listing the filenames presently mounted to drives A-D, the tape de
 Shows a popup with details about the present file or directory:
 - Name, type and the active path. Type is shown as a description: "Directory" for directories, ".DSK - Disk image", ".TAP - Tape image", ".ROM - ROM image", ".LCE - LOCI Executable", ".CFG - Config file" or ".SYS - System file" for those file types (matched case-insensitively), and the file's own extension (e.g. ".TXT") for any other file
 - Attributes: R (read-only) and S (system), shown as a dash (-) if not set
-- Size in bytes. For a directory, the size is calculated recursively over all files in its tree; while calculating, "Calculating..." is shown, and pressing **ESC** cancels the calculation, after which "Cancelled." is shown instead of a size. If the directory tree is deeper than 8 levels, the total is shown with a trailing "+" to indicate it may be incomplete.
+- Size in bytes. For a directory, the size is calculated recursively over all files in its tree; while calculating, the popup shows "Calculating... N" (a running count of directories entered so far) together with the name of the directory currently being scanned, plus a "Press ESC to cancel." hint -- pressing **ESC** cancels the calculation, after which "Cancelled." is shown instead of a size. If the directory tree is deeper than 8 levels, the total is shown with a trailing "+" to indicate it may be incomplete.
 
 ![Tools: Properties (file)](screenshots/LociFM-menu-tools-properties.png)
+
+![Tools: Properties (directory, calculating)](screenshots/LociFM-menu-tools-properties-dir-calc.png)
 
 ![Tools: Properties (directory)](screenshots/LociFM-menu-tools-properties-dir.png)
 
