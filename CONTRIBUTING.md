@@ -25,6 +25,11 @@ build/test commands and Oscar64-specific gotchas, see
 | [Oricutron](http://www.defence-force.org/index.php?page=articles&art=oricutron) | Manual testing in emulator (no LOCI support) |
 | [Phosphoric](https://github.com/benedictemarty/Phosphoric) (`oric1-emu`) | Automated headless testing (LOCI emulated via host-fs sandbox) |
 
+> **Note:** The Makefile expects Oscar64 at `$OSCAR64_HOME/bin/oscar64` and
+> Oricutron at `$ORICUTRON_HOME/oricutron`, defaulting to `~/oscar64` and
+> `~/oricutron` if those environment variables are not set. For `make test*`,
+> copy `.env.example` to `.env` and set `PHOSDIR` to your Phosphoric checkout.
+
 ### Build and run
 
 ```sh
