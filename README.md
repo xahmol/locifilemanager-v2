@@ -448,7 +448,58 @@ This function can be reached also by pressing the **E** key.
 
 ![Dir: New dir](screenshots/LociFM-menu-dir-create-dir.png)
 
+### Mounts: Drive mounting and target selection
+
+![Mounts menu](screenshots/LociFM-menu-mounts.png)
+
+*Switch pane*
+
+Switches the active pane to the other pane. This function can be reached also by pressing the **/** key.
+
+*Next drive / Previous drive*
+
+Goes to the next or previous available LOCI drive for the active pane. These functions can be reached also by pressing the **.** key (next) or **,** key (previous).
+
+*Mount*
+
+Mounts the present file, depending on its type:
+- .DSK: mounted to the target disk drive (see *Target* below)
+- .TAP: mounted to the tape deck
+- .ROM: mounted to the ROM box
+
+A popup confirms the result:
+
+![Mounts: Mount](screenshots/LociFM-menu-mounts-mount.png)
+
+If browsing inside a tape image, this instead seeks to the start of the selected file on tape (see *Browse tape* in [File: File operations](#file-file-operations)).
+
+This function can be reached also by pressing the **M** key.
+
+*Unmount*
+
+Opens a popup to select which drive, tape or ROM should be unmounted/ejected:
+
+![Mounts: Unmount](screenshots/LociFM-menu-mounts-unmount.png)
+
+This function can be reached also by pressing the **U** key.
+
+*Target*
+
+Opens a popup to select which disk drive (A-D) .DSK images are mounted to by *Mount*. The menu shows the active target directly (`Tar[G]et: A`/`B`/`C`/`D`).
+
+![Mounts: Target](screenshots/LociFM-menu-mounts-target.png)
+
+This function can be reached also by pressing the **G** key.
+
+*Show mounts*
+
+Shows a popup listing the filenames presently mounted to drives A-D, the tape deck and the ROM box. Press any key to close.
+
+![Mounts: Show mounts](screenshots/LociFM-menu-mounts-show.png)
+
 ### Tools: Properties, name filter, text viewer, and favourites
+
+![Tools menu](screenshots/LociFM-menu-tools.png)
 
 *Properties*
 
@@ -457,6 +508,10 @@ Shows a popup with details about the present file or directory:
 - Attributes: R (read-only) and S (system), shown as a dash (-) if not set
 - Size in bytes. For a directory, the size is calculated recursively over all files in its tree; while calculating, "Calculating..." is shown, and pressing **ESC** cancels the calculation, after which "Cancelled." is shown instead of a size. If the directory tree is deeper than 8 levels, the total is shown with a trailing "+" to indicate it may be incomplete.
 
+![Tools: Properties (file)](screenshots/LociFM-menu-tools-properties.png)
+
+![Tools: Properties (directory)](screenshots/LociFM-menu-tools-properties-dir.png)
+
 Press any key to close the popup.
 
 This function can be reached also by pressing the **K** key.
@@ -464,6 +519,8 @@ This function can be reached also by pressing the **K** key.
 *Text filter*
 
 Opens a popup to enter a wildcard pattern (using `*` and `?`, case-insensitive) that filters the directory listing in both panes by file name. Directories are always shown regardless of the pattern, so navigation is never blocked.
+
+![Tools: Text filter](screenshots/LociFM-menu-tools-filter.png)
 
 Enter an empty pattern to clear the filter. Press **RETURN** to apply, **ESC** to cancel without changes. This filter is not remembered across restarts.
 
@@ -475,15 +532,21 @@ This function can be reached also by pressing the **L** key.
 
 Opens the present file in a full-screen, word-wrapped text viewer. Press **SPACE** (or any other key) to advance to the next page, or **ESC** to exit back to the file browser. Paging is forward-only.
 
+![Tools: View text](screenshots/LociFM-menu-tools-view.png)
+
 Any byte that is not printable ASCII (0x20-0x7E) -- e.g. when viewing a non-text/binary file -- is shown as a `.` placeholder, so binary content displays safely instead of corrupting the screen or truncating the line.
 
 Press **X** at any pause point to switch to a hex dump of the same file, showing each byte's offset and hex value plus an ASCII column; press **X** again to switch back to the word-wrapped text view. Either way, the file is read from the beginning again in the new view.
+
+![Tools: View text (hex dump)](screenshots/LociFM-menu-tools-view-hex.png)
 
 This function can be reached also by pressing the **J** key.
 
 *Favourites*
 
 Opens a popup listing 8 bookmark slots, shared by both panes and saved to `0:/idi8b/locifm/locifm.cfg`. Empty slots are shown as "(empty)".
+
+![Tools: Favourites](screenshots/LociFM-menu-tools-favourites.png)
 
 - Press **1**-**8** to jump the active pane to the directory bookmarked in that slot (no effect if the slot is empty).
 - Press **A** then **1**-**8** to bookmark the active pane's current directory into that slot, overwriting any previous entry.
@@ -505,6 +568,8 @@ linking to the project's GitHub page. Press any key to advance to the next
 screen, and again to return to the application.
 
 ![Info: Version](screenshots/LociFM-menu-info-version.png)
+
+![Info: QR code](screenshots/LociFM-menu-info-version-qr.png)
 
 *Help*
 
