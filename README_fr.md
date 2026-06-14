@@ -714,7 +714,7 @@ Affiche un écran d'aide pour les commandes clavier.
 
 | Version | Date | Notes |
 |---|---|---|
-| 2.0.0 | 2026 | Reconstruction Oscar64 — en développement |
+| 2.0.0 | 2026-06-14 | Première version publique — reconstruction Oscar64 |
 
 ### Nouveautés de la v1 à la v2
 

@@ -586,7 +586,7 @@ Shows a help screen for the keyboard commands.
 
 | Version | Date | Notes |
 |---|---|---|
-| 2.0.0 | 2026 | Oscar64 rebuild — in development |
+| 2.0.0 | 2026-06-14 | First public release — Oscar64 rebuild |
 
 ### Changes from v1 to v2
 
