@@ -1605,13 +1605,33 @@ void dir_deletedir(void)
 // -------------------------------------------------------------------------
 
 // recurse_walk() callback for dir_show_properties(): accumulates the total
-// size of every file under a directory. ESC aborts the calculation early
-// (the running total at that point is shown as MSG_PROP_CANCELLED instead).
+// size of every file under a directory. Also shows the directory currently
+// being entered and a running count, both as progress feedback for large
+// trees and as a breadcrumb of how far the walk got if the LOCI stops
+// responding partway through. ESC aborts the calculation early (the running
+// total at that point is shown as MSG_PROP_CANCELLED instead).
+typedef struct
+{
+    OricCharWin *popup;
+    uint32_t     total;
+    uint16_t     dirs;
+} SizeCbData;
+
 static int8_t dir_size_cb(RecurseEvent ev, const LociDirent *entry,
                            const char *fullpath, void *userdata)
 {
+    SizeCbData *data = (SizeCbData *)userdata;
+
     if (ev == RECURSE_FILE)
-        *(uint32_t *)userdata += entry->d_size;
+        data->total += entry->d_size;
+
+    if (ev == RECURSE_ENTER_DIR)
+    {
+        data->dirs++;
+        cwin_fill_rect(data->popup, 0, 6, 36, 2, CH_SPACE);
+        cwin_putat_string(data->popup, 0, 6, entry->d_name);
+        cwin_putat_printf(data->popup, 0, 7, MSG_PROP_CALCULATING_FMT, data->dirs);
+    }
 
     if (keyb_check() == KEY_ESC)
         return RECURSE_ABORT;
@@ -1717,15 +1737,19 @@ void dir_show_properties(void)
 
     if (presentdirelement.meta.type == 1)
     {
-        uint32_t total = 0;
-        int8_t   walkresult;
+        SizeCbData data;
+        int8_t     walkresult;
 
-        cwin_putat_string(&popup, 0, 7, MSG_PROP_CALCULATING);
+        data.popup = &popup;
+        data.total = 0;
+        data.dirs  = 0;
+
+        cwin_putat_printf(&popup, 0, 7, MSG_PROP_CALCULATING_FMT, data.dirs);
 
         dir_build_path(pathbuffer, sizeof(pathbuffer), presentdir[activepane].path, presentdirelement.name);
-        walkresult = recurse_walk(pathbuffer, dir_size_cb, &total);
+        walkresult = recurse_walk(pathbuffer, dir_size_cb, &data);
 
-        cwin_fill_rect(&popup, 0, 7, 36, 1, CH_SPACE);
+        cwin_fill_rect(&popup, 0, 6, 36, 2, CH_SPACE);
 
         if (walkresult == RECURSE_ABORT)
         {
@@ -1733,7 +1757,7 @@ void dir_show_properties(void)
         }
         else
         {
-            dir_dec10(sizebuf, total);
+            dir_dec10(sizebuf, data.total);
             cwin_putat_printf(&popup, 0, 7, MSG_PROP_SIZE_FMT, sizebuf,
                               recurse_truncated ? MSG_PROP_BYTES_APPROX : MSG_PROP_BYTES);
         }

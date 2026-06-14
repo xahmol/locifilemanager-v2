@@ -7,7 +7,7 @@
 // at /usr/share/nodejs/qrcode-terminal/vendor/QRCode (MIT licensed).
 //
 // That library only implements 8-bit byte mode (QR8bitByte), which would not
-// fit "GITHUB.COM/XAHMOL/LOCIFILEMANAGER" (34 chars) into a 25x25 (version 2)
+// fit "GITHUB.COM/XAHMOL/LOCIFILEMANAGER-V2" (37 chars) into a 25x25 (version 2)
 // symbol. This script instead builds the bit stream for QR *alphanumeric*
 // mode by hand (mode indicator 0010, 9-bit count for versions 1-9, 11 bits
 // per character pair / 6 bits for a trailing single char - QR spec table),
@@ -23,7 +23,7 @@ const QRBitBuffer = require('/usr/share/nodejs/qrcode-terminal/vendor/QRCode/QRB
 const QRRSBlock = require('/usr/share/nodejs/qrcode-terminal/vendor/QRCode/QRRSBlock.js');
 const QRErrorCorrectLevel = require('/usr/share/nodejs/qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js');
 
-const TEXT = "GITHUB.COM/XAHMOL/LOCIFILEMANAGER";
+const TEXT = "GITHUB.COM/XAHMOL/LOCIFILEMANAGER-V2";
 const ALPHANUM = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
 const CH_SPACE = 0x20;
 const CH_INVSPACE = 0xA0;

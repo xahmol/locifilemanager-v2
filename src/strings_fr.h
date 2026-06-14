@@ -152,7 +152,7 @@
 #define MSG_PROP_SIZE_FMT       "Taille: %s %s"
 #define MSG_PROP_BYTES          "octets"
 #define MSG_PROP_BYTES_APPROX   "octets+"
-#define MSG_PROP_CALCULATING    "Calcul en cours..."
+#define MSG_PROP_CALCULATING_FMT "Calcul en cours... %u"
 #define MSG_PROP_CANCELLED      "Annule."
 #define MSG_PROP_TYPE_DIR       "Repertoire"
 #define MSG_PROP_TYPE_DSK       ".DSK - Image disque"
@@ -226,7 +226,7 @@
 #define MSG_VERSION_AUTHOR      "Ecrit 2025-2026 par Xander Mol"
 #define MSG_VERSION_FMT         "Version: v%u.%u.%u - %s"
 #define MSG_VERSION_SOURCE      "Source, doc. et credits sur :"
-#define MSG_VERSION_URL         "github.com/xahmol/locifilemanager"
+#define MSG_VERSION_URL         "github.com/xahmol/locifilemanager-v2"
 #define MSG_VERSION_COPYRIGHT   "(C) 2025-2026, IDreamtIn8bits.com"
 #define MSG_VERSION_QR_TITLE    "Scannez pour le code source :"
 
