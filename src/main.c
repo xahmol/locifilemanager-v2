@@ -431,10 +431,14 @@ int main(void)
     b11_on = 0;
     bit_on = 0;
     ald_on = 0;
+    strcpy(presentdir[0].path, "0:/");
+    presentdir[0].drive = 0;
+    strcpy(presentdir[1].path, "0:/");
+    presentdir[1].drive = 0;
 
-    // Override confirm/filter/enterchoice/sort defaults above from
-    // FMCONFIG_PATH, if present and valid; otherwise save the compiled-in
-    // defaults there as a new config file.
+    // Override confirm/filter/enterchoice/sort/activepane and each pane's
+    // path/drive defaults above from FMCONFIG_PATH, if present and valid;
+    // otherwise save the compiled-in defaults there as a new config file.
     config_load();
 
     // Populate dynamic App pulldown entries, reflecting settings -- either
@@ -474,12 +478,10 @@ int main(void)
         cwin_putat_string(&header, 37 - len, 0, pathbuffer);
     }
 
-    // Set start dirs and print
-    strcpy(presentdir[0].path, "0:/");
-    presentdir[0].drive = 0;
+    // Print both panes -- paths/drives/activepane already set above, either
+    // to the compiled-in defaults or restored by config_load().
     dir_draw(0, 1);
-    presentdir[1].drive = 0;
-    dir_get_next_drive(1);
+    dir_draw(1, 1);
 
     // Main loop
     for (;;)
@@ -500,6 +502,7 @@ int main(void)
                 dir_build_path(pathbuffer, sizeof(pathbuffer), presentdir[activepane].path, presentdirelement.name);
                 strncpy(presentdir[activepane].path, pathbuffer, sizeof(presentdir[activepane].path));
                 dir_draw(activepane, 1);
+                config_save();
             }
             else
             {

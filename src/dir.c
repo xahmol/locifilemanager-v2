@@ -833,6 +833,7 @@ void dir_get_next_drive(uint8_t dirnr)
     strncpy(presentdir[dirnr].path, dirbuffer, 4);
 
     dir_draw(dirnr, 1);
+    config_save();
 }
 
 void dir_get_prev_drive(uint8_t dirnr)
@@ -863,6 +864,7 @@ void dir_get_prev_drive(uint8_t dirnr)
     strncpy(presentdir[dirnr].path, dirbuffer, 4);
 
     dir_draw(dirnr, 1);
+    config_save();
 }
 
 // -------------------------------------------------------------------------
@@ -874,6 +876,7 @@ void dir_switch_pane(void)
     activepane = !activepane;
     dir_draw(0, 0);
     dir_draw(1, 0);
+    config_save();
 }
 
 void dir_go_down(void)
@@ -1169,6 +1172,7 @@ void dir_gotoroot(void)
     insidetape[activepane] = 0;
 
     dir_draw(activepane, 1);
+    config_save();
 }
 
 void dir_parentdir(void)
@@ -1181,6 +1185,7 @@ void dir_parentdir(void)
     {
         insidetape[activepane] = 0;
         dir_draw(activepane, 1);
+        config_save();
         return;
     }
 
@@ -1199,6 +1204,7 @@ void dir_parentdir(void)
         presentdir[activepane].path[i + 1] = 0;
 
         dir_draw(activepane, 1);
+        config_save();
     }
 }
 
@@ -1221,7 +1227,8 @@ void dir_togglesort(void)
 // Persistent settings (FMCONFIG_PATH)
 // -------------------------------------------------------------------------
 
-// Save confirm/filter/enterchoice/sort and favourites to FMCONFIG_PATH.
+// Save confirm/filter/enterchoice/sort, favourites and the last path/drive
+// of each pane plus the active pane to FMCONFIG_PATH.
 void config_save(void)
 {
     // static: struct FmConfig is too large for the 512-byte stack segment
@@ -1244,13 +1251,22 @@ void config_save(void)
     for (i = 0; i < FMCONFIG_FAV_SLOTS; i++)
         strncpy(cfg.favourites[i], favourites[i], FMCONFIG_FAV_PATHLEN);
 
+    for (i = 0; i < 2; i++)
+    {
+        strncpy(cfg.lastpath[i], presentdir[i].path, FMCONFIG_FAV_PATHLEN - 1);
+        cfg.lastpath[i][FMCONFIG_FAV_PATHLEN - 1] = '\0';
+        cfg.lastdrive[i] = presentdir[i].drive;
+    }
+    cfg.lastactivepane = activepane;
+
     file_save(FMCONFIG_PATH, &cfg, sizeof(cfg));
 }
 
-// Load confirm/filter/enterchoice/sort and favourites from FMCONFIG_PATH, if
-// present and valid. On any failure (missing file, short read, bad magic),
-// the compiled-in defaults already set by the caller are written out as a
-// new config file instead.
+// Load confirm/filter/enterchoice/sort, favourites and the last path/drive
+// of each pane plus the active pane from FMCONFIG_PATH, if present and
+// valid. On any failure (missing file, short read, bad magic), the
+// compiled-in defaults already set by the caller are written out as a new
+// config file instead.
 void config_load(void)
 {
     // static: see config_save() above.
@@ -1279,6 +1295,14 @@ void config_load(void)
         strncpy(favourites[i], cfg.favourites[i], FMCONFIG_FAV_PATHLEN);
         favourites[i][FMCONFIG_FAV_PATHLEN - 1] = '\0';
     }
+
+    for (i = 0; i < 2; i++)
+    {
+        strncpy(presentdir[i].path, cfg.lastpath[i], FMCONFIG_FAV_PATHLEN);
+        presentdir[i].path[FMCONFIG_FAV_PATHLEN - 1] = '\0';
+        presentdir[i].drive = cfg.lastdrive[i];
+    }
+    activepane = (cfg.lastactivepane == 1) ? 1 : 0;
 }
 
 // -------------------------------------------------------------------------

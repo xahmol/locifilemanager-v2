@@ -54,12 +54,16 @@ BOOT_CYCLES=8000000
 OPEN_CYCLES=9800000
 CFGFILE="$SANDBOX/idi8b/locifm/locifm.cfg"
 
-# struct FmConfig = magic + 4 settings bytes + 8x48 favourites bytes (389
+# struct FmConfig = magic + 4 settings bytes + 8x48 favourites bytes +
+# 2x48 lastpath bytes + 2 lastdrive bytes + 1 lastactivepane byte (488
 # bytes total). zero_hex N prints N zero bytes as hex (no separators).
 zero_hex() {
     python3 -c "print('00' * $1, end='')"
 }
-DEFAULT_BYTES="a5$(zero_hex 388)"
+# "0:/" + NUL padding to FMCONFIG_FAV_PATHLEN=48 bytes -- each pane's
+# lastpath[] on a fresh boot (both panes default to 0:/).
+PANE_PATH_HEX="303a2f$(zero_hex 45)"
+DEFAULT_BYTES="a5$(zero_hex 388)${PANE_PATH_HEX}${PANE_PATH_HEX}$(zero_hex 3)"
 
 pass=0
 fail=0
@@ -149,21 +153,21 @@ echo ""
 echo "existing valid config -> config_load() applies settings, file unchanged"
 reset_sandbox
 mkdir -p "$SANDBOX/idi8b/locifm"
-python3 -c "import sys; sys.stdout.buffer.write(b'\xa5\x01\x01\x01\x01' + b'\x00' * 384)" > "$CFGFILE"
+python3 -c "import sys; sys.stdout.buffer.write(b'\xa5\x01\x01\x01\x01' + b'\x00' * 384 + b'0:/' + b'\x00' * 45 + b'0:/' + b'\x00' * 45 + b'\x00\x00\x00')" > "$CFGFILE"
 dump="$OUT/config_loaded.bin"
 run_emu "${BOOT_CYCLES}:\\r\\p1\\n" "$OPEN_CYCLES" "$dump"
 check_found "Confirm: All (confirm=1 loaded)"   "Confirm: All"   "$dump"
 check_found "Return: Enter (enterchoice=1 loaded)" "Return: Enter" "$dump"
 check_found "[F] Type: .DSK (filter=1 loaded)"  "[F] Type: .DSK" "$dump"
 check_found "S[O]rt: On (sort=1 loaded)"        "S[O]rt: On"     "$dump"
-check_cfg_bytes "locifm.cfg unchanged after load" "a501010101$(zero_hex 384)"
+check_cfg_bytes "locifm.cfg unchanged after load" "a501010101$(zero_hex 384)${PANE_PATH_HEX}${PANE_PATH_HEX}$(zero_hex 3)"
 
 # --- 3. existing config with bad magic -> rewritten with defaults ---------
 echo ""
 echo "existing config with bad magic -> config_save() rewrites defaults"
 reset_sandbox
 mkdir -p "$SANDBOX/idi8b/locifm"
-python3 -c "import sys; sys.stdout.buffer.write(b'\x00\x01\x01\x01\x01' + b'\x00' * 384)" > "$CFGFILE"
+python3 -c "import sys; sys.stdout.buffer.write(b'\x00\x01\x01\x01\x01' + b'\x00' * 384 + b'0:/' + b'\x00' * 45 + b'0:/' + b'\x00' * 45 + b'\x00\x00\x00')" > "$CFGFILE"
 dump="$OUT/config_badmagic.bin"
 run_emu "${BOOT_CYCLES}:\\p1" "$BOOT_CYCLES" "$dump"
 check_found "main interface intact" "LOCI File Manager" "$dump"
@@ -176,7 +180,7 @@ reset_sandbox
 dump="$OUT/config_runtime_sort.bin"
 run_emu "${BOOT_CYCLES}:o\\p1" 12000000 "$dump"
 check_found "main interface intact" "LOCI File Manager" "$dump"
-check_cfg_bytes "locifm.cfg updated immediately after sort toggle" "a500000001$(zero_hex 384)"
+check_cfg_bytes "locifm.cfg updated immediately after sort toggle" "a500000001$(zero_hex 384)${PANE_PATH_HEX}${PANE_PATH_HEX}$(zero_hex 3)"
 
 echo ""
 echo "==========================================================="

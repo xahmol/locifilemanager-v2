@@ -40,12 +40,16 @@ SCREEN=tests/scripts/oric_screen.py
 BOOT_CYCLES=8000000
 CFGFILE="$SANDBOX/idi8b/locifm/locifm.cfg"
 
-# struct FmConfig = magic + 4 settings bytes + 8x48 favourites bytes (389
+# struct FmConfig = magic + 4 settings bytes + 8x48 favourites bytes +
+# 2x48 lastpath bytes + 2 lastdrive bytes + 1 lastactivepane byte (488
 # bytes total). zero_hex N prints N zero bytes as hex (no separators).
 zero_hex() {
     python3 -c "print('00' * $1, end='')"
 }
-DEFAULT_BYTES="a5$(zero_hex 388)"
+# "0:/" + NUL padding to FMCONFIG_FAV_PATHLEN=48 bytes -- each pane's
+# lastpath[] on a fresh boot (both panes default to 0:/).
+PANE_PATH_HEX="303a2f$(zero_hex 45)"
+DEFAULT_BYTES="a5$(zero_hex 388)${PANE_PATH_HEX}${PANE_PATH_HEX}$(zero_hex 3)"
 
 pass=0
 fail=0
@@ -100,17 +104,20 @@ reset_sandbox() {
     cp "build/$TAPFILE" "$SANDBOX/"
 }
 
-# Write a 389-byte locifm.cfg with magic=0xA5, default settings, and slot 0
-# (displayed as "1:") set to the given path (NUL-padded to 48 bytes).
+# Write a 488-byte locifm.cfg with magic=0xA5, default settings, slot 0
+# (displayed as "1:") set to the given path (NUL-padded to 48 bytes), and
+# both panes' lastpath set to "0:/" (default last-state, NUL-padded).
 seed_cfg_slot0() {
     local path="$1"
     mkdir -p "$SANDBOX/idi8b/locifm"
     python3 -c "
 import sys
-data = bytearray(389)
+data = bytearray(488)
 data[0] = 0xa5
 slot = b'$path'
 data[5:5 + len(slot)] = slot
+data[389:389 + 3] = b'0:/'
+data[437:437 + 3] = b'0:/'
 sys.stdout.buffer.write(bytes(data))
 " > "$CFGFILE"
 }
@@ -149,7 +156,7 @@ run_emu "${BOOT_CYCLES}:o\\p1\\n\\p1y\\p1a\\p11\\p1" 15000000 "$add_dump"
 check_found "slot 1 shows 0:/DEEP/" "1: 0:/DEEP/" "$add_dump"
 
 DEEP_HEX="$(python3 -c "print('0:/DEEP/'.encode().hex(), end='')")"
-EXPECTED_ADD="a500000001${DEEP_HEX}$(zero_hex 40)$(zero_hex $((48 * 7)))"
+EXPECTED_ADD="a500000001${DEEP_HEX}$(zero_hex 40)$(zero_hex $((48 * 7)))${DEEP_HEX}$(zero_hex 40)${PANE_PATH_HEX}$(zero_hex 3)"
 check_cfg_bytes "locifm.cfg slot 1 bytes = 0:/DEEP/ + padding" "$EXPECTED_ADD"
 
 # --- 3. Pre-seeded slot 1 -> open Favourites -> jump -----------------------

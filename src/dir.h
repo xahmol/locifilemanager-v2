@@ -101,6 +101,9 @@ struct FmConfig
     uint8_t enterchoice;
     uint8_t sort;
     char    favourites[FMCONFIG_FAV_SLOTS][FMCONFIG_FAV_PATHLEN];
+    char    lastpath[2][FMCONFIG_FAV_PATHLEN];
+    uint8_t lastdrive[2];
+    uint8_t lastactivepane;
 };
 
 // Application variables
