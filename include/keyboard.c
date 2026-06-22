@@ -35,8 +35,15 @@ static const uint8_t decode_normal[64] = {
     'u', 'i', 'o', 'p',  0,   KEY_DEL, ']', '[',
     // Row 6: Y   H   G   E  RALT  A    S   W
     'y', 'h', 'g', 'e',  0,  'a', 's', 'w',
-    // Row 7: 8   L   0   /  RSHIFT RETURN  =   --
-    '8', 'l', '0', '/',  0,   KEY_ENTER, '=', 0,
+    // Row 7: 8   L   0   /  RSHIFT RETURN  --  =
+    // '=' is col7, not col6 -- confirmed against the OSDK ART20 matrix
+    // reference, the OSDK Keyboard-FullMatrix demo, and the original
+    // LOCI ROM source this table is transcribed from (all three agree).
+    // Found 2026-06-22 via OricScreenEditorLOCI's real-hardware '='-key
+    // investigation -- this codebase's table had the same transcription
+    // error (copied from here originally). See that project's memory
+    // equals_plus_key_not_recognized for the full investigation.
+    '8', 'l', '0', '/',  0,   KEY_ENTER, 0, '=',
 };
 
 static const uint8_t decode_shifted[64] = {
@@ -54,8 +61,10 @@ static const uint8_t decode_shifted[64] = {
     'U', 'I', 'O', 'P',  0,   KEY_DEL, '}', '{',
     // Row 6: Y   H   G   E  RALT  A    S   W
     'Y', 'H', 'G', 'E',  0,  'A', 'S', 'W',
-    // Row 7: *   L   )   ?  RSHIFT RETURN  +  --
-    '*', 'L', ')', '?',  0,   KEY_ENTER, '+', 0,
+    // Row 7: *   L   )   ?  RSHIFT RETURN  --  +
+    // Same col6/col7 fix as decode_normal[] above -- '+' (shifted '=')
+    // moves to col7, col6 unused.
+    '*', 'L', ')', '?',  0,   KEY_ENTER, 0, '+',
 };
 
 // FUNCT + digit/key maps: FUNCT+1=F1, FUNCT+2=F2, ... FUNCT+0=F10
