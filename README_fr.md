@@ -714,6 +714,7 @@ Affiche un écran d'aide pour les commandes clavier.
 
 | Version | Date | Notes |
 |---|---|---|
+| 2.0.1 | 2026-06-22 | Correction de la touche `=`/`+` qui ne fonctionnait pas sur le matériel réel (erreur dans la table de décodage du clavier) |
 | 2.0.0 | 2026-06-14 | Première version publique — reconstruction Oscar64 |
 
 ### Nouveautés de la v1 à la v2
